@@ -1,0 +1,52 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import {{ controllerName }} from '#models/{{ controllerName }}'
+import { CreateValidatorFor{{ controllerName }}, UpdateValidatorFor{{ controllerName }} } from '#validators/{{ controllerName }}'
+
+
+export default class {{ filename }} {
+  
+  async index(ctx: HttpContext) {
+    const {{ controllerVariable }} = await {{ controllerName }}.query().paginate(ctx.request.input('page', 1), 10);
+    return ctx.response.json({{ controllerVariable }}.serialize());
+  }
+
+  async create(ctx: HttpContext) {
+    const payload = await CreateValidatorFor{{ controllerName }}.validate(ctx.request.all());
+    const {{ controllerVariable }} = await {{ controllerName }}.create(payload);
+    return ctx.response.json({{ controllerVariable }}.serialize());
+  }
+
+  async store(ctx: HttpContext) { }
+
+  async show(ctx: HttpContext) {
+    const {{ controllerVariable }} = await {{ controllerName }}.findOrFail(ctx.request.input('id'));
+    return ctx.response.json({{ controllerVariable }}.serialize());
+  }
+
+  async update(ctx: HttpContext) {
+    const payload = await UpdateValidatorFor{{ controllerName }}.validate(ctx.request.all());
+    const {{ controllerVariable }} = await {{ controllerName }}.findOrFail(ctx.request.input('id'));
+    await {{ controllerVariable }}.merge(payload).save();
+    return ctx.response.json({{ controllerVariable }}.serialize());
+  }
+
+  async filter{{ controllerName }}(ctx: HttpContext) {
+    const {{ controllerVariable }} = await {{ controllerName }}.query().where('role', 'student').paginate(ctx.request.input('page', 1), 10);
+    return ctx.response.json({{ controllerVariable }}.serialize());
+  }
+
+  // async destroy(ctx: HttpContext) {
+  //   const {{ controllerVariable }} = await {{ controllerName }}.findOrFail(ctx.request.input('id'));
+  //   await user.delete();
+  // }
+
+  // async edit(ctx: HttpContext) {
+  //   const payload = await UpdateValidatorFor{{ controllerName }}.validate(ctx.request.all());
+  //   const user = await {{ controllerName }}.findOrFail(ctx.request.input('id'));
+  //   user.merge(payload).save();
+  //   return ctx.response.json(user.serialize());
+  // }
+}
+
+
+
