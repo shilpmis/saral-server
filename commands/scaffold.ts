@@ -1,10 +1,11 @@
+import { BaseCommand } from '@adonisjs/core/ace'
 import MakeValidator from '@adonisjs/core/commands/make/validator'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-export default class Scaffold extends MakeValidator {
+export default class Scaffold extends BaseCommand {
 
   public static commandName = 'make:scaffold'
-  public static description = 'Creates model, migration, controller, and route'
+  public static description = 'Creates model, migration, controller .'
 
   // @args.string({ description: 'Name of the scaffold class' })
   // declare name: string
