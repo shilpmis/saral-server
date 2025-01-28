@@ -1,7 +1,9 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
+import { SubscriptionStatus, SubscriptionType } from '#enums/school.enum'
 import Base from '#models/base'
 import { column } from '@adonisjs/lucid/orm'
+
 
 export default class Schools extends Base {
 
@@ -16,7 +18,7 @@ export default class Schools extends Base {
      @column()
      declare email: string
 
-     @column({serializeAs : null })
+     @column()
      declare address: string
 
      @column()
@@ -25,25 +27,28 @@ export default class Schools extends Base {
      @column()
      declare state: string
 
-     @column({serializeAs : null })
+     @column()
      declare pincode: number
 
-     @column({serializeAs : null })
+     @column()
      declare phone: number
 
-     @column({serializeAs : null })
-     declare subscription_type: string
+     @column({
+          consume: (value) => value || SubscriptionType.FREE, 
+     })
+     declare subscription_type: SubscriptionType;
 
      @column({serializeAs : null })
      declare is_email_verified: boolean
 
      @column({serializeAs : null })
-     declare subscription_start_date: string
+     declare subscription_start_date: Date
 
      @column({serializeAs : null })
-     declare subscription_end_date: string
+     declare subscription_end_date: Date
 
-     @column()
-     declare status : 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'BLOCKED'
-     
+     @column({
+          consume: (value) => value || SubscriptionStatus.PENDING, 
+     })
+     declare status: SubscriptionStatus
 }
