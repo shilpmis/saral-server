@@ -6,10 +6,12 @@ import vine from "@vinejs/vine";
 export const CreateValidatorForUsers = vine.compile(
   vine.object({
       // add here
-      school_id : vine.number().positive(),
+      // school_id : vine.number().positive(),
       username : vine.string().trim().minLength(3).maxLength(30),
       password : vine.string().trim().minLength(8).maxLength(30), 
-      role : vine.enum(['admin', 'clerk', 'it_admin', 'principal']),
+      role_id : vine.number(),
+
+      
 
       // blow fields are added in req body from controller itself 
 

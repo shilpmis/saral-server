@@ -7,17 +7,13 @@ export const CreateValidatorForSchools = vine.compile(
   vine.object({
       // add here
       name : vine.string().trim().maxLength(50),
-      short_name : vine.string().trim().maxLength(10),
-      email : vine.string().email(),
-      address : vine.string().trim().minLength(3).maxLength(30).optional(),
-      city : vine.string().trim().minLength(3).maxLength(30),
-      state : vine.string().trim().minLength(3).maxLength(30),
-      pincode: vine.number().min(6),
-      phone : vine.number().min(6),
-      subscription_type : vine.string(), 
-      status : vine.enum(['ACTIVE', 'INACTIVE', 'PENDING', 'BLOCKED']),
-      subscription_start_date : vine.string(),
-      subscription_end_date : vine.string(),
+      username : vine.string().trim().unique({table : 'school' , column : 'username'}).maxLength(10),
+      email : vine.string().email().unique({table : 'school' , column : 'email'}),
+      contact_number : vine.number().min(10),
+      subscription_type : vine.enum(['FREE' , 'PREMIUM']), 
+      status : vine.enum(['ACTIVE', 'INACTIVE']),
+      subscription_start_date : vine.date(),
+      subscription_end_date : vine.date(),
   })
 )
 
