@@ -12,16 +12,22 @@ export default class User extends Base {
   declare school_id : number
   
   @column()
+  declare name : string
+  
+  @column()
+  declare username : string
+  
+  @column()
   declare saral_email : string
   
   @column({serializeAs : null })
   declare password : string
   
   @column()
-  declare role : "admin" | "clerk" | "it_admin" | "principal"
+  declare role_id : number
   
-  @column.dateTime({ autoCreate: true , serializeAs : null })
-  declare last_login: DateTime
+  // @column.dateTime({ autoCreate: true , serializeAs : null })
+  // declare last_login: DateTime
 
   @hasOne(() => Schools , {
     localKey : 'school_id',
