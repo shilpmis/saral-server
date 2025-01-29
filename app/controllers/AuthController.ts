@@ -26,9 +26,11 @@ export default class AuthController {
      */
     const admin_user = await User.create({
       school_id: school.id,
-      saral_email: `admin@${school.short_name}.saral`,
+      saral_email: `admin@${school.username}.saral`,
       password: '12345678',
-      role: 'admin',
+      role_id: 1,
+      username : 'admin',
+      name : 'Admin'
     });
     return ctx.response.json({ school: school.serialize(), admin: admin_user.serialize() });
   }
@@ -44,6 +46,7 @@ export default class AuthController {
         }
         return ctx.response.status(404).json({ message: 'Your email or password might not br correct !!' });
       } catch (error) {
+        console.log("error" , error);
         return ctx.response.status(500).json({ message: 'Internal Server Error !! Please contact service center !' });
       }
     }
@@ -52,19 +55,16 @@ export default class AuthController {
   async createUser(ctx: HttpContext) {
     const payload = await CreateValidatorForUsers.validate(ctx.request.all());
 
-    const school = await Schools.findBy('id', payload.school_id);
+    const school = await Schools.findBy('id', ctx.auth.user?.school_id);
     if (school) {
       const user = await User.create({
         ...payload,
-        saral_email: `${payload.username}@${school.short_name}.saral`
+        saral_email: `${payload.username}@${school.username}.saral`
       });
       return ctx.response.json(user.serialize());
     }
     return ctx.response.status(404).json({ message: 'School not found !!' });
   }
-
-
-
 }
 
 
