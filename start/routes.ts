@@ -10,22 +10,29 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 import AuthController from '#controllers/AuthController'
+import ClassesController from '#controllers/ClassesController'
 
 router.get('/', async () => {
   return {
     hello: 'Hello world',
   }
 })
+
 router.group(() => {
 
-  router.post('/signin', [AuthController , 'createSchool']) 
+  router.post('/signup', [AuthController , 'createSchool']) 
   router.post('/login', [AuthController , 'login'])
 
 }).prefix('/api/v1/')
 
 router.group(() => {
 
+  
   router.post('/create/user', [AuthController , 'createUser'])
+  
+  router.post('/create/class', [ClassesController , 'createClass'])
+
+
 
   router.post('/users', '#controllers/users_controller.store')
   router.get('/users', '#controllers/users_controller.index')
