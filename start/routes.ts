@@ -11,6 +11,7 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 import AuthController from '#controllers/AuthController'
 import ClassesController from '#controllers/ClassesController'
+import StaffController from '#controllers/StaffController'
 
 router.get('/', async () => {
   return {
@@ -30,7 +31,15 @@ router.group(() => {
   
   router.post('/create/user', [AuthController , 'createUser'])
   
-  router.post('/create/class', [ClassesController , 'createClass'])
+  router.post('/class', [ClassesController , 'createClass']);
+  router.put('/class/:id', [ClassesController , 'updateClass']);
+
+  router.delete('/fetch/school/staff/:school_id', [StaffController , 'indexStaffForSchool']);
+  router.post('/staff', [StaffController , 'createStaffRole']);
+  router.put('/staff/:id', [StaffController , 'updateStaffRole']);
+  router.delete('/staff/:id', [StaffController , 'deleteStaffRole']);
+
+  
 
 
 
