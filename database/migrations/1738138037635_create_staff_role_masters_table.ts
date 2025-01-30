@@ -15,6 +15,9 @@ export default class extends BaseSchema {
                 .onDelete('CASCADE')
             table.string('role' , 50).notNullable()
             table.json('permissions').notNullable()
+
+
+
         })
     }
 
