@@ -8,7 +8,8 @@ export const CreateValidatorForClasses = vine.compile(
       // add here
       class : vine.enum([1, 2 ,3 , 4 ,5 , 6, 7, 8 , 9 , 10 ,11 ,12]),
       division : vine.enum(['A' , 'B' , 'C' , 'D' , 'E' , 'F' , 'G' , 'H' , 'I' , 'J' ]),  
-      aliases : vine.string().minLength(3).maxLength(10),
+      
+      aliases : vine.string().minLength(3).maxLength(10).optional(),
   })
 )
 
@@ -18,7 +19,7 @@ export const CreateValidatorForClasses = vine.compile(
  */
 export const UpdateValidatorForClasses = vine.compile(
   vine.object({
-    
+    aliases : vine.string().minLength(3).maxLength(10).optional(),   
   })
 )
 
