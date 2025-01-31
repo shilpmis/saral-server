@@ -6,6 +6,7 @@ import { column } from '@adonisjs/lucid/orm'
 export default class RoleMaster extends Base {
 
     public static table = 'role_master'
+    
     @column()
     declare role : string
 
