@@ -52,19 +52,6 @@ export default class AuthController {
     }
   }
 
-  async createUser(ctx: HttpContext) {
-    const payload = await CreateValidatorForUsers.validate(ctx.request.all());
-
-    const school = await Schools.findBy('id', ctx.auth.user?.school_id);
-    if (school) {
-      const user = await User.create({
-        ...payload,
-        saral_email: `${payload.username}@${school.username}.saral`
-      });
-      return ctx.response.json(user.serialize());
-    }
-    return ctx.response.status(404).json({ message: 'School not found !!' });
-  }
 }
 
 

@@ -1,108 +1,56 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { CreateValidatorForUsers, UpdateValidatorForUsers } from '#validators/Users'
 import Users from '#models/User'
+import User from '#models/User';
 
 
 export default class UsersController {
-  /**
-   * Return list of all posts or paginate through
-   * them
-   */
-  async index(ctx: HttpContext) {
-    const users = await Users.query().paginate(ctx.request.input('page', 1), 10);
-    return ctx.response.json(users.serialize());
+
+
+  async indexSchoolUsers(ctx: HttpContext) {
+    if (ctx.params.school_id) {
+      const users = await Users
+        .query()
+        .where('school_id', ctx.params.school_id).
+        paginate(ctx.request.input('page', 1), 10);
+      return ctx.response.json(users.serialize());
+    } else {
+      return ctx.response.status(404).json({ message: 'School id is required' });
+    }
   }
 
-  /**
-   * Render the form to create a new post.
-   *
-   * Not needed if you are creating an API server.
-   */
-  async create(ctx: HttpContext) {
+  async createUser(ctx: HttpContext) {
+
+    let school_id = ctx.auth.user?.school_id;
+
     const payload = await CreateValidatorForUsers.validate(ctx.request.all());
-    const user = await Users.create(payload);
-    return ctx.response.json(user.serialize());
+
+    if (ctx.auth.user?.role_id == 1) {
+      const user = await User.create({
+        ...payload,
+        school_id: school_id,
+        saral_email: `${payload.username}@${ctx.auth.user?.username}.saral`
+      });
+      return ctx.response.json(user.serialize());
+    } else {
+      return ctx.response.status(404).json({ message: 'You are not authorized to perorm this action' });
+    }
   }
 
-  /**
-   * Handle form submission to create a new post
-   */
-  async store(ctx: HttpContext) { 
-    const payload = await CreateValidatorForUsers.validate(ctx.request.all());
-    const user = await Users.create(payload);
-    return ctx.response.json(user.serialize());
-  }
-
-  /**
-   * Display a single post by id.
-   */
-  async show(ctx: HttpContext) {
-    const user = await Users.findOrFail(ctx.request.input('id'));
-    return ctx.response.json(user.serialize());
-  }
-
-
-  /**
-   * Handle the form submission to update a specific post by id
-  */
   async update(ctx: HttpContext) {
-    const payload = await UpdateValidatorForUsers.validate(ctx.request.all());
-    const user = await Users.findOrFail(ctx.request.input('id'));
-    user.merge(payload).save();
-    return ctx.response.json(user.serialize());
+
+    if (ctx.auth.user?.school_id == ctx.params.school_id && (ctx.auth.user?.role_id == 1 || ctx.auth.user?.id == ctx.params.user_id)) {
+
+      const payload = await UpdateValidatorForUsers.validate(ctx.request.all());
+      if(payload.role_id && ctx.auth.user?.id === ctx.params.user_id){
+        return ctx.response.status(404).json({ message: 'You are not authorized to modifiy your own role .' });
+      }
+      const user = await Users.findOrFail(ctx.params.user_id);
+      user.merge(payload).save();
+      return ctx.response.json(user.serialize());
+    } else {
+      return ctx.response.status(404).json({ message: 'You are not authorized to perform this action' });
+    }
   }
 
-  async filterUsers(ctx: HttpContext) {
-    const users = await Users.query().where('role', 'student').paginate(ctx.request.input('page', 1), 10);
-    return ctx.response.json(users.serialize());
-  }
-
-  /**
-   * Handle the form submission to delete a specific post by id.
-  */
-  // async destroy(ctx: HttpContext) {
-  //   const user = await Users.findOrFail(ctx.request.input('id'));
-  //   await user.delete();
-  // }
-
-  // /**
-  //  * Render the form to edit an existing post by its id.
-  //  *
-  //  * Not needed if you are creating an API server.
-  //  */
-  // async edit(ctx: HttpContext) {
-  //   const payload = await UpdateValidatorForUsers.validate(ctx.request.all());
-  //   const user = await Users.findOrFail(ctx.request.input('id'));
-  //   user.merge(payload).save();
-  //   return ctx.response.json(user.serialize());
-  // }
 }
-
-
-/**  
- *   Schools,  
- *   Users (Admin , IT , Clerck), 
- *   Students - (Parent Details) 
- *   Teachers 
- *   Classes 
- *   Subjects
- *   Attendance
- *   Fees
- *   Exam
- *   Result
- *   Settings
- * 
- *   School ---- List of schools which are registered 
- *   Users ---- admin , clerck & IT-administrator , Hostel 
- *   Teachers  --- Prinicipal and teachers 
- *   Students --- Students
- *   Classes --- Classes
- *   Subjects --- Subjects
- *   Fees --- Fees
- *   Exam --- Exam
- *   Settings --- Settings
- *   Result --- Result
- *   Attendance --- Attendance
- *    
- * 
- */
