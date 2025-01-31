@@ -1,7 +1,7 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'student_metas'
+  protected tableName = 'student_meta'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
@@ -15,8 +15,8 @@ export default class extends BaseSchema {
       table.string('religiion', 50).notNullable();
       table.string('religiion_in_guj', 50).notNullable();
 
-      table.string('cast', 100).notNullable();
-      table.string('cast_in_guj', 100).notNullable();
+      table.string('caste', 100).notNullable();
+      table.string('caste_in_guj', 100).notNullable();
       table.enum('category', ['ST', 'SC', 'OBC', 'OPEN']).notNullable();
 
       table.date('admission_date').notNullable();
@@ -24,10 +24,11 @@ export default class extends BaseSchema {
       table.enum('division', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']).notNullable();
 
       table
-        .string('mobile_number_2', 15)
+        .string('secondary_mobile', 15)
         .unique()
         .notNullable()
-        .checkRegex('/^[6-9]\d{9}$/'); // Ensures a valid mobile number
+        .defaultTo(null)
+        // .checkRegex('/^[6-9]\d{9}$/'); // Ensures a valid mobile number
 
 
       table.string('privious_school', 100).nullable().defaultTo(null);

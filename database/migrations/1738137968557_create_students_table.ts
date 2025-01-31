@@ -33,10 +33,10 @@ export default class extends BaseSchema {
 
             // Contact details
             table
-                .string('mobile_number_1', 15)
-                .notNullable()
-                .unique()
-                .checkRegex('/^[6-9]\d{9}$/'); // Ensures a valid mobile number
+            .integer('primary_mobile', 10)
+            .notNullable()
+            .unique();
+            // .checkRegex('/^[6-9]\d{9}$/');
             
             table.string('father_name', 100).notNullable();
             table.string('father_name_in_guj', 100).notNullable();
@@ -51,7 +51,7 @@ export default class extends BaseSchema {
                 .inTable('classes') // Assuming the parent table is `schools`
                 .onDelete('CASCADE'); // Ensure cascading delete
 
-            table.integer('roll_number').unsigned().notNullable();
+            table.integer('roll_number').nullable().defaultTo(null);
 
             table.bigInteger('aadhar_no').unsigned().notNullable();
 
