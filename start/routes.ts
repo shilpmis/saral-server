@@ -12,6 +12,7 @@ import { middleware } from './kernel.js'
 import AuthController from '#controllers/AuthController'
 import ClassesController from '#controllers/ClassesController'
 import StaffController from '#controllers/StaffController'
+import UsersController from '#controllers/UsersController'
 
 router.get('/', async () => {
   return {
@@ -29,17 +30,20 @@ router.group(() => {
 router.group(() => {
 
   
-  router.post('/create/user', [AuthController , 'createUser'])
+  router.get('/user/:school_id', [UsersController , 'indexSchoolUsers'])
+  router.post('/user', [UsersController , 'createUser'])
+  router.put('/user/:school_id/:user_id', [UsersController , 'update'])
   
+  router.get('/classes/:school_id', [ClassesController , 'indexClassesForSchool']);
   router.post('/class', [ClassesController , 'createClass']);
   router.put('/class/:id', [ClassesController , 'updateClass']);
 
-  router.delete('/fetch/school/staff/:school_id', [StaffController , 'indexStaffForSchool']);
+  router.get('/staff/:school_id', [StaffController , 'indexStaffForSchool']);
   router.post('/staff', [StaffController , 'createStaffRole']);
   router.put('/staff/:id', [StaffController , 'updateStaffRole']);
   router.delete('/staff/:id', [StaffController , 'deleteStaffRole']);
 
-  
+
 
 
 
