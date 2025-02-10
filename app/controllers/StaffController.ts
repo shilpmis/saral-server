@@ -1,77 +1,74 @@
-import OtherStaff from '#models/other_staff';
-import Staff from '#models/Staff';
-import Teacher from '#models/teacher';
-import { CreateValidatorForStaff, UpdateValidatorForStaff } from '#validators/Staff';
 import type { HttpContext } from '@adonisjs/core/http'
-// import db from '@adonisjs/lucid/services/db';
+import Staff from '#models/Staff'
+import { CreateValidatorForStaff, UpdateValidatorForStaff } from '#validators/Staff'
+import StaffMaster from '#models/StaffMaster';
+
 
 export default class StaffController {
 
-    async indexStaffForSchool(ctx: HttpContext) {
-        // let school_id = ctx.auth.user?.school_id;
-        if (ctx.params.school_id) {
-            let staffs = await Staff.query().where('school_id', ctx.params.school_id);
-            return ctx.response.json(staffs);
-        } else {
-            return ctx.response.status(404).json({ message: 'Please provide valid Class ID.' });
-        }
+  async index(ctx: HttpContext) {
+    const staff = await Staff.query().paginate(ctx.request.input('page', 1), 10);
+    return ctx.response.json(staff.serialize());
+  }
+
+
+  async createStaff(ctx: HttpContext) {
+
+    // Check whether this role is associalted with this school
+    const payload = await CreateValidatorForStaff.validate(ctx.request.body());
+
+    const role = await StaffMaster.findBy('id', payload.staff_role_id);
+    
+    if(!role){
+      return ctx.response.status(404).json({
+        message : "This role is not available for your school ! Please add valid role ."
+      })
+    }
+    
+    if(role.school_id !=  ctx.auth.user?.school_id){
+      return ctx.response.status(401).json({
+        message : "You are not authorized to perform this action !"
+      })
     }
 
-    async createStaffRole(ctx: HttpContext) {
+    let staff = await Staff.create(payload);
+    return ctx.response.json(staff.serialize());
 
-        let school_id = ctx.auth.user?.school_id
-        if (ctx.auth.user?.role_id !== 1) {
-            return ctx.response.status(403).json({ message: 'You are not allocated to manage this functions.' });
-        }
-        const payload = await CreateValidatorForStaff.validate(ctx.request.body());
-        const created_class = await Staff.create({ ...payload, school_id: school_id, permissions: {} });
-        return ctx.response.json(created_class.serialize());
-    }
+  }
 
-    async updateStaffRole(ctx: HttpContext) {
-        // let school_id = ctx.auth.user?.school_id
-        if (ctx.auth.user?.role_id !== 1) {
-            return ctx.response.status(403).json({ message: 'You are not allocated to manage this functions.' });
-        }
-        const payload = await UpdateValidatorForStaff.validate(ctx.request.body());
-        const updated_class = await Staff.findOrFail(ctx.params.id);
-        updated_class.merge(payload);
-        await updated_class.save();
-        return ctx.response.json(updated_class.serialize());
-    }
 
-    async deleteStaffRole(ctx: HttpContext) {
+  async updateStaff(ctx: HttpContext) {
+    const payload = await UpdateValidatorForStaff.validate(ctx.request.body());
+    const staff = await Staff.findOrFail(ctx.request.input('id'));
+    await staff.merge(payload).save();
+    return ctx.response.json(staff.serialize());
+  }
 
-        const school_id = ctx.auth.user?.school_id
-        if (ctx.auth.user?.role_id !== 1) {
-            return ctx.response.status(403).json({ message: 'You are not allocated to manage this functions.' });
-        }
-        const staff_to_delete = await Staff.findOrFail(ctx.params.id);
-        if (staff_to_delete && school_id) {
+  // async create(ctx: HttpContext) {
+  //   const payload = await CreateValidatorForStaff.validate(ctx.request.all());
+  //   const staff = await Staff.create(payload);
+  //   return ctx.response.json(staff.serialize());
+  // }
 
-            /**
-             *  check if does any staff is been allocated with this role , if yes then don't delete it.
-            */
-            let total_associated_teacher = 0;
-            if (staff_to_delete.is_teaching_role) {
-                total_associated_teacher = await Teacher
-                    .query()
-                    .where('school_id', school_id)
-                    .andWhere('staff_role_id', staff_to_delete.id).first() ? 1 : 0;
-            } else {
-                total_associated_teacher = await OtherStaff
-                    .query()
-                    .where('school_id', school_id)
-                    .andWhere('staff_role_id', staff_to_delete.id).first() ? 1 : 0;
-            }
+  // async store(ctx: HttpContext) { }
 
-            if (total_associated_teacher > 0) {
-                return ctx.response.status(403).json({ message: 'This role is associated with some teacher. You can not delete this role.' });
-            }
-            await staff_to_delete.delete();
-            return ctx.response.status(201).json({ message: 'Role has been succesfully deleted.' });
-        } else {
-            return ctx.response.status(404).json({ message: 'Role not found.' });
-        }
-    }
+  // async show(ctx: HttpContext) {
+  //   const staff = await Staff.findOrFail(ctx.request.input('id'));
+  //   return ctx.response.json(staff.serialize());
+  // }
+
+  // async update(ctx: HttpContext) {
+  //   const payload = await UpdateValidatorForStaff.validate(ctx.request.all());
+  //   const staff = await Staff.findOrFail(ctx.request.input('id'));
+  //   await staff.merge(payload).save();
+  //   return ctx.response.json(staff.serialize());
+  // }
+
+  // async filterStaff(ctx: HttpContext) {
+  //   const staff = await Staff.query().where('role', 'student').paginate(ctx.request.input('page', 1), 10);
+  //   return ctx.response.json(staff.serialize());
+  // }
 }
+
+
+
