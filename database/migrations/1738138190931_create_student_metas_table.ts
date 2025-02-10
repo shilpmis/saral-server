@@ -7,6 +7,13 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
 
+      table.integer('student_id')
+        .unsigned()
+        .notNullable()
+        .references('id')
+        .inTable('students')
+        .onDelete('CASCADE');
+
       table.bigInteger('aadhar_dise_no').notNullable().unique();
 
       table.string('birth_place', 50).notNullable();
@@ -24,11 +31,11 @@ export default class extends BaseSchema {
       table.enum('division', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']).notNullable();
 
       table
-        .string('secondary_mobile', 15)
-        .unique()
+        .integer('secondary_mobile', 10)
         .notNullable()
+        .unique()
         .defaultTo(null)
-        // .checkRegex('/^[6-9]\d{9}$/'); // Ensures a valid mobile number
+      // .checkRegex('/^[6-9]\d{9}$/'); // Ensures a valid mobile number
 
 
       table.string('privious_school', 100).nullable().defaultTo(null);

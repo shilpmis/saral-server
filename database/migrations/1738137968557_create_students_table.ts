@@ -11,9 +11,17 @@ export default class extends BaseSchema {
                 .unsigned()
                 .notNullable()
                 .references('id')
-                .inTable('school') 
-                .onDelete('CASCADE');            
-        
+                .inTable('school')
+                .onDelete('CASCADE');
+
+            table
+                .integer('class_id')
+                .unsigned()
+                .notNullable()
+                .references('id')
+                .inTable('classes') // Assuming the parent table is `schools`
+                .onDelete('CASCADE'); // Ensure cascading delete
+
             table.string('first_name', 100).notNullable();
             table.string('middle_name', 100).notNullable();
             table.string('last_name', 100).notNullable();
@@ -27,29 +35,21 @@ export default class extends BaseSchema {
                 .integer('gr_no')
                 .unsigned()
                 .notNullable()
-                .unique(); 
+                .unique();
 
-            table.date('birth_date').notNullable(); 
+            table.date('birth_date').notNullable();
 
             // Contact details
             table
-            .integer('primary_mobile', 10)
-            .notNullable()
-            .unique();
+                .integer('primary_mobile', 10)
+                .notNullable()
+                .unique();
             // .checkRegex('/^[6-9]\d{9}$/');
-            
+
             table.string('father_name', 100).notNullable();
             table.string('father_name_in_guj', 100).notNullable();
             table.string('mother_name', 100).notNullable();
             table.string('mother_name_in_guj', 100).notNullable();
-            
-            table
-                .integer('class_id')
-                .unsigned()
-                .notNullable()
-                .references('id')
-                .inTable('classes') // Assuming the parent table is `schools`
-                .onDelete('CASCADE'); // Ensure cascading delete
 
             table.integer('roll_number').nullable().defaultTo(null);
 
