@@ -1,38 +1,77 @@
 import vine from "@vinejs/vine";
-import { visitNode } from "typescript";
 
 /**
  * Validates the post's creation action
  */
 export const CreateValidatorForStaff = vine.compile(
+
   vine.object({
     // add here
-    role: vine.string().trim().minLength(3).maxLength(10),
-    is_teaching_role: vine.boolean(),
+    staff_role_id: vine.number(),
 
-    permissions: vine.object({}).optional()
+    first_name: vine.string().trim().minLength(2).maxLength(50),
+    middle_name: vine.string().trim().minLength(2).maxLength(50).optional(),
+    last_name: vine.string().trim().minLength(2).maxLength(50),
+
+    gender: vine.enum(['Male', 'Female']),
+
+    birth_date: vine.date(),
+
+    email: vine.string().email(),
+
+    joining_date: vine.date(),
+
+    employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period'])
+
   })
-) 
+)
+
+export const CreateValidatorForMultipleStaff = vine.compile(
+
+  vine.array(
+    vine.object({
+      // add here
+      staff_role_id: vine.number(),
+
+      first_name: vine.string().trim().minLength(2).maxLength(50),
+      middle_name: vine.string().trim().minLength(2).maxLength(50).optional(),
+      last_name: vine.string().trim().minLength(2).maxLength(50),
+
+      gender: vine.enum(['Male', 'Female']),
+
+      birth_date: vine.date(),
+
+      email: vine.string().email(),
+
+      joining_date: vine.date(),
+
+      employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period'])
+
+    })
+  ).minLength(1)
+)
 
 
 /**
  * Validates the post's update action
  */
 export const UpdateValidatorForStaff = vine.compile(
-
-  /**
-   * Here we are allowing to updat only these fields ,
-   * 
-   * is_teaching_role fields can not be modified easily , is_teaching_role field is a link for 
-   * teacher table and other staff table . 
-   * 
-   * if it is required to modified is_teaching_role , then it is batter to create new one and assign to proper user . 
-   * 
-   * we will add a api for delete this role , with condition to only delete it while there is no user staff on this role.         
-   */
   vine.object({
-    role: vine.string().trim().minLength(3).maxLength(25).optional(),
-    permissions: vine.object({}).optional()
+
+    first_name: vine.string().trim().minLength(2).maxLength(50).optional(),
+    middle_name: vine.string().trim().minLength(2).maxLength(50).optional(),
+    last_name: vine.string().trim().minLength(2).maxLength(50).optional(),
+
+    gender: vine.enum(['Male', 'Female']).optional(),
+
+    birth_date: vine.date().optional(),
+
+    email: vine.string().email().optional(),
+
+    joining_date: vine.date().optional(),
+
+    employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']).optional()
+
   })
 )
 
