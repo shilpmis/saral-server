@@ -5,18 +5,34 @@ import { column } from '@adonisjs/lucid/orm'
 
 export default class Staff extends Base {
 
-    public static table = 'staff_role_master'
+ @column()
+ declare school_id : number
 
-    @column()
-    declare school_id: number
+ @column()
+ declare staff_role_id : number
 
-    @column()
-    declare role: string
+ @column()
+ declare first_name : string
 
-    @column()
-    declare is_teaching_role: boolean
+ @column()
+ declare middle_name : string
 
-    @column()
-    declare permissions: Object
+ @column()
+ declare last_name : string
 
+ @column()
+ declare gender : 'Male'| 'Female'
+
+ @column()
+ declare birth_date : Date
+
+ @column()
+ declare email : string
+
+ @column()
+ declare joining_date : Date
+
+ @column()
+ declare employment_status : 'Permanent'| 'Trial_period'| 'Resigned'| 'Contact_base' | 'Notice_Period'
+    
 }

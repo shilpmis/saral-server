@@ -1,8 +1,5 @@
-//import { DateTime } from 'luxon'
-//import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
 import { column } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
 
 export default class Schools extends Base {
 
@@ -14,14 +11,20 @@ export default class Schools extends Base {
      @column()
      declare email: string
 
-     // @column({serializeAs : null})
-     // declare password : string
-     
+     @column()
+     declare established_year: string
+
+     @column()
+     declare school_type: 'Public' | 'Private' | 'Charter'
+
      @column()
      declare username : string
      
      @column()
      declare contact_number: number
+     
+     @column()
+     declare address: string
 
      @column()
      declare subscription_type: 'FREE' | 'PREMIUM'

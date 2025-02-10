@@ -5,70 +5,75 @@ import { column } from '@adonisjs/lucid/orm'
 
 export default class StudentMeta extends Base {
 
+    public static table = "student_meta"
+
     @column()
     declare student_id : number 
 
     @column()
-    declare religion :string 
+    declare aadhar_dise_no :number
 
     @column()
     declare birth_place :string 
 
     @column()
-    declare sms_number :string 
+    declare birth_place_in_guj :string 
 
     @column()
-    declare address :string 
+    declare religiion :string 
 
     @column()
-    declare city :string 
+    declare religiion_in_guj :string 
 
     @column()
-    declare state :string 
+    declare caste :string 
+
+    @column()
+    declare caste_in_guj :string 
+
+    @column()
+    declare category :'ST' | 'SC' | 'OBC' | 'OPEN'
+
+    @column()
+    declare admission_date :Date 
+
+    @column()
+    declare admission_std :number
+
+    @column()
+    declare division :string 
+
+    @column()
+    declare secondary_mobile :number 
+
+    @column()
+    declare privious_school :string 
+
+    @column()
+    declare privious_school_in_guj :string  
+
+    @column()
+    declare address :string  
 
     @column()
     declare district :string 
 
     @column()
-    declare postal_code :number 
+    declare city :string  
 
     @column()
-    declare cast :string 
+    declare state :string  
 
     @column()
-    declare cast_description :string 
+    declare postal_code :string  
 
     @column()
-    declare aadhaar_number :number 
+    declare bank_name :string  
 
     @column()
-    declare aadhaar_dias_number :number 
+    declare account_no :number  
 
     @column()
-    declare any_medical_allergy :boolean  
-
-    @column()
-    declare medical_allergy_type :string  
-
-    @column()
-    declare father_mobile :number  
-
-    @column()
-    declare mother_mobile :number  
-
-    @column()
-    declare father_occupation :string  
-
-    @column()
-    declare mother_occupation :string  
-
-    @column()
-    declare eligibility_for_scholarship :boolean  
-
-    @column()
-    declare school_joining_date :Date  
-
-    @column()
-    declare past_school :string  
+    declare IFSC_code :string  
   
 }

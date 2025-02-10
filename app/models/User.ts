@@ -1,5 +1,4 @@
 import Base from './base.js'
-import { DateTime } from 'luxon'
 import { beforeSave, column, hasOne } from '@adonisjs/lucid/orm'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import hash from '@adonisjs/core/services/hash'
