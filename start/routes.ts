@@ -11,8 +11,10 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 import AuthController from '#controllers/AuthController'
 import ClassesController from '#controllers/ClassesController'
-import StaffController from '#controllers/StaffController'
+import StaffController from '#controllers/StaffMasterController'
 import UsersController from '#controllers/UsersController'
+import StundetsController from '#controllers/StundetsController'
+import StaffMasterController from '#controllers/StaffMasterController'
 
 router.get('/', async () => {
   return {
@@ -24,11 +26,13 @@ router.group(() => {
 
   router.post('/signup', [AuthController , 'createSchool']) 
   router.post('/login', [AuthController , 'login'])
-
+  
 }).prefix('/api/v1/')
 
 router.group(() => {
-
+  
+  router.get('/verify', [AuthController , 'verifyUser'])
+  router.get('/logout', [AuthController , 'logout'])
   
   router.get('/user/:school_id', [UsersController , 'indexSchoolUsers'])
   router.post('/user', [UsersController , 'createUser'])
@@ -36,16 +40,18 @@ router.group(() => {
   
   router.get('/classes/:school_id', [ClassesController , 'indexClassesForSchool']);
   router.post('/class', [ClassesController , 'createClass']);
-  router.put('/class/:id', [ClassesController , 'updateClass']);
+  router.post('/classes', [ClassesController , 'createMultipleClasses']);
+  router.post('/class/division', [ClassesController , 'createDivision']);
+  router.put('/class/:class_id', [ClassesController , 'updateClass']);
 
-  router.get('/staff/:school_id', [StaffController , 'indexStaffForSchool']);
-  router.post('/staff', [StaffController , 'createStaffRole']);
-  router.put('/staff/:id', [StaffController , 'updateStaffRole']);
-  router.delete('/staff/:id', [StaffController , 'deleteStaffRole']);
+  router.get('students/:class_id' , [StundetsController , 'indexClassStudents']);
+  router.post('students/:class_id' , [StundetsController , 'createStudents']);
+  router.put('students/:class_id' , [StundetsController , 'updateStudents']);
 
-
-
-
+  router.get('/staff-master/:school_id', [StaffMasterController , 'indexStaffMasterForSchool']);
+  router.post('/staff-master', [StaffMasterController , 'createStaffMasterRole']);
+  router.put('/staff-master/:id', [StaffMasterController , 'updateStaffMasterRole']);
+  router.delete('/staff-master/:id', [StaffMasterController , 'deleteStaffMasterRole']);
 
   router.post('/users', '#controllers/users_controller.store')
   router.get('/users', '#controllers/users_controller.index')
