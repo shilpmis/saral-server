@@ -29,13 +29,13 @@ export default class Schools extends Base {
      @column()
      declare subscription_type: 'FREE' | 'PREMIUM'
 
-     @column()
+     @column({serializeAs : null})
      declare subscription_start_date: Date
 
-     @column()
+     @column({serializeAs : null})
      declare subscription_end_date: Date
 
-     @column()
+     @column({serializeAs : null})
      declare is_email_verified: boolean
 
      @column()
