@@ -1,78 +1,36 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Schools from '#models/Schools'
-import { CreateValidatorForSchools , UpdateValidatorForSchools } from '#validators/Schools'
+import { CreateValidatorForSchools, UpdateValidatorForSchools } from '#validators/Schools'
 
 
 export default class SchoolsController {
-  /**
-   * Return list of all posts or paginate through
-   * them
-   */
+
   async index(ctx: HttpContext) {
-    const schools = await Schools.query().paginate(ctx.request.input('page', 1), 10);
-    return ctx.response.json(schools.serialize());
+
+    let school_id = ctx.params.school_id;
+    let school = await Schools.query().where('id', school_id).first();
+    if (school) {
+      return ctx.response.status(201).json(school);
+    }
+    return ctx.response.status(404).json({ message: 'School not found' });
   }
 
-  /**
-   * Render the form to create a new post.
-   *
-   * Not needed if you are creating an API server.
-   */
-  async create(ctx: HttpContext) {
-    const payload = await CreateValidatorForSchools.validate(ctx.request.all());
-    const schools = await Schools.create(payload);
-    return ctx.response.json(schools.serialize());
-  }
-
-  /**
-   * Handle form submission to create a new post
-   */
-  async store(ctx: HttpContext) { }
-
-  /**
-   * Display a single post by id.
-   */
-  async show(ctx: HttpContext) {
-    const schools = await Schools.findOrFail(ctx.request.input('id'));
-    return ctx.response.json(schools.serialize());
-  }
-
-
-  /**
-   * Handle the form submission to update a specific post by id
-  */
   async update(ctx: HttpContext) {
-    const payload = await UpdateValidatorForSchools.validate(ctx.request.all());
-    const schools = await Schools.findOrFail(ctx.request.input('id'));
-    await schools.merge(payload).save();
-    return ctx.response.json(schools.serialize());
+
+    let school_id = ctx.params.school_id;
+    let school = await Schools.query().where('id', school_id).first();
+
+    if (school) {
+      if (ctx.auth.user?.role_id === 1 && school_id == ctx.auth.user.school_id ) {
+        return ctx.response.status(401).json({ message: 'Unauthorized' });
+      }
+      const data = await UpdateValidatorForSchools.validate(ctx.request.body());
+      school.merge(data);
+      let updated_school = await school.save();
+      return ctx.response.status(201).json(updated_school);
+    }
+    return ctx.response.status(404).json({ message: 'School not found' });
   }
-
-  async filterSchools(ctx: HttpContext) {
-    const schools = await Schools.query().where('role', 'student').paginate(ctx.request.input('page', 1), 10);
-    return ctx.response.json(schools.serialize());
-  }
-
-  /**
-   * Handle the form submission to delete a specific post by id.
-  */
-  // async destroy(ctx: HttpContext) {
-  //   const schools = await Schools.findOrFail(ctx.request.input('id'));
-  //   await user.delete();
-  // }
-  
-
-  // /**
-  //  * Render the form to edit an existing post by its id.
-  //  *
-  //  * Not needed if you are creating an API server.
-  //  */
-  // async edit(ctx: HttpContext) {
-  //   const payload = await UpdateValidatorForSchools.validate(ctx.request.all());
-  //   const user = await Schools.findOrFail(ctx.request.input('id'));
-  //   user.merge(payload).save();
-  //   return ctx.response.json(user.serialize());
-  // }
 }
 
 
