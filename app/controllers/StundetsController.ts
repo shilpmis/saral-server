@@ -13,7 +13,7 @@ export default class StundetsController {
 
         let class_id = ctx.params.class_id;
         let page = ctx.request.input('page', 1);
-        let is_meta_req = ctx.request.input('student_meta', false);
+        let is_meta_req = ctx.request.input('student_meta', false) === "true";
 
         let std = await Classes.findBy('id', class_id);
 
@@ -74,6 +74,8 @@ export default class StundetsController {
         try {
 
             for (var i = 0; i < payload.length; i++) {
+
+                console.log("Check this data ===>" , { ...payload[i].students_data, class_id: class_id, school_id: school_id })
 
                 let student_data = await Students.create(
                     { ...payload[i].students_data, class_id: class_id, school_id: school_id }, { client: trx });

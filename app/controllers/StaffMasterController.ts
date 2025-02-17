@@ -17,7 +17,7 @@ export default class StaffMasterController {
         }
     }
 
-    async createStaffMasterRole(ctx: HttpContext) {
+    async createStaffRole(ctx: HttpContext) {
 
         let school_id = ctx.auth.user?.school_id
         if (ctx.auth.user?.role_id !== 1) {
@@ -28,7 +28,7 @@ export default class StaffMasterController {
         return ctx.response.json(created_class.serialize());
     }
 
-    async updateStaffMasterRole(ctx: HttpContext) {
+    async updateStaffRole(ctx: HttpContext) {
         // let school_id = ctx.auth.user?.school_id
         if (ctx.auth.user?.role_id !== 1) {
             return ctx.response.status(403).json({ message: 'You are not allocated to manage this functions.' });
@@ -40,7 +40,7 @@ export default class StaffMasterController {
         return ctx.response.json(updated_class.serialize());
     }
 
-    async deleteStaffMasterRole(ctx: HttpContext) {
+    async deleteStaffRole(ctx: HttpContext) {
 
         const school_id = ctx.auth.user?.school_id
         if (ctx.auth.user?.role_id !== 1) {
