@@ -13,7 +13,7 @@ export default class extends BaseSeeder {
         name : "Meet Mehta",
         username : "meet007",
         role_id : 1,
-        password : "12345678"  
+        password : "12345678"
     }
     ])
   }
