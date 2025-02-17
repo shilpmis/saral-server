@@ -90,7 +90,7 @@ export default class AuthController {
     await db.rawQuery('UPDATE auth_access_tokens SET expires_at = ? WHERE id = ?', [
       now , token[0][0].id ])
 
-    return ctx.response.json(await ctx.auth.authenticate())
+    return ctx.response.json({message : "You have been logout succesfully ! "})
   }
 
 }
