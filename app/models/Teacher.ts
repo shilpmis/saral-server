@@ -24,7 +24,10 @@ export default class Teacher extends BaseModel {
   declare birth_date : Date
 
   @column()
-  declare mobile_number : string
+  declare joining_date : Date
+
+  @column()
+  declare mobile_number : number
 
   @column()
   declare email : string
@@ -39,7 +42,7 @@ export default class Teacher extends BaseModel {
   declare class_id : number
 
   @column()
-  declare employment_status : 'Active'|  'Inactive' | 'Resigned'
+  declare employment_status : 'Permanent'| 'Trial_period'| 'Resigned'| 'Contact_base'| 'Notice_Period'
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
