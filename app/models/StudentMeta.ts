@@ -1,9 +1,11 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column } from '@adonisjs/lucid/orm'
+import { column, SnakeCaseNamingStrategy } from '@adonisjs/lucid/orm'
 
 export default class StudentMeta extends Base {
+
+    public static namingStrategy = new SnakeCaseNamingStrategy()
 
     public static table = "student_meta"
 

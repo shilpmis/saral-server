@@ -153,7 +153,8 @@ export const UpdateValidatorForStundets = vine.compile(
         .unique({ table: 'students', column: 'aadhar_no' }).optional(),
 
       is_active: vine.boolean().optional(),
-    }),
+    }).optional(),
+
     student_meta_data: vine.object({
 
       // student_id: vine.number().exists({ table: 'students', column: 'id' }),
@@ -200,7 +201,7 @@ export const UpdateValidatorForStundets = vine.compile(
       account_no: vine.number().positive().optional(),
   
       IFSC_code: vine.string().trim().optional()
-    })
+    }).optional()
   
   })
 )

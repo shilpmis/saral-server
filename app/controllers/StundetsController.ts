@@ -49,6 +49,26 @@ export default class StundetsController {
 
     }
 
+    async fetchStudentMeta(ctx: HttpContext) {
+
+        let student_id = ctx.params.student_id;
+
+        let student = await Students.findOrFail(student_id);
+
+        if (student.school_id != ctx.auth.user?.school_id) {
+            return ctx.response
+                .status(401)
+                .json({ message: 'You are not authorized to perform this action!' });
+        }
+
+        let student_meta = await StudentMeta.findBy('student_id', student_id);
+
+        if(student_meta)
+            return ctx.response.status(200).json(student_meta);
+        else    
+            return ctx.response.status(404).json({message: "No student meta found!"});
+    }
+
     async createStudents(ctx: HttpContext) {
         let school_id = ctx.auth.user!.school_id;
         let class_id = ctx.params.class_id;
@@ -59,7 +79,7 @@ export default class StundetsController {
 
         let std = await Classes.findOrFail(class_id);
 
-        if (std.school_id != school_id || ctx.auth.user?.role_id !== 1) {
+        if (std.school_id !== school_id || ctx.auth.user?.role_id !== 1) {
             return ctx.response
                 .status(401)
                 .json({ message: 'You are not authorized to perform this action!' });
@@ -74,8 +94,6 @@ export default class StundetsController {
         try {
 
             for (var i = 0; i < payload.length; i++) {
-
-                console.log("Check this data ===>" , { ...payload[i].students_data, class_id: class_id, school_id: school_id })
 
                 let student_data = await Students.create(
                     { ...payload[i].students_data, class_id: class_id, school_id: school_id }, { client: trx });
@@ -116,11 +134,11 @@ export default class StundetsController {
         const trx = await db.transaction();
 
         try {
-            if (Object.keys(payload.students_data).length > 0) {
+            if (payload.students_data && Object.keys(payload.students_data).length > 0) {
                 student = (await student.merge(payload.students_data).save()).useTransaction(trx);
             }
 
-            if (Object.keys(payload.student_meta_data).length > 0) {
+            if (payload.student_meta_data && Object.keys(payload.student_meta_data).length > 0) {
                 if (student_meta) {
                     student_meta = (await student_meta.merge(payload.student_meta_data).save()).useTransaction(trx);
                 }
