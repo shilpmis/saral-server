@@ -1,4 +1,4 @@
-import OtherStaffMaster from '#models/other_staff';
+import OtherStaffMaster from '#models/OtherStaff';
 import StaffMaster from '#models/StaffMaster';
 import Teacher from '#models/Teacher';
 import { CreateValidatorForStaffRole, UpdateValidatorForStaffRole } from '#validators/StaffMaster';

@@ -16,7 +16,7 @@ export default class StaffMaster extends Base {
     @column()
     declare is_teaching_role: boolean
 
-    @column()
+    @column({serializeAs : null})
     declare permissions: Object
 
 }

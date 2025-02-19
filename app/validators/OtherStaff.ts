@@ -3,7 +3,7 @@ import vine from "@vinejs/vine";
 /**
  * Validates the post's creation action
  */
-export const CreateValidatorForTeachers = vine.compile(
+export const CreateValidatorForOtherStaff = vine.compile(
 
   vine.array(
     vine.object({
@@ -12,13 +12,13 @@ export const CreateValidatorForTeachers = vine.compile(
       first_name: vine.string().trim().minLength(2).maxLength(50),
       middle_name: vine.string().trim().minLength(2).maxLength(50),
       last_name: vine.string().trim().minLength(2).maxLength(50),
-
+     
       first_name_in_guj: vine.string().trim().minLength(2).maxLength(50),
       middle_name_in_guj: vine.string().trim().minLength(2).maxLength(50),
       last_name_in_guj: vine.string().trim().minLength(2).maxLength(50),
 
       aadhar_no: vine.number()
-        .unique({ table: 'teachers', column: 'aadhar_no' }),
+        .unique({ table: 'other_staff', column: 'aadhar_no' }),
 
       religiion: vine.string().trim().minLength(2).maxLength(50),
       religiion_in_guj: vine.string().trim().optional(),
@@ -49,10 +49,6 @@ export const CreateValidatorForTeachers = vine.compile(
 
       mobile_number: vine.number(),
       email: vine.string().email(),
-
-      class_id: vine.number(),
-
-      qualification: vine.string(),
       joining_date: vine.date(),
 
       employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']),
@@ -65,7 +61,7 @@ export const CreateValidatorForTeachers = vine.compile(
 /**
  * Validates the post's update action
  */
-export const UpdateValidatorForTeachers = vine.compile(
+export const UpdateValidatorForOtherStaff = vine.compile(
   vine.object({
 
     staff_role_id: vine.number().optional(),
@@ -80,7 +76,6 @@ export const UpdateValidatorForTeachers = vine.compile(
     mobile_number: vine.number().optional(),
     email: vine.string().email().optional(),
 
-    qualification: vine.string().optional(),
     joining_date: vine.date().optional(),
     employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']).optional(),
 

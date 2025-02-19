@@ -3,9 +3,11 @@ import Base from './base.js'
 import StaffMaster from './StaffMaster.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
 
-export default class Teacher extends Base {
+export default class OtherStaff extends Base {
 
   public static namingStrategy = new SnakeCaseNamingStrategy()
+  
+  public static table = 'other_staff'
 
   @column()
   declare staff_role_id : number
@@ -89,21 +91,13 @@ export default class Teacher extends Base {
   declare email : string
 
   @column()
-  declare qualification : string
+  declare employment_status : string
 
-  @column()
-  declare subject_specialization : string
+    @hasOne(() =>  StaffMaster, {
+      localKey : 'staff_role_id',
+      foreignKey : 'id',
+      serializeAs : 'role_meta',
+    })
+    declare role_type : HasOne<typeof StaffMaster>
 
-  @column()
-  declare class_id : number
-
-  @column()
-  declare employment_status : 'Permanent'| 'Trial_period'| 'Resigned'| 'Contact_base'| 'Notice_Period'
-
-  @hasOne(() =>  StaffMaster, {
-    localKey : 'staff_role_id',
-    foreignKey : 'id',
-    serializeAs : 'role_meta',
-  })
-  declare role_type : HasOne<typeof StaffMaster>
 }
