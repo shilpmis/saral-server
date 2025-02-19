@@ -39,11 +39,14 @@ export default class StudentMeta extends Base {
     @column()
     declare admission_date :Date 
 
-    @column()
-    declare admission_std :number
+    // @column()
+    // declare admission_std :number
+
+    // @column()
+    // declare division :string 
 
     @column()
-    declare division :string 
+    declare admission_class_id :number 
 
     @column()
     declare secondary_mobile :number 

@@ -63,20 +63,9 @@ export const CreateValidatorForStundets = vine.compile(
   
       admission_date: vine.date(),
   
-      admission_std: vine.enum([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
-      
-      /**
-       * FIX : make this field optional or remove this field from table in next migration
-       *  
-       */
-      division: vine.string().trim().minLength(1).maxLength(5),
+      admission_class_id : vine.number(),
   
       secondary_mobile: vine.number(),
-      // .check((value, field) => {
-      //   if (!/^[6-9]\d{9}$/.test(value.toString())) {
-      //     field.report('Invalid mobile number format.')
-      //   }
-      // }),
   
       privious_school: vine.string().trim().minLength(5).maxLength(100),
       privious_school_in_guj: vine.string().trim().optional(),
@@ -174,13 +163,12 @@ export const UpdateValidatorForStundets = vine.compile(
   
       admission_date: vine.date().optional(),
   
-      admission_std: vine.enum([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).optional(),
-      
       /**
-       * FIX : make this field optional or remove this field from table in next migration
-       *  
+       * TODO :
+       *    validation for verify class added is not greater then in which student acctualy in  
        */
-      division: vine.string().trim().minLength(1).maxLength(5).optional(),
+      admission_class_id : vine.number().optional(),
+
   
       secondary_mobile: vine.number().optional(),
   

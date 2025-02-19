@@ -11,12 +11,12 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 import AuthController from '#controllers/AuthController'
 import ClassesController from '#controllers/ClassesController'
-import StaffController from '#controllers/StaffMasterController'
 import UsersController from '#controllers/UsersController'
 import StundetsController from '#controllers/StundetsController'
 import StaffMasterController from '#controllers/StaffMasterController'
 import SchoolsController from '#controllers/SchoolsController'
 import TeachersController from '#controllers/TeachersController'
+import OtherStaffsController from '#controllers/OtherStaffsController'
 
 router.get('/', async () => {
   return {
@@ -50,8 +50,9 @@ router.group(() => {
   router.put('/class/:class_id', [ClassesController , 'updateClass']);
 
   router.get('students/:class_id' , [StundetsController , 'indexClassStudents']);
+  router.get('student/meta/:student_id' , [StundetsController , 'fetchStudentMeta']);
   router.post('students/:class_id' , [StundetsController , 'createStudents']);
-  router.put('students/:class_id' , [StundetsController , 'updateStudents']);
+  router.put('student/:student_id' , [StundetsController , 'updateStudents']);
 
   router.get('/staff/:school_id', [StaffMasterController , 'indexStaffMasterForSchool']);
   router.post('/staff', [StaffMasterController , 'createStaffRole']);
@@ -65,13 +66,10 @@ router.group(() => {
   router.post('teachers/:school_id' , [TeachersController , 'createTeacher'])
   router.put('teacher/:school_id/:teacher_id' , [TeachersController , 'updateTeacher'])
 
+  router.get('other-staff/:school_id' , [OtherStaffsController , 'indexOtherStaffForSchool'])
+  router.post('other-staff/:school_id' , [OtherStaffsController , 'createOtherStaff'])
+  router.put('other-staff/:school_id/:other_staff' , [OtherStaffsController , 'updateOtherStaff'])
 
-
-  // router.post('/users', [UsersController , 'createUser'])
-  // router.get('/users', [UsersController , 'createUser'])
-  // router.get('/users/:id', '#controllers/users_controller.show')
-  // router.put('/users/:id', '#controllers/users_controller.update')
-  // router.delete('/users/:id', '#controllers/users_controller.destroy')
 
 }).prefix('/api/v1/').use(middleware.auth())
 
