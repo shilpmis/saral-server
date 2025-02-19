@@ -20,25 +20,42 @@ export default class AuthController {
    * @returns 
    */
   async createSchool(ctx: HttpContext) {
-    const payload = await CreateValidatorForSchools.validate(ctx.request.all());
-    const school = await Schools.create(payload);
 
-    /**
-     * Create one admin level role for this school
-     */
-    const admin_user = await User.create({
-      school_id: school.id,
-      saral_email: `admin@${school.username}.saral`,
-      password: '12345678',
-      role_id: 1,
-      username: 'admin',
-      name: 'Admin'
-    });
-    return ctx.response.json({ school: school.serialize(), admin: admin_user.serialize() });
+    let trx = await db.transaction();
+
+    try {
+      const payload = await CreateValidatorForSchools.validate(ctx.request.all());
+      const school = await Schools.create(payload, { client: trx });
+      
+       /**
+       * Create one admin level role for this school
+       */
+      const admin_user = await User.create({
+        school_id: school.id,
+        saral_email: `admin@${school.username}.saral`,
+        password: '12345678',
+        role_id: 1,
+        username: `admin-${school.username}`,
+        name: 'Admin'
+      }, { client: trx });
+
+      await trx.commit();
+      return ctx.response.json({ school: school.serialize(), admin: admin_user.serialize() });
+
+    } catch (error) {
+      await trx.rollback();
+      return ctx.response.status(500).json({
+         message: 'Internal Server Error !! Please contact service center !',
+         error : error 
+        });
+
+    }
+
   }
 
   async login(ctx: HttpContext) {
     const { email, password } = ctx.request.all();
+
     if (email) {
       try {
         let user = await User.query().preload('school').where('saral_email', email).first();
@@ -63,15 +80,15 @@ export default class AuthController {
     } else {
       // let auth = await ctx.auth.use('api').authenticate();
       let user = await User.query().preload('school').where('id', ctx.auth.user.id).first();
-      if(user){
+      if (user) {
 
         const token = await User.accessTokens.create(user, ['*'], {
           expiresIn: '7 days' // expires in 30 days
         });
-        return ctx.response.json({ user: user.serialize()});
+        return ctx.response.json({ user: user.serialize() });
       }
       else
-      return ctx.response.status(501).json({ message: 'Internal Server Error!' });
+        return ctx.response.status(501).json({ message: 'Internal Server Error!' });
 
     }
   }
@@ -85,12 +102,12 @@ export default class AuthController {
 
     let now = DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') // Format current time
 
-    let token = await db.rawQuery('SELECT * FROM auth_access_tokens WHERE tokenable_id = ? ORDER BY created_at desc LIMIT 1', [ctx.auth.user.id])  
+    let token = await db.rawQuery('SELECT * FROM auth_access_tokens WHERE tokenable_id = ? ORDER BY created_at desc LIMIT 1', [ctx.auth.user.id])
 
     await db.rawQuery('UPDATE auth_access_tokens SET expires_at = ? WHERE id = ?', [
-      now , token[0][0].id ])
+      now, token[0][0].id])
 
-    return ctx.response.json({message : "You have been logout succesfully ! "})
+    return ctx.response.json({ message: "You have been logout succesfully ! " })
   }
 
 }
