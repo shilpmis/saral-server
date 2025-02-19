@@ -49,24 +49,31 @@ export default class StundetsController {
 
     }
 
-    async fetchStudentMeta(ctx: HttpContext) {
+    async fetchStudent(ctx: HttpContext) {
 
         let student_id = ctx.params.student_id;
+        let school_id = ctx.params.school_id;
+        let is_meta_req = ctx.request.input('student_meta', false) === "true";
 
-        let student = await Students.findOrFail(student_id);
-
-        if (student.school_id != ctx.auth.user?.school_id) {
+        if (school_id != ctx.auth.user?.school_id) {
             return ctx.response
                 .status(401)
                 .json({ message: 'You are not authorized to perform this action!' });
         }
 
-        let student_meta = await StudentMeta.findBy('student_id', student_id);
+        let student: any = {}
 
-        if(student_meta)
-            return ctx.response.status(200).json(student_meta);
-        else    
-            return ctx.response.status(404).json({message: "No student meta found!"});
+        if (is_meta_req) {
+            student = await Students.query().where('id', student_id)
+                .preload('student_meta').first();
+        } else {
+            student = await Students.query().where('id', student_id).first();
+        }
+
+        if (!student) return ctx.response.status(404).json({ message: "No Student Available !" });
+
+        return ctx.response.status(200).json(student);
+
     }
 
     async createStudents(ctx: HttpContext) {

@@ -50,7 +50,7 @@ router.group(() => {
   router.put('/class/:class_id', [ClassesController , 'updateClass']);
 
   router.get('students/:class_id' , [StundetsController , 'indexClassStudents']);
-  router.get('student/meta/:student_id' , [StundetsController , 'fetchStudentMeta']);
+  router.get('student/:school_id/:student_id' , [StundetsController , 'fetchStudent']);
   router.post('students/:class_id' , [StundetsController , 'createStudents']);
   router.put('student/:student_id' , [StundetsController , 'updateStudents']);
 
