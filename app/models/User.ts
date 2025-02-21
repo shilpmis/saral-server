@@ -25,9 +25,12 @@ export default class User extends Base {
   @column()
   declare role_id : number
   
-  // @column.dateTime({ autoCreate: true , serializeAs : null })
-  // declare last_login: DateTime
-
+  @column()
+  declare is_teacher : boolean
+  
+  @column()
+  declare teacher_id : number | null
+  
   @hasOne(() => Schools , {
     localKey : 'school_id',
     foreignKey : 'id'

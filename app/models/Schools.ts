@@ -3,7 +3,7 @@ import { column } from '@adonisjs/lucid/orm'
 
 export default class Schools extends Base {
 
-     public static table = 'school'
+     public static table = 'schools'
     
      @column()
      declare name : string
@@ -29,10 +29,16 @@ export default class Schools extends Base {
      @column()
      declare subscription_type: 'FREE' | 'PREMIUM'
 
-     @column({serializeAs : null})
+     @column({
+          serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+          serializeAs : null
+        })
      declare subscription_start_date: Date
 
-     @column({serializeAs : null})
+     @column({
+          serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+          serializeAs : null     
+        })
      declare subscription_end_date: Date
 
      @column({serializeAs : null})

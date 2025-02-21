@@ -30,6 +30,30 @@ export default class extends BaseSeeder {
         division: 'A',
         school_id: 1,
       },
+      {
+        id: 5,
+        class: 5,
+        division: 'A',
+        school_id: 1,
+      },
+      {
+        id: 6,
+        class: 6,
+        division: 'A',
+        school_id: 1,
+      },
+      {
+        id: 7,
+        class: 7,
+        division: 'A',
+        school_id: 1,
+      },
+      {
+        id: 8,
+        class: 8,
+        division: 'A',
+        school_id: 1,
+      }
     ])
   }
 }

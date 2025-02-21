@@ -27,16 +27,15 @@ export default class extends BaseSchema {
       table.enum('category', ['ST', 'SC', 'OBC', 'OPEN']).notNullable();
 
       table.date('admission_date').notNullable();
-      table.enum('admission_std', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).notNullable();
-      table.enum('division', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']).notNullable();
 
       table
-        .integer('secondary_mobile', 10)
-        .notNullable()
-        .unique()
-        .defaultTo(null)
-      // .checkRegex('/^[6-9]\d{9}$/'); // Ensures a valid mobile number
+      .integer('admission_class_id')
+      .unsigned()
+      .references('id')
+      .inTable('classes') 
+      .onDelete('CASCADE');
 
+      table.bigInteger('secondary_mobile').nullable().defaultTo(null);
 
       table.string('privious_school', 100).nullable().defaultTo(null);
       table.string('privious_school_in_guj', 100).nullable().defaultTo(null);
@@ -49,11 +48,11 @@ export default class extends BaseSchema {
 
       table.string('bank_name', 100).notNullable();
       table.bigInteger('account_no').notNullable().unique().unsigned();
-      table.string('IFSC_code', 15).notNullable().unique();
+      table.string('IFSC_code', 15).notNullable();
 
-
-      table.timestamp('created_at')
-      table.timestamp('updated_at')
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now());
+      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now());
+  
     })
   }
 

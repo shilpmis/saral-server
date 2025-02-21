@@ -31,6 +31,11 @@ export default class extends BaseSeeder {
         role: "IT_ADMIN",
         permissions : {}
       },
+      {
+        id: 6,
+        role: "SCHOOL_TEACHER",
+        permissions : {}
+      },
     ])
   }
 }

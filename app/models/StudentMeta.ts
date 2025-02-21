@@ -36,7 +36,9 @@ export default class StudentMeta extends Base {
     @column()
     declare category :'ST' | 'SC' | 'OBC' | 'OPEN'
 
-    @column()
+    @column({
+        serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+      })
     declare admission_date :Date 
 
     // @column()

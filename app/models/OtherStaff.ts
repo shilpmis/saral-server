@@ -78,10 +78,14 @@ export default class OtherStaff extends Base {
   @column()
   declare gender : 'Male' | 'Female'
 
-  @column()
+  @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
   declare birth_date : Date
 
-  @column()
+  @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
   declare joining_date : Date
 
   @column()

@@ -1,5 +1,4 @@
 import vine from "@vinejs/vine";
-import { CreateValidatorForStundentMeta } from "./StundentMeta.js";
 
 /**
  * Validates the post's creation action
