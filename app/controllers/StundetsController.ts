@@ -1,6 +1,6 @@
 import Classes from '#models/Classes';
 import type { HttpContext } from '@adonisjs/core/http'
-import { CreateValidatorForStundets, UpdateValidatorForStundets } from '#validators/Stundets';
+import { CreateValidatorForMultipleStundets, CreateValidatorStundet, UpdateValidatorForStundets } from '#validators/Stundets';
 import Students from '#models/Students';
 import StudentMeta from '#models/StudentMeta';
 import db from '@adonisjs/lucid/services/db';
@@ -76,7 +76,34 @@ export default class StundetsController {
 
     }
 
-    async createStudents(ctx: HttpContext) {
+    async createSingleStudent(ctx: HttpContext) {
+        let school_id = ctx.auth.user!.school_id;
+        // let class_id = ctx.params.class_id;
+
+        let payload = await CreateValidatorStundet.validate(ctx.request.body());
+
+        let std = await Classes.query().where('id', payload.students_data.class_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+
+        if (!std || ctx.auth.user?.role_id !== 1) {
+            return ctx.response
+                .status(401)
+                .json({ message: 'You are not authorized to perform this action!' });
+        }
+
+
+        let student_data = await Students.create(
+            { ...payload.students_data, school_id: school_id });
+
+        let student_meta_data_payload = await StudentMeta.create({
+            ...payload.student_meta_data,
+            student_id: student_data.id
+        })
+
+        return ctx.response.status(201).json({ student_data: student_data, student_meta: student_meta_data_payload });
+
+    }
+
+    async createMultipleStudents(ctx: HttpContext) {
         let school_id = ctx.auth.user!.school_id;
         let class_id = ctx.params.class_id;
 
@@ -92,7 +119,7 @@ export default class StundetsController {
                 .json({ message: 'You are not authorized to perform this action!' });
         }
 
-        let payload = await CreateValidatorForStundets.validate(ctx.request.body());
+        let payload = await CreateValidatorForMultipleStundets.validate(ctx.request.body());
 
         let res_array: any = []
         // Start a transaction

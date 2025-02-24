@@ -52,7 +52,8 @@ router.group(() => {
 
   router.get('students/:class_id' , [StundetsController , 'indexClassStudents']);
   router.get('student/:school_id/:student_id' , [StundetsController , 'fetchStudent']);
-  router.post('students/:class_id' , [StundetsController , 'createStudents']);
+  router.post('student' , [StundetsController , 'createSingleStudent']);
+  router.post('students/multiple/:class_id' , [StundetsController , 'createMultipleStudents']);
   router.put('student/:student_id' , [StundetsController , 'updateStudents']);
 
   router.get('/staff/:school_id', [StaffMasterController , 'indexStaffMasterForSchool']);
