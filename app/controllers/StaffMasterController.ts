@@ -9,11 +9,28 @@ export default class StaffMasterController {
 
     async indexStaffMasterForSchool(ctx: HttpContext) {
         // let school_id = ctx.auth.user?.school_id;
-        if (ctx.params.school_id) {
-            let staffs = await StaffMaster.query().where('school_id', ctx.params.school_id);
+
+        let role = ctx.request.input('role', 'all');
+        let staffs: StaffMaster[] = []
+        if (ctx.params.school_id == ctx.auth.user?.school_id) {
+            if (role == 'teacher') {
+                staffs = await StaffMaster
+                    .query()
+                    .where('school_id', ctx.params.school_id)
+                    .andWhere('is_teaching_role', true);
+            } else if (role == 'other') {
+                staffs = await StaffMaster
+                    .query()
+                    .where('school_id', ctx.params.school_id)
+                    .andWhere('is_teaching_role', false);
+            } else {
+                staffs = await StaffMaster
+                    .query()
+                    .where('school_id', ctx.params.school_id)
+            }
             return ctx.response.json(staffs);
         } else {
-            return ctx.response.status(404).json({ message: 'Please provide valid Class ID.' });
+            return ctx.response.status(404).json({ message: 'Please provide valid School ID.' });
         }
     }
 
