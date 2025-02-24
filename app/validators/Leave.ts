@@ -1,0 +1,149 @@
+import vine from "@vinejs/vine";
+
+
+export const CreateValidatorForLeaveType = vine.compile(
+    vine.object({
+        leave_type_name: vine.string().trim().minLength(3).maxLength(25),
+        is_paid: vine.boolean(),
+        affects_payroll: vine.boolean(),
+        requires_proof: vine.boolean(),
+        is_active: vine.boolean(),
+    })
+)
+
+export const UpdateValidatorForLeaveType = vine.compile(
+    vine.object({
+        leave_type_name: vine.string().trim().minLength(3).maxLength(25).optional(),
+        is_paid: vine.boolean().optional(),
+        affects_payroll: vine.boolean(),
+        requires_proof: vine.boolean().optional(),
+        is_active: vine.boolean().optional(),
+    })
+)
+
+export const CreateValidatorForLeavePolicies = vine.compile(
+    vine.object({
+        staff_role_id: vine.number(),
+        leave_type_id: vine.number(),
+        annual_quota: vine.number(),
+        can_carry_forward: vine.boolean(),
+        max_carry_forward_days: vine.number(),
+        max_consecutive_days: vine.number(),
+        requires_approval: vine.boolean(),
+        approval_hierarchy: vine.object({}),
+        deduction_rules: vine.object({}),
+    })
+)
+
+export const UpdateValidatorForLeavePolicies = vine.compile(
+    vine.object({
+        // staff_role_id: vine.number(),
+        // leave_type_id: vine.number(),
+        annual_quota: vine.number().optional(),
+        can_carry_forward: vine.boolean().optional(),
+        max_carry_forward_days: vine.number().optional(),
+        max_consecutive_days: vine.number().optional(),
+        requires_approval: vine.boolean().optional(),
+        approval_hierarchy: vine.object({}).optional(),
+        deduction_rules: vine.object({}).optional(),
+    })
+)
+
+
+export const CreateValidatorForOtherStaffsLeaveBalance = vine.compile(
+    vine.object({
+        other_staff_id: vine.number(),
+        leave_type_id: vine.number(),
+        academic_year: vine.number(),
+        total_leaves: vine.number(),
+        used_leaves: vine.number(),
+        pending_leaves: vine.number(),
+        carried_forward: vine.number(),
+        available_balance: vine.number(),
+    })
+)
+
+export const CreateValidatorForOtherStaffLeaveApplication = vine.compile(
+    vine.object({
+        other_staff_id: vine.number(),
+        leave_type_id: vine.number(),
+        from_date: vine.date(),
+        to_date: vine.date(),
+        reason: vine.string(),
+        is_half_day: vine.boolean(),
+        half_day_type: vine.enum(['first_half', 'second_half' , "none"]),
+        is_hourly_leave: vine.boolean(),
+        total_hour: vine.number().max(4).nullable(),
+        documents: vine.object({}).optional(),
+
+        
+    })
+)
+
+export const UpdateValidatorForOtherStaffLeaveApplication = vine.compile(
+    vine.object({
+        leave_type_id: vine.number(),
+        from_date: vine.date(),
+        to_date: vine.date(),
+        // number_of_days : added by controller 
+        reason: vine.string(),
+        is_half_day: vine.boolean(),
+        half_day_type: vine.enum(['first_half', 'second_half' , 'none']),
+        is_hourly_leave: vine.boolean(),
+        total_hour: vine.number().max(4).nullable().optional()
+    })
+)
+
+export const CreateValidatorForTeachersLeaveBalance = vine.compile(
+    vine.object({
+        teacher_id: vine.number(),
+        leave_type_id: vine.number(),
+        academic_year: vine.number(),
+        total_leaves: vine.number(),
+        used_leaves: vine.number(),
+        pending_leaves: vine.number(),
+        carried_forward: vine.number(),
+        available_balance: vine.number(),
+    })
+)
+
+
+export const CreateValidatorForTeachersLeaveApplication = vine.compile(
+    vine.object({
+        teacher_id: vine.number(),
+        leave_type_id: vine.number(),
+        from_date: vine.date(),
+        to_date: vine.date(),
+        reason: vine.string(),
+        is_half_day: vine.boolean(),
+        half_day_type: vine.enum(['first_half', 'second_half' , 'none']),
+        is_hourly_leave: vine.boolean(),
+        total_hour: vine.number().max(4).nullable(),
+        documents: vine.object({}).optional(),
+
+        /**
+         *   added from controller after check condition
+         * 
+        applied_by: vine.number().nullable(),
+        applied_by_self: vine.boolean(),
+        number_of_days : vine.number(),
+        status: vine.enum(['pending', 'approved', 'rejected', 'cancelled']),
+
+
+         * */
+    })
+)
+
+export const UpdateValidatorForTeachersLeaveApplication = vine.compile(
+    vine.object({
+        leave_type_id: vine.number(),
+        from_date: vine.date(),
+        to_date: vine.date(), 
+        reason: vine.string(),
+        is_half_day: vine.boolean(),
+        half_day_type: vine.enum(['first_half', 'second_half' , 'none']),
+        is_hourly_leave: vine.boolean(),
+        total_hour: vine.number().max(4).nullable().optional()
+    })
+)
+

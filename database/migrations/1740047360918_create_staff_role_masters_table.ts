@@ -18,6 +18,7 @@ export default class extends BaseSchema {
       table.boolean('is_teaching_role').notNullable();
       table.string('permissions').nullable();
 
+      table.integer('working_hours').notNullable().defaultTo(8);
       table.unique(['school_id', 'role'])
 
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now());

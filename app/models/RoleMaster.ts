@@ -8,7 +8,7 @@ export default class RoleMaster extends Base {
     public static table = 'role_master'
     
     @column()
-    declare role : string
+    declare role : 'ADMIN' | 'PRINCIPAL' | 'HEAD_TEACHER' | 'CLERK' | 'IT_ADMIN' | 'SCHOOL_TEACHER'
 
     @column()
     declare permissions : Object

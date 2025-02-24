@@ -11,42 +11,48 @@ export default class extends BaseSeeder {
         school_id : 1,
         role : 'Principal',
         is_teaching_role : true,
-        permissions : {}  
+        permissions : {} ,
+        working_hours : 8 
       },
       {
         id : 2,
         school_id : 1,
         role : 'Head-Teacher',
         is_teaching_role : true,
-        permissions : {}
+        permissions : {},
+        working_hours : 8
       },
       {
         id : 3,
         school_id : 1,
         role : 'Teacher',
         is_teaching_role : true,
-        permissions : {}
+        permissions : {},
+        working_hours : 8
       },
       {
         id : 4,
         school_id : 1,
         role : 'Clerk',
         is_teaching_role : false,
-        permissions : {}
+        permissions : {},
+        working_hours : 8
       },
       {
         id : 5,
         school_id : 1,
         role : 'Peon',
         is_teaching_role : false,
-        permissions : {}
+        permissions : {},
+        working_hours : 8
       },
       {
         id : 6,
         school_id : 1,
         role : 'Accountant',
         is_teaching_role : false,
-        permissions : {}
+        permissions : {},
+        working_hours : 8
       },
     ]) // Creates two rows in the
   }

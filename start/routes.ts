@@ -17,6 +17,7 @@ import StaffMasterController from '#controllers/StaffMasterController'
 import SchoolsController from '#controllers/SchoolsController'
 import TeachersController from '#controllers/TeachersController'
 import OtherStaffsController from '#controllers/OtherStaffsController'
+import LeavesController from '#controllers/LeavesController'
 
 router.get('/', async () => {
   return {
@@ -41,7 +42,7 @@ router.group(() => {
   
   router.get('/users/:school_id', [UsersController , 'indexSchoolUsers'])
   router.post('/user', [UsersController , 'createUser'])
-  router.put('/user/:school_id/:user_id', [UsersController , 'update'])
+  router.put('/user/:user_id', [UsersController , 'update'])
   
   router.get('/classes/:school_id', [ClassesController , 'indexClassesForSchool']);
   router.post('/class/base', [ClassesController , 'createClass']);
@@ -70,6 +71,12 @@ router.group(() => {
   router.post('other-staff/:school_id' , [OtherStaffsController , 'createOtherStaff'])
   router.put('other-staff/:school_id/:other_staff' , [OtherStaffsController , 'updateOtherStaff'])
 
+  router.post('leave-type', [LeavesController, 'createLeaveTypeForSchool'])
+  router.put('leave-type/:leave_type_id', [LeavesController, 'updateLeaveTypeForSchool'])
+  router.post('leave-policy', [LeavesController, 'createLeavePolicyForSchool'])
+  router.put('leave-policy/:leave_policy_id', [LeavesController, 'updateLeavePolicyForSchool'])
+  router.post('leave-application', [LeavesController, 'applyForLeave'])
+  router.put('leave-application/:uuid', [LeavesController, 'updateAppliedLeave'])
 
 }).prefix('/api/v1/').use(middleware.auth())
 

@@ -23,6 +23,8 @@ export default class extends BaseSchema {
                 .nullable()
                 .defaultTo(null);
 
+            table.string('is_active').notNullable();
+
             table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now());
             table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now());
         })

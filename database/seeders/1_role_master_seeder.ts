@@ -23,7 +23,7 @@ export default class extends BaseSeeder {
       },
       {
         id: 4,
-        role: "CLERCK",
+        role: "CLERK",
         permissions : {}
       },
       {

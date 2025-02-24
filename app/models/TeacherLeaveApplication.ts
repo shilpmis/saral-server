@@ -5,6 +5,11 @@ import { column } from '@adonisjs/lucid/orm'
 
 export default class TeacherLeaveApplication extends Base {
 
+    static table = 'teachers_leave_applications'
+
+    @column()
+    declare uuid: string
+
     @column()
     declare teacher_id: number
 
@@ -12,10 +17,10 @@ export default class TeacherLeaveApplication extends Base {
     declare leave_type_id: number
 
     @column()
-    declare applied_by: number
+    declare applied_by: number | null
 
     @column()
-    declare applied_by_self: number
+    declare applied_by_self: boolean
 
     @column({
         serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
@@ -37,16 +42,16 @@ export default class TeacherLeaveApplication extends Base {
     declare is_half_day: boolean
 
     @column()
-    declare half_day_type: 'first_half' | 'second_half'
+    declare half_day_type: 'first_half' | 'second_half' | 'none'
 
     @column()
     declare is_hourly_leave: boolean
 
     @column()
-    declare total_hour: number
+    declare total_hour: number | null
 
     @column()
-    declare documents: JSON
+    declare documents: Object
 
     @column()
     declare status: 'pending' | 'approved' | 'rejected' | 'cancelled'

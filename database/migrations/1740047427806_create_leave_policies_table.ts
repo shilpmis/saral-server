@@ -15,7 +15,7 @@ export default class extends BaseSchema {
       table.integer('max_consecutive_days').defaultTo(0)
       table.boolean('requires_approval').defaultTo(true)
       table.json('approval_hierarchy').notNullable() // [{"level": 1, "role_id": 1}, ...]
-      table.json('deduction_rules').nullable() // For payroll integration
+      table.json('deduction_rules').notNullable() // For payroll integration
       table.boolean('is_active').defaultTo(true)
   
       table.unique(['staff_role_id', 'leave_type_id'])

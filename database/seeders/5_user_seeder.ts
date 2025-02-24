@@ -14,6 +14,9 @@ export default class extends BaseSeeder {
         username: "admin-melzo",
         role_id: 1,
         password: "12345678",
+        is_active : true,
+        is_teacher : false,
+        teacher_id : null
       },
       {
         id: 2,
@@ -23,6 +26,9 @@ export default class extends BaseSeeder {
         username: "principal-melzo",
         role_id: 2,
         password: "12345678",
+        is_active : true,
+        is_teacher : false,
+        teacher_id : null
       },
       {
         id: 3,
@@ -33,7 +39,8 @@ export default class extends BaseSeeder {
         role_id: 6,
         password: "12345678",
         is_teacher : true,
-        teacher_id : 2
+        teacher_id : 2,
+        is_active : true,
       },
     ])
   }
