@@ -1,255 +1,466 @@
-// import type { HttpContext } from '@adonisjs/core/http'
+import LeavePolicies from '#models/LeavePolicies';
+import LeaveTypeMaster from '#models/LeaveTypeMaster';
+import OtherStaff from '#models/OtherStaff';
+import OtherStaffLeaveApplication from '#models/OtherStaffLeaveApplication';
+import StaffMaster from '#models/StaffMaster';
+import Teacher from '#models/Teacher';
+import TeacherLeaveApplication from '#models/TeacherLeaveApplication';
+import { CreateValidatorForLeavePolicies, CreateValidatorForLeaveType, CreateValidatorForOtherStaffLeaveApplication, CreateValidatorForTeachersLeaveApplication, UpdateValidatorForLeavePolicies, UpdateValidatorForLeaveType, UpdateValidatorForOtherStaffLeaveApplication, UpdateValidatorForTeachersLeaveApplication } from '#validators/Leave';
+import { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db';
+import { DateTime } from 'luxon';
+import { v4 as uuidv4 } from 'uuid';
 
 
-// import { DateTime } from 'luxon'
-// // import type { HttpContext } from '@ioc:Adonis/Core/HttpContext'
-// // import LeaveApplication from 'App/Models/LeaveApplication'
-// // import LeavePolicy from 'App/Models/LeavePolicy'
-// // import LeaveBalance from 'App/Models/LeaveBalance'
-// // import LeaveType from 'App/Models/LeaveType'
+export default class LeavesController {
 
-// export default class LeaveController {
-//   /**
-//    * Teacher & Staff APIs
-//    */
-  
-//   // Apply for leave
-//   public async applyLeave({ request, auth, response }: HttpContext) {
-//     try {
-//       const user = auth.user!
-//       const data = request.only([
-//         'leave_type_id',
-//         'from_date',
-//         'to_date',
-//         'reason',
-//         'is_half_day',
-//         'documents'
-//       ])
+    async createLeaveTypeForSchool(ctx: HttpContext) {
 
-//       // Validate leave policy exists for user's role
-//       const policy = await LeavePolicy.query()
-//         .where('role_id', user.role_id)
-//         .where('leave_type_id', data.leave_type_id)
-//         .where('is_active', true)
-//         .first()
+        let school_id = ctx.auth.user!.school_id;
+        let role_id = ctx.auth.user!.role_id
 
-//       if (!policy) {
-//         return response.badRequest({ message: 'No leave policy found for this leave type' })
-//       }
+        if (role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to create leave type for this school"
+            })
+        }
 
-//       // Calculate number of days
-//       const fromDate = DateTime.fromISO(data.from_date)
-//       const toDate = DateTime.fromISO(data.to_date)
-//       const days = data.is_half_day ? 0.5 : toDate.diff(fromDate, 'days').days + 1
+        let paylaod = await CreateValidatorForLeaveType.validate(ctx.request.body());
+        let leave = await LeaveTypeMaster.create({ ...paylaod, school_id: school_id });
+        return ctx.response.status(201).json(leave);
+    }
 
-//       // Check leave balance
-//       const balance = await LeaveBalance.query()
-//         .where('staff_id', user.id)
-//         .where('leave_type_id', data.leave_type_id)
-//         .where('academic_year', DateTime.now().year)
-//         .first()
+    async updateLeaveTypeForSchool(ctx: HttpContext) {
 
-//       if (!balance || balance.available_leaves < days) {
-//         return response.badRequest({ message: 'Insufficient leave balance' })
-//       }
+        let school_id = ctx.auth.user!.school_id;
+        let role_id = ctx.auth.user!.role_id
 
-//       // Create leave application
-//       const leaveApplication = await LeaveApplication.create({
-//         ...data,
-//         staff_id: user.id,
-//         applied_by: user.id,
-//         school_id: user.school_id,
-//         days,
-//         status: 'pending'
-//       })
+        if (role_id !== 1 && school_id !== ctx.auth.user?.school_id) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to create leave type for this school"
+            })
+        }
 
-//       return response.created({ message: 'Leave application submitted successfully', data: leaveApplication })
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error applying for leave', error })
-//     }
-//   }
+        let leave_type = await LeaveTypeMaster
+            .query()
+            .where('id', ctx.params.leave_type_id)
+            .andWhere('school_id', school_id).first();
 
-//   // Get my leave applications
-//   public async myLeaves({ auth, request, response }: HttpContext) {
-//     try {
-//       const { status, from_date, to_date, page = 1, limit = 10 } = request.qs()
-//       const query = LeaveApplication.query()
-//         .where('staff_id', auth.user!.id)
-//         .preload('leaveType')
-//         .preload('approvals')
+        if (!leave_type) {
+            return ctx.response.status(404).json({
+                message: "This leave type is not available for your school"
+            })
+        }
 
-//       if (status) {
-//         query.where('status', status)
-//       }
-//       if (from_date) {
-//         query.where('from_date', '>=', from_date)
-//       }
-//       if (to_date) {
-//         query.where('to_date', '<=', to_date)
-//       }
+        let payload = await UpdateValidatorForLeaveType.validate(ctx.request.body())
+        await leave_type.merge(payload).save();
 
-//       const leaves = await query.paginate(page, limit)
-//       return response.ok(leaves)
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error fetching leaves', error })
-//     }
-//   }
+        return ctx.response.status(200).json(leave_type);
 
-//   /**
-//    * Clerk APIs
-//    */
+    }
 
-//   // Apply leave on behalf of staff
-//   public async applyLeaveForStaff({ request, auth, response }: HttpContext) {
-//     try {
-//       const data = request.only([
-//         'staff_id',
-//         'leave_type_id',
-//         'from_date',
-//         'to_date',
-//         'reason',
-//         'is_half_day',
-//         'documents'
-//       ])
+    async createLeavePolicyForSchool(ctx: HttpContext) {
 
-//       // Add validation for clerk role here
+        let role_id = ctx.auth.user!.role_id
 
-//       const leaveApplication = await LeaveApplication.create({
-//         ...data,
-//         applied_by: auth.user!.id,
-//         school_id: auth.user!.school_id,
-//         status: 'pending'
-//       })
+        if (role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to create leave type for this school"
+            })
+        }
 
-//       return response.created({ message: 'Leave application submitted successfully', data: leaveApplication })
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error applying leave for staff', error })
-//     }
-//   }
+        let paylaod = await CreateValidatorForLeavePolicies.validate(ctx.request.body());
 
-//   // Get all staff leaves (for clerk)
-//   public async getAllStaffLeaves({ request, auth, response }: HttpContext) {
-//     try {
-//       const {
-//         staff_id,
-//         status,
-//         from_date,
-//         to_date,
-//         page = 1,
-//         limit = 10
-//       } = request.qs()
+        let leave_type = await LeaveTypeMaster
+            .query()
+            .where('id', paylaod.leave_type_id)
+            .andWhere('school_id', ctx.auth.user!.school_id).first();
 
-//       const query = LeaveApplication.query()
-//         .where('school_id', auth.user!.school_id)
-//         .preload('staff')
-//         .preload('leaveType')
+        if (!leave_type) {
+            return ctx.response.status(404).json({
+                message: "This leave type is not available for your school"
+            })
+        }
 
-//       if (staff_id) {
-//         query.where('staff_id', staff_id)
-//       }
-//       if (status) {
-//         query.where('status', status)
-//       }
-//       if (from_date) {
-//         query.where('from_date', '>=', from_date)
-//       }
-//       if (to_date) {
-//         query.where('to_date', '<=', to_date)
-//       }
+        let leave = await LeavePolicies.create(paylaod);
 
-//       const leaves = await query.paginate(page, limit)
-//       return response.ok(leaves)
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error fetching staff leaves', error })
-//     }
-//   }
+        return ctx.response.status(200).json(leave);
 
-//   /**
-//    * Admin APIs
-//    */
+    }
 
-//   // Create leave policy
-//   public async createLeavePolicy({ request, auth, response }: HttpContext) {
-//     try {
-//       const data = request.only([
-//         'role_id',
-//         'leave_type_id',
-//         'annual_quota',
-//         'allow_half_day',
-//         'requires_approval',
-//         'approval_levels'
-//       ])
+    async updateLeavePolicyForSchool(ctx: HttpContext) {
 
-//       const policy = await LeavePolicy.create({
-//         ...data,
-//         school_id: auth.user!.school_id
-//       })
+        let role_id = ctx.auth.user!.role_id
 
-//       return response.created({ message: 'Leave policy created successfully', data: policy })
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error creating leave policy', error })
-//     }
-//   }
+        if (role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to create leave type for this school"
+            })
+        }
 
-//   // Approve/Reject leave
-//   public async updateLeaveStatus({ request, auth, response, params }: HttpContext) {
-//     try {
-//       const { status, comments } = request.only(['status', 'comments'])
-//       const leaveId = params.id
 
-//       const leave = await LeaveApplication.findOrFail(leaveId)
-//       leave.status = status
-//       if (status === 'rejected') {
-//         leave.rejection_reason = comments
-//       }
-//       await leave.save()
+        let leave_policy = await LeavePolicies
+            .query()
+            .where('id', ctx.params.leave_policy_id).first();
 
-//       // Update leave balance if approved
-//       if (status === 'approved') {
-//         const balance = await LeaveBalance.query()
-//           .where('staff_id', leave.staff_id)
-//           .where('leave_type_id', leave.leave_type_id)
-//           .first()
+        if (!leave_policy) {
+            return ctx.response.status(404).json({
+                message: "This leave policy is not available for your school"
+            })
+        }
 
-//         if (balance) {
-//           balance.used_leaves += leave.days
-//           balance.available_leaves -= leave.days
-//           await balance.save()
-//         }
-//       }
+        let validate_leave = await LeaveTypeMaster
+            .query()
+            .where('id', leave_policy!.leave_type_id)
+            .andWhere('school_id', ctx.auth.user!.school_id).first();
 
-//       return response.ok({ message: `Leave ${status} successfully`, data: leave })
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error updating leave status', error })
-//     }
-//   }
+        if (!validate_leave) {
+            return ctx.response.status(401).json({
+                message: "This leave policy is not available for your school"
+            })
+        }
 
-//   // Get leave statistics
-//   public async getLeaveStatistics({ auth, response }: HttpContext) {
-//     try {
-//       const stats = await LeaveApplication.query()
-//         .where('school_id', auth.user!.school_id)
-//         .count('* as total')
-//         .count('* as pending').where('status', 'pending')
-//         .count('* as approved').where('status', 'approved')
-//         .count('* as rejected').where('status', 'rejected')
-//         .first()
+        let payload = await UpdateValidatorForLeavePolicies.validate(ctx.request.body());
 
-//       return response.ok(stats)
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error fetching leave statistics', error })
-//     }
-//   }
+        await leave_policy.merge(payload).save();
 
-//   // Delete leave application (soft delete)
-//   public async deleteLeave({ params, response }: HttpContext) {
-//     try {
-//       const leave = await LeaveApplication.findOrFail(params.id)
-//       await leave.delete()
+        return ctx.response.status(200).json(leave_policy);
+    }
 
-//       return response.ok({ message: 'Leave application deleted successfully' })
-//     } catch (error) {
-//       return response.internalServerError({ message: 'Error deleting leave application', error })
-//     }
-//   }
-// }
+    private async validateLeaveRequest(
+        payload: any,
+        leavePolicy: LeavePolicies,
+    ) {
+
+        let numberOfDays = 0;
+
+        const startDate = DateTime.fromJSDate(new Date(payload.from_date));
+        const endDate = DateTime.fromJSDate(new Date(payload!.to_date));
+        const today = DateTime.now().startOf('day');
+        const twoMonthsFromNow = today.plus({ months: 2 });
+
+        // 1. Date validations
+        if (startDate < today) {
+            throw new Error("Leave cannot be applied for past dates");
+        }
+
+        if (startDate > endDate) {
+            throw new Error("Start date cannot be greater than end date");
+        }
+
+        if (endDate > twoMonthsFromNow) {
+            throw new Error("Cannot apply leave for more than 2 months in advance");
+        }
+
+
+        if (payload.is_hourly_leave) {
+            // 3 & 4 & 5. Hourly leave validations
+            if (!startDate.equals(endDate)) {
+                throw new Error("For hourly leave, start and end date must be same");
+            }
+            if (payload.is_half_day || payload.half_day_type !== 'none') {
+                throw new Error("Hourly leave cannot be combined with half day");
+            }
+            if (!payload.total_hour) {
+                throw new Error("Total hour should be there if leave is hour based .");
+            }
+            if (payload.total_hour > 4) {
+                throw new Error("Hourly leave cannot exceed 4 hours");
+            }
+            numberOfDays = payload.total_hour / leavePolicy.staff_role.working_hours; // Converting hours to days
+
+        } else if (payload.is_half_day) {
+            // 3 & 4. Half day validations
+            if (!startDate.equals(endDate)) {
+                throw new Error("For half day leave, start and end date must be same");
+            }
+            if (payload.half_day_type === 'None') {
+                throw new Error("Half day type must be specified for half day leave");
+            }
+            numberOfDays = 0.5;
+
+        } else {
+            // Calculate business days excluding weekends
+            let current = startDate;
+            while (current <= endDate) {
+                if (current.weekday <= 5) { // Monday = 1, Friday = 5
+                    numberOfDays++;
+                }
+                current = current.plus({ days: 1 });
+            }
+        }
+
+        // Validate against max consecutive days
+        if (numberOfDays > leavePolicy.max_consecutive_days) {
+            throw new Error(`Leave cannot exceed ${leavePolicy.max_consecutive_days} consecutive days`);
+        }
+
+        if (!payload.is_hourly_leave && payload.total_hour) {
+            throw new Error("Total hour should be null if leave is not hour based !");
+        }
+
+        return numberOfDays;
+    }
+
+
+    async applyForLeave(ctx: HttpContext) {
+        let numberOfDays: any = 0;
+        let staff_type = ctx.request.input('staff');
+        try {
+
+            if (staff_type === 'teachers') {
+
+                let payload = await CreateValidatorForTeachersLeaveApplication.validate(ctx.request.body());
+
+                // Validate teacher
+                let teacher = await Teacher.query()
+                    .where('id', payload.teacher_id)
+                    .andWhere('school_id', ctx.auth.user!.school_id)
+                    .first();
+
+                if (!teacher) {
+                    return ctx.response.status(401).json({
+                        message: "You are not authorized to create leave type for this school"
+                    });
+                }
+
+                // Validate leave type
+                let leave_type = await LeaveTypeMaster.query()
+                    .where('id', payload.leave_type_id)
+                    .andWhere('school_id', ctx.auth.user!.school_id)
+                    .first();
+
+                if (!leave_type) {
+                    return ctx.response.status(404).json({
+                        message: "This leave type is not available for your school"
+                    });
+                }
+
+                // Get leave policy
+                const leavePolicy = await LeavePolicies.query()
+                    .preload('staff_role')
+                    .where('staff_role_id', teacher.staff_role_id)
+                    .andWhere('leave_type_id', payload.leave_type_id)
+                    .first();
+
+                console.log("check this here", teacher.staff_role_id, payload.leave_type_id)
+
+                if (!leavePolicy) {
+                    return ctx.response.status(404).json({
+                        message: "No leave policy found for this leave type"
+                    });
+                }
+
+                try {
+                    numberOfDays = await this.validateLeaveRequest(payload, leavePolicy);
+                } catch (error) {
+                    return ctx.response.status(404).json({
+                        message: error.message
+                    })
+                }
+                // Validate leave request and calculate days
+
+                const trx = await db.transaction();
+                try {
+                    const applicationId = uuidv4();
+                    let applied_by = ctx.auth.user?.id;
+
+                    let application = await TeacherLeaveApplication.create({
+                        ...payload,
+                        uuid: applicationId,
+                        status: 'pending',
+                        number_of_days: numberOfDays || 0,
+                        applied_by_self: ctx.auth.user!.is_teacher,
+                        applied_by: applied_by
+                    }, { client: trx });
+
+
+                    await trx.commit();
+
+                    return ctx.response.status(201).json(application);
+
+                } catch (error) {
+                    await trx.rollback();
+                    return ctx.response.status(500).json({
+                        message: error.message
+                    });
+                }
+
+            } else if (staff_type === 'others') {
+
+                let payload = await CreateValidatorForOtherStaffLeaveApplication.validate(ctx.request.body());
+
+                // Similar validation logic for other staff...
+                let staff = await OtherStaff.query()
+                    .where('id', payload.other_staff_id)
+                    .andWhere('school_id', ctx.auth.user!.school_id)
+                    .first();
+
+                if (!staff) {
+                    return ctx.response.status(401).json({
+                        message: "You are not authorized to create leave type for this school"
+                    });
+                }
+
+                let leave_type = await LeaveTypeMaster.query()
+                    .where('id', payload.leave_type_id)
+                    .andWhere('school_id', ctx.auth.user!.school_id)
+                    .first();
+
+                if (!leave_type) {
+                    return ctx.response.status(404).json({
+                        message: "This leave type is not available for your school"
+                    });
+                }
+
+                const leavePolicy = await LeavePolicies.query()
+                    .where('staff_role_id', staff.staff_role_id)
+                    .where('leave_type_id', payload.leave_type_id)
+                    .first();
+
+                if (!leavePolicy) {
+                    return ctx.response.status(404).json({
+                        message: "No leave policy found for this leave type"
+                    });
+                }
+
+                try {
+                    numberOfDays = await this.validateLeaveRequest(payload, leavePolicy);
+                } catch (error) {
+                    return ctx.response.status(404).json({
+                        message: error.message
+                    })
+                }
+
+                // const numberOfDays = await this.validateLeaveRequest(ctx, payload, leavePolicy);
+                const trx = await db.transaction();
+                try {
+                    const applicationId = uuidv4();
+                    let application = await OtherStaffLeaveApplication.create({
+                        ...payload,
+                        uuid: applicationId,
+                        status: 'pending',
+                        number_of_days: numberOfDays || 0,
+                        applied_by_self: false,
+                        applied_by: ctx.auth.user?.id
+                    }, { client: trx });
+
+                    await trx.commit();
+
+                    return ctx.response.status(201).json(application);
+                } catch (error) {
+                    await trx.rollback();
+
+                    return ctx.response.status(500).json({
+                        message: error.message
+                    });
+                }
+
+            } else {
+                return ctx.response.status(404).json({
+                    message: "You need to define role correctly!"
+                });
+            }
+
+        } catch (error) {
+            // console.log("error==>" , error);
+            return ctx.response.status(400).json(error);
+        }
+    }
+
+    async updateAppliedLeave(ctx: HttpContext) {
+
+        let applcation_id = ctx.params.applcation_id;
+        let staff_type = ctx.request.input('staff_type');
+
+        let numberOfDays: any = 0
+        if (staff_type === "teaching") {
+
+            let applcation = await TeacherLeaveApplication.query().where('uuid', applcation_id).first();
+
+            if (!applcation) {
+                return ctx.response.status(404).json({
+                    message: "Leave application you are requesting is not available"
+                })
+            }
+
+            let paylaod = await UpdateValidatorForTeachersLeaveApplication.validate(ctx.request.body());
+
+            // if(paylaod.leave_type_id){
+
+
+            // }
+
+            // const leavePolicy = await LeavePolicies.query()
+            //     .where('staff_role_id', applcation.st)
+            //     .where('leave_type_id', payload.leave_type_id)
+            //     .first();
+
+            // if (!leavePolicy) {
+            //     return ctx.response.status(404).json({
+            //         message: "No leave policy found for this leave type"
+            //     });
+            // }
+            // try {
+            //     numberOfDays = await this.validateLeaveRequest({
+            //         ...applcation,
+            //         ...paylaod
+            //     }, leavePolicy);
+            // } catch (error) {
+            //     return ctx.response.status(404).json({
+            //         message: error.message
+            //     })
+            // }
+
+            if (paylaod.leave_type_id) {
+                let leave_type = await LeaveTypeMaster.query()
+                    .where('id', paylaod.leave_type_id)
+                    .andWhere('school_id', ctx.auth.user!.school_id)
+                    .first();
+
+                if (!leave_type) {
+                    return ctx.response.status(404).json({
+                        message: "This leave type is not available for your school"
+                    })
+                }
+            }
+            await applcation.merge(paylaod).save();
+
+            return ctx.response.status(201).json(applcation);
+
+        } else if (staff_type === "non-teaching") {
+            let applcation = await OtherStaffLeaveApplication.findBy('uuid', applcation_id);
+
+            if (!applcation) {
+                return ctx.response.status(404).json({
+                    message: "Leave application you are requesting is not available"
+                })
+            }
+
+            let paylaod = await UpdateValidatorForOtherStaffLeaveApplication.validate(ctx.request.body());
+
+            if (paylaod.leave_type_id) {
+                let leave_type = await LeaveTypeMaster.query()
+                    .where('id', paylaod.leave_type_id)
+                    .andWhere('school_id', ctx.auth.user!.school_id)
+                    .first();
+
+                if (!leave_type) {
+                    return ctx.response.status(404).json({
+                        message: "This leave type is not available for your school"
+                    })
+                }
+            }
+
+            await applcation.merge(paylaod).save();
+
+            return ctx.response.status(201).json(applcation);
+        } else {
+            return ctx.response.status(404).json({
+                message: "You need to define role correctly ! "
+            })
+        }
+    }
+
+}
+

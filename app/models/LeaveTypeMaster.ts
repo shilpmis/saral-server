@@ -3,11 +3,13 @@ import Base from './base.js'
 
 export default class LeaveTypeMaster extends Base {
   
+  static table = 'leave_types_master'
+
   @column()
   declare school_id : number
   
   @column()
-  declare leave_type_name : number
+  declare leave_type_name : string
   
   @column()
   declare is_paid : boolean

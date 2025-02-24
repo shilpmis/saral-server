@@ -1,7 +1,9 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column } from '@adonisjs/lucid/orm'
+import { column, hasOne } from '@adonisjs/lucid/orm'
+import type { HasOne } from '@adonisjs/lucid/types/relations'
+import StaffMaster from './StaffMaster.js'
 
 export default class LeavePolicies extends Base {
 
@@ -27,12 +29,18 @@ export default class LeavePolicies extends Base {
     declare requires_approval : boolean
 
     @column()
-    declare deduction_rules : JSON
+    declare deduction_rules : Object
 
     @column()
-    declare approval_hierarchy : JSON
+    declare approval_hierarchy : Object
 
-    @column()
-    declare is_active : boolean
+    // @column()
+    // declare is_active : boolean
+
+    @hasOne(() => StaffMaster, {
+        localKey: 'staff_role_id',
+        foreignKey: 'id',
+    })
+    declare staff_role : HasOne<typeof StaffMaster>
 
 }
