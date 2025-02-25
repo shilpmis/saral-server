@@ -136,13 +136,13 @@ export const CreateValidatorForTeachersLeaveApplication = vine.compile(
 
 export const UpdateValidatorForTeachersLeaveApplication = vine.compile(
     vine.object({
-        leave_type_id: vine.number(),
-        from_date: vine.date(),
-        to_date: vine.date(), 
-        reason: vine.string(),
-        is_half_day: vine.boolean(),
-        half_day_type: vine.enum(['first_half', 'second_half' , 'none']),
-        is_hourly_leave: vine.boolean(),
+        leave_type_id: vine.number().optional(),
+        from_date: vine.date().optional(),
+        to_date: vine.date().optional(), 
+        reason: vine.string().optional(),
+        is_half_day: vine.boolean().optional(),
+        half_day_type: vine.enum(['first_half', 'second_half' , 'none']).optional(),
+        is_hourly_leave: vine.boolean().optional(),
         total_hour: vine.number().max(4).nullable().optional()
     })
 )

@@ -155,6 +155,7 @@ export default class LeavesController {
 
         if (payload.is_hourly_leave) {
             // 3 & 4 & 5. Hourly leave validations
+            console.log("CHECK THIS DATA" , startDate ,endDate)
             if (!startDate.equals(endDate)) {
                 throw new Error("For hourly leave, start and end date must be same");
             }
@@ -174,7 +175,7 @@ export default class LeavesController {
             if (!startDate.equals(endDate)) {
                 throw new Error("For half day leave, start and end date must be same");
             }
-            if (payload.half_day_type === 'None') {
+            if (payload.half_day_type === 'none') {
                 throw new Error("Half day type must be specified for half day leave");
             }
             numberOfDays = 0.5;
@@ -202,6 +203,98 @@ export default class LeavesController {
         return numberOfDays;
     }
 
+    private async validateLeaveRequestForUpdate(
+        existingLeave: any,
+        updatedPayload: any,
+        leavePolicy: LeavePolicies,
+    ) {
+
+        let numberOfDays = 0;
+
+        // Merge existing and updated data
+        const payload = {
+            ...existingLeave,
+            ...updatedPayload
+        };
+
+        const startDate = DateTime.fromJSDate(new Date(payload.from_date));
+        const endDate = DateTime.fromJSDate(new Date(payload.to_date));
+        const today = DateTime.now().startOf('day');
+        const twoMonthsFromNow = today.plus({ months: 2 });
+
+        // Only validate dates if they are being updated
+        if (updatedPayload.from_date || updatedPayload.to_date) {
+            // Allow editing past leaves that were already approved
+            if (existingLeave.status !== 'approved') {
+                if (startDate < today) {
+                    throw new Error("Leave cannot be modified for past dates");
+                }
+            }
+
+            if (startDate > endDate) {
+                throw new Error("Start date cannot be greater than end date");
+            }
+
+            if (endDate > twoMonthsFromNow) {
+                throw new Error("Cannot apply leave for more than 2 months in advance");
+            }
+        }
+
+
+        if (payload.is_hourly_leave) {
+            // Hourly leave validations
+            if (!startDate.equals(endDate)) {
+                throw new Error("For hourly leave, start and end date must be same");
+            }
+            if (payload.is_half_day || payload.half_day_type !== 'none') {
+                throw new Error("Hourly leave cannot be combined with half day");
+            }
+            if (!payload.total_hour) {
+                throw new Error("Total hour should be there if leave is hour based");
+            }
+            if (payload.total_hour > 4) {
+                throw new Error("Hourly leave cannot exceed 4 hours");
+            }
+            numberOfDays = payload.total_hour / leavePolicy.staff_role.working_hours;
+
+        } else if (payload.is_half_day) {
+            // Half day validations  
+            if (!startDate.equals(endDate)) {
+                throw new Error("For half day leave, start and end date must be same");
+            }
+            if (payload.half_day_type === 'none') {
+                throw new Error("Half day type must be specified for half day leave");
+            }
+            numberOfDays = 0.5;
+
+        } else {
+            // Calculate business days excluding weekends
+            let current = startDate;
+            while (current <= endDate) {
+                if (current.weekday <= 5) {
+                    numberOfDays++;
+                }
+                current = current.plus({ days: 1 });
+            }
+        }
+
+        // Validate against max consecutive days
+        if (numberOfDays > leavePolicy.max_consecutive_days) {
+            throw new Error(`Leave cannot exceed ${leavePolicy.max_consecutive_days} consecutive days`);
+        }
+
+        if (!payload.is_hourly_leave && payload.total_hour) {
+            throw new Error("Total hour should be null if leave is not hour based!");
+        }
+
+        // Additional update specific validations
+        if (existingLeave.status === 'approved' || existingLeave.status === 'rejected') {
+            throw new Error("Cannot modify an approved or rejected leave application");
+        }
+
+        return numberOfDays;
+    }
+
 
     async applyForLeave(ctx: HttpContext) {
         let numberOfDays: any = 0;
@@ -212,7 +305,11 @@ export default class LeavesController {
 
                 let payload = await CreateValidatorForTeachersLeaveApplication.validate(ctx.request.body());
 
-                // Validate teacher
+                /***
+                 * need to check leave balance for this type here ! 
+                 */
+
+
                 let teacher = await Teacher.query()
                     .where('id', payload.teacher_id)
                     .andWhere('school_id', ctx.auth.user!.school_id)
@@ -370,13 +467,14 @@ export default class LeavesController {
 
     async updateAppliedLeave(ctx: HttpContext) {
 
-        let applcation_id = ctx.params.applcation_id;
+        let leave_application_id = ctx.params.uuid;
         let staff_type = ctx.request.input('staff_type');
 
         let numberOfDays: any = 0
+
         if (staff_type === "teaching") {
 
-            let applcation = await TeacherLeaveApplication.query().where('uuid', applcation_id).first();
+            let applcation = await TeacherLeaveApplication.query().where('uuid', leave_application_id).first();
 
             if (!applcation) {
                 return ctx.response.status(404).json({
@@ -385,51 +483,45 @@ export default class LeavesController {
             }
 
             let paylaod = await UpdateValidatorForTeachersLeaveApplication.validate(ctx.request.body());
+            
+            // Teacher for staff id 
 
-            // if(paylaod.leave_type_id){
+            let teacher = await Teacher.query()
+                .where('id', applcation.teacher_id)
+                .andWhere('school_id', ctx.auth.user!.school_id)
+                .first();
 
+            let leave_policy : LeavePolicies | null = null 
 
-            // }
-
-            // const leavePolicy = await LeavePolicies.query()
-            //     .where('staff_role_id', applcation.st)
-            //     .where('leave_type_id', payload.leave_type_id)
-            //     .first();
-
-            // if (!leavePolicy) {
-            //     return ctx.response.status(404).json({
-            //         message: "No leave policy found for this leave type"
-            //     });
-            // }
-            // try {
-            //     numberOfDays = await this.validateLeaveRequest({
-            //         ...applcation,
-            //         ...paylaod
-            //     }, leavePolicy);
-            // } catch (error) {
-            //     return ctx.response.status(404).json({
-            //         message: error.message
-            //     })
-            // }
-
-            if (paylaod.leave_type_id) {
-                let leave_type = await LeaveTypeMaster.query()
-                    .where('id', paylaod.leave_type_id)
-                    .andWhere('school_id', ctx.auth.user!.school_id)
-                    .first();
-
-                if (!leave_type) {
-                    return ctx.response.status(404).json({
-                        message: "This leave type is not available for your school"
-                    })
-                }
+            // staf if and leave if to fetch leave policy
+            if(paylaod.leave_type_id){
+                leave_policy = await LeavePolicies.query()
+                .where('staff_role_id' , teacher!.staff_role_id)
+                .andWhere('leave_type_id' ,paylaod.leave_type_id).first()
+            }else{
+                leave_policy = await LeavePolicies.query()
+                .where('staff_role_id' , teacher!.staff_role_id)
+                .andWhere('leave_type_id' ,applcation.leave_type_id).first()
             }
-            await applcation.merge(paylaod).save();
+
+            if (!leave_policy) {
+                return ctx.response.status(404).json({
+                    message: "This leave type or policy is been available for your school"
+                });
+            }
+            try {
+                numberOfDays = await this.validateLeaveRequestForUpdate(applcation.serialize(), paylaod, leave_policy);
+            } catch (error) {
+                return ctx.response.status(404).json({
+                    message: error.message
+                })
+            }
+            await applcation.merge({...paylaod , number_of_days : numberOfDays}).save();
 
             return ctx.response.status(201).json(applcation);
 
         } else if (staff_type === "non-teaching") {
-            let applcation = await OtherStaffLeaveApplication.findBy('uuid', applcation_id);
+            let applcation = await OtherStaffLeaveApplication.findBy('uuid', leave_application_id);
 
             if (!applcation) {
                 return ctx.response.status(404).json({
@@ -461,6 +553,16 @@ export default class LeavesController {
             })
         }
     }
+
+
+    /**
+     *  Controller for handle application approval , status and Balance 
+     *  
+     */
+
+    async addLeaveBalanceForStaff(ctx : HttpContext){
+
+    }   
 
 }
 
