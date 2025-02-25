@@ -1,7 +1,8 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column } from '@adonisjs/lucid/orm'
+import { beforeSave, column } from '@adonisjs/lucid/orm'
+import { before } from 'node:test'
 
 export default class Staff extends Base {
 
@@ -23,13 +24,17 @@ export default class Staff extends Base {
  @column()
  declare gender : 'Male'| 'Female'
 
- @column()
+ @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
  declare birth_date : Date
 
  @column()
  declare email : string
 
- @column()
+ @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
  declare joining_date : Date
 
  @column()

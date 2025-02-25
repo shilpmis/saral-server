@@ -10,10 +10,7 @@ export const CreateValidatorForUsers = vine.compile(
       username : vine.string().trim().minLength(3).maxLength(30).unique({table : 'users' ,column : 'username'}),
       password : vine.string().trim().minLength(8).maxLength(30), 
       role_id : vine.number(),
-
-     // blow fields are added in req body from controller itself 
-
-      // school_id , saral_email , last_login
+      is_active : vine.boolean(),
   })
 )
 
@@ -24,8 +21,7 @@ export const CreateValidatorForUsers = vine.compile(
 export const UpdateValidatorForUsers = vine.compile(
   vine.object({
     name : vine.string().trim().minLength(3).maxLength(30).optional(),
-    role_id : vine.number().optional(),
-    // username : vine.string().trim().minLength(3).maxLength(30).unique({table : 'users' ,column : 'username'}).optional(),
+    is_active : vine.boolean(),
 
     /**
      * Password should not be update thay easily

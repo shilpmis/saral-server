@@ -13,7 +13,7 @@ export default class Students extends Base {
     declare school_id : number
 
     @column()
-    declare class_id : string
+    declare class_id : number
 
     @column()
     declare first_name : string
@@ -36,7 +36,9 @@ export default class Students extends Base {
     @column()
     declare gender : 'Male' | 'Female' 
 
-    @column()
+    @column({
+      serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+    })
     declare birth_date : Date
 
     @column()

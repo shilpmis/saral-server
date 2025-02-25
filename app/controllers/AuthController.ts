@@ -26,18 +26,20 @@ export default class AuthController {
     try {
       const payload = await CreateValidatorForSchools.validate(ctx.request.all());
       const school = await Schools.create(payload, { client: trx });
-      
-       /**
-       * Create one admin level role for this school
-       */
+
+      /**
+      * Create one admin level role for this school
+      */
       const admin_user = await User.create({
         school_id: school.id,
         saral_email: `admin@${school.username}.saral`,
         password: '12345678',
         role_id: 1,
         username: `admin-${school.username}`,
-        name: 'Admin'
+        name: 'Admin',
+        is_active: true
       }, { client: trx });
+
 
       await trx.commit();
       return ctx.response.json({ school: school.serialize(), admin: admin_user.serialize() });
@@ -45,9 +47,9 @@ export default class AuthController {
     } catch (error) {
       await trx.rollback();
       return ctx.response.status(500).json({
-         message: 'Internal Server Error !! Please contact service center !',
-         error : error 
-        });
+        message: 'Internal Server Error !! Please contact service center !',
+        error: error
+      });
 
     }
 

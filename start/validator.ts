@@ -1,5 +1,9 @@
 import vine, { SimpleMessagesProvider } from '@vinejs/vine'
 
+
+
+// vine.validate()
+
 vine.messagesProvider = new SimpleMessagesProvider({
   // Applicable for all fields
   'required': 'The {{ field }} field is required',

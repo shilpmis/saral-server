@@ -6,7 +6,7 @@ import Schools from './Schools.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
 
 export default class User extends Base {
-
+ 
   @column()
   declare school_id : number
   
@@ -25,9 +25,15 @@ export default class User extends Base {
   @column()
   declare role_id : number
   
-  // @column.dateTime({ autoCreate: true , serializeAs : null })
-  // declare last_login: DateTime
-
+  @column()
+  declare is_teacher : boolean
+  
+  @column()
+  declare teacher_id : number | null
+  
+  @column()
+  declare is_active : boolean
+  
   @hasOne(() => Schools , {
     localKey : 'school_id',
     foreignKey : 'id'

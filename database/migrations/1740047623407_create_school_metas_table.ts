@@ -6,7 +6,7 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.integer('school_id').unsigned().references('id').inTable('school').onUpdate('CASCADE').onDelete('CASCADE');
+      table.integer('school_id').unsigned().references('id').inTable('schools').onUpdate('CASCADE').onDelete('CASCADE');
       table.string('head_name' , 100).notNullable();
       table.bigInteger('head_contact_number').unique().notNullable();
       table.string('address' , 100).notNullable();
@@ -15,8 +15,9 @@ export default class extends BaseSchema {
       table.string('state' , 100).notNullable();
       table.bigInteger('pincode').unsigned().notNullable();
 
-      table.timestamp('created_at')
-      table.timestamp('updated_at')
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now());
+      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now());
+  
     })
   }
 

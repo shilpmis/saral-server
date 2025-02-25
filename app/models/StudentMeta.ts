@@ -1,11 +1,9 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column, SnakeCaseNamingStrategy } from '@adonisjs/lucid/orm'
+import { column } from '@adonisjs/lucid/orm'
 
 export default class StudentMeta extends Base {
-
-    public static namingStrategy = new SnakeCaseNamingStrategy()
 
     public static table = "student_meta"
 
@@ -36,14 +34,11 @@ export default class StudentMeta extends Base {
     @column()
     declare category :'ST' | 'SC' | 'OBC' | 'OPEN'
 
-    @column()
+    @column({
+        serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+      })
     declare admission_date :Date 
 
-    // @column()
-    // declare admission_std :number
-
-    // @column()
-    // declare division :string 
 
     @column()
     declare admission_class_id :number 
@@ -78,7 +73,7 @@ export default class StudentMeta extends Base {
     @column()
     declare account_no :number  
 
-    @column()
+    @column({serializeAs : 'IFSC_code'})
     declare IFSC_code :string  
   
 }

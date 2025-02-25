@@ -11,20 +11,18 @@ export default class extends BaseSchema {
         .unsigned()
         .notNullable()
         .references('id')
-        .inTable('school')
+        .inTable('schools')
         .onDelete('CASCADE')
         
       table.string('role', 50).notNullable()
       table.boolean('is_teaching_role').notNullable();
       table.string('permissions').nullable();
 
-      //  added timestamps
-      table.timestamp('created_at');
-      table.timestamp('updated_at');
-
+      table.integer('working_hours').notNullable().defaultTo(8);
       table.unique(['school_id', 'role'])
-      // table.timestamp('created_at');
-      // table.timestamp('updated_at');
+
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now());
+      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now());
     })
   }
 
