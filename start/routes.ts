@@ -66,7 +66,8 @@ router.group(() => {
    */
   router.get('teachers/:school_id' , [TeachersController , 'indexTeachersForSchool'])
   router.post('teachers/:school_id' , [TeachersController , 'createTeacher'])
-  router.put('teacher/:school_id/:teacher_id' , [TeachersController , 'updateTeacher'])
+  router.put('teacher/:school_id/:teacher_id' , [TeachersController , 'updateTeacher']);
+  router.post('teachers/bulk-upload/:school_id/' , [TeachersController , 'bulkUploadTeachers'])
 
   router.get('other-staff/:school_id' , [OtherStaffsController , 'indexOtherStaffForSchool'])
   router.post('other-staff/:school_id' , [OtherStaffsController , 'createOtherStaff'])
