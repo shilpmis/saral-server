@@ -14,6 +14,33 @@ import { v4 as uuidv4 } from 'uuid';
 
 export default class LeavesController {
 
+    async indexLeaveTypesForSchool(ctx: HttpContext) {
+
+        let school_id = ctx.auth.user!.school_id;
+        let role_id = ctx.auth.user!.role_id
+
+        if (role_id !== 1 && school_id !== ctx.auth.user?.school_id) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to create leave type for this school"
+            })
+        }
+
+        if (ctx.request.input('page') == "all") {
+            let leave_types = await LeaveTypeMaster
+                .query()
+                .where('school_id', school_id).orderBy('id', 'desc');
+
+            return ctx.response.status(200).json(leave_types);
+
+        }
+
+        let leave_types = await LeaveTypeMaster
+            .query()
+            .where('school_id', school_id).orderBy('id', 'desc').paginate(ctx.request.input('page', 1), 6);
+
+        return ctx.response.status(200).json(leave_types);
+    }
+
     async createLeaveTypeForSchool(ctx: HttpContext) {
 
         let school_id = ctx.auth.user!.school_id;
@@ -56,6 +83,39 @@ export default class LeavesController {
         await leave_type.merge(payload).save();
 
         return ctx.response.status(200).json(leave_type);
+
+    }
+
+    async indexLeavePolicyForSchool(ctx: HttpContext) {
+        let role_id = ctx.auth.user!.role_id
+
+        if (role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to create leave type for this school"
+            })
+        }
+
+        /**
+         * 
+         * TODO :: Need to fix this , api taking too much effort 
+         * 
+         * - either add school_id in LeavePolicy table or make code optimal
+         */
+
+        let staff_role = await StaffMaster
+            .query()
+            .where('school_id', ctx.auth.user!.school_id).orderBy('id', 'desc')
+        // .paginate(ctx.request.input('page', 1), 6);
+
+        let leave_policies = await LeavePolicies
+            .query()
+            .preload('staff_role')
+            .preload('leave_type')
+            .whereIn('staff_role_id', [...staff_role.map(staff => staff.id)]).orderBy('id', 'desc')
+            .paginate(ctx.request.input('page', 1), 6);
+
+
+        return ctx.response.status(200).json(leave_policies);
 
     }
 
@@ -155,7 +215,7 @@ export default class LeavesController {
 
         if (payload.is_hourly_leave) {
             // 3 & 4 & 5. Hourly leave validations
-            console.log("CHECK THIS DATA" , startDate ,endDate)
+            console.log("CHECK THIS DATA", startDate, endDate)
             if (!startDate.equals(endDate)) {
                 throw new Error("For hourly leave, start and end date must be same");
             }
@@ -483,7 +543,7 @@ export default class LeavesController {
             }
 
             let paylaod = await UpdateValidatorForTeachersLeaveApplication.validate(ctx.request.body());
-            
+
             // Teacher for staff id 
 
             let teacher = await Teacher.query()
@@ -491,17 +551,17 @@ export default class LeavesController {
                 .andWhere('school_id', ctx.auth.user!.school_id)
                 .first();
 
-            let leave_policy : LeavePolicies | null = null 
+            let leave_policy: LeavePolicies | null = null
 
             // staf if and leave if to fetch leave policy
-            if(paylaod.leave_type_id){
+            if (paylaod.leave_type_id) {
                 leave_policy = await LeavePolicies.query()
-                .where('staff_role_id' , teacher!.staff_role_id)
-                .andWhere('leave_type_id' ,paylaod.leave_type_id).first()
-            }else{
+                    .where('staff_role_id', teacher!.staff_role_id)
+                    .andWhere('leave_type_id', paylaod.leave_type_id).first()
+            } else {
                 leave_policy = await LeavePolicies.query()
-                .where('staff_role_id' , teacher!.staff_role_id)
-                .andWhere('leave_type_id' ,applcation.leave_type_id).first()
+                    .where('staff_role_id', teacher!.staff_role_id)
+                    .andWhere('leave_type_id', applcation.leave_type_id).first()
             }
 
             if (!leave_policy) {
@@ -516,7 +576,7 @@ export default class LeavesController {
                     message: error.message
                 })
             }
-            await applcation.merge({...paylaod , number_of_days : numberOfDays}).save();
+            await applcation.merge({ ...paylaod, number_of_days: numberOfDays }).save();
 
             return ctx.response.status(201).json(applcation);
 
@@ -560,9 +620,9 @@ export default class LeavesController {
      *  
      */
 
-    async addLeaveBalanceForStaff(ctx : HttpContext){
+    async addLeaveBalanceForStaff(ctx: HttpContext) {
 
-    }   
+    }
 
 }
 

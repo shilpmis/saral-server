@@ -72,8 +72,10 @@ router.group(() => {
   router.post('other-staff/:school_id' , [OtherStaffsController , 'createOtherStaff'])
   router.put('other-staff/:school_id/:other_staff' , [OtherStaffsController , 'updateOtherStaff'])
 
+  router.get('leave-type', [LeavesController, 'indexLeaveTypesForSchool'])
   router.post('leave-type', [LeavesController, 'createLeaveTypeForSchool'])
   router.put('leave-type/:leave_type_id', [LeavesController, 'updateLeaveTypeForSchool'])
+  router.get('leave-policy', [LeavesController, 'indexLeavePolicyForSchool'])
   router.post('leave-policy', [LeavesController, 'createLeavePolicyForSchool'])
   router.put('leave-policy/:leave_policy_id', [LeavesController, 'updateLeavePolicyForSchool'])
   router.post('leave-application', [LeavesController, 'applyForLeave'])

@@ -4,6 +4,7 @@ import Base from '#models/base'
 import { column, hasOne } from '@adonisjs/lucid/orm'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
 import StaffMaster from './StaffMaster.js'
+import LeaveTypeMaster from './LeaveTypeMaster.js'
 
 export default class LeavePolicies extends Base {
 
@@ -42,5 +43,11 @@ export default class LeavePolicies extends Base {
         foreignKey: 'id',
     })
     declare staff_role : HasOne<typeof StaffMaster>
+
+    @hasOne(() => LeaveTypeMaster, {
+        localKey: 'leave_type_id',
+        foreignKey: 'id',
+    })
+    declare leave_type : HasOne<typeof LeaveTypeMaster>
 
 }
