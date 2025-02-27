@@ -303,11 +303,6 @@ export default class StundetsController {
                             .andWhere('division', data.division)
                             .first();
 
-
-                        console.log("classRecord?.school_id !== school_id", classRecord?.school_id !== school_id)
-                        console.log("classRecord?.id !== class_id", classRecord?.id !== class_id)
-
-            
                         if((classRecord?.school_id != school_id ) && (classRecord?.id != class_id)){
                             errors.push({
                                 row: index + 1,
@@ -324,13 +319,12 @@ export default class StundetsController {
                             ...validatedStudent.students_data,
                             school_id,
                         }, { client: trx });
-                    //    console.log("student_data", student_data);
+
                         // Insert student meta data
                         const student_meta_data_payload = await StudentMeta.create({
                             ...validatedStudent.student_meta_data,
                             student_id: student_data.id,
                         }, { client: trx });
-                        // console.log("student_meta_data_payload", student_meta_data_payload);
             
                         validatedData.push({ student_data, student_meta_data_payload });
                     } catch (validationError) {
