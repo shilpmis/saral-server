@@ -2,7 +2,6 @@ import LeavePolicies from '#models/LeavePolicies';
 import LeaveTypeMaster from '#models/LeaveTypeMaster';
 import OtherStaff from '#models/OtherStaff';
 import OtherStaffLeaveApplication from '#models/OtherStaffLeaveApplication';
-import StaffMaster from '#models/StaffMaster';
 import Teacher from '#models/Teacher';
 import TeacherLeaveApplication from '#models/TeacherLeaveApplication';
 import { CreateValidatorForLeavePolicies, CreateValidatorForLeaveType, CreateValidatorForOtherStaffLeaveApplication, CreateValidatorForTeachersLeaveApplication, UpdateValidatorForLeavePolicies, UpdateValidatorForLeaveType, UpdateValidatorForOtherStaffLeaveApplication, UpdateValidatorForTeachersLeaveApplication } from '#validators/Leave';
@@ -91,31 +90,49 @@ export default class LeavesController {
 
         if (role_id !== 1) {
             return ctx.response.status(401).json({
-                message: "You are not authorized to create leave type for this school"
+                message: "You are not authorized to access leave policies for school !"
             })
         }
-
-        /**
-         * 
-         * TODO :: Need to fix this , api taking too much effort 
-         * 
-         * - either add school_id in LeavePolicy table or make code optimal
-         */
-
-        let staff_role = await StaffMaster
-            .query()
-            .where('school_id', ctx.auth.user!.school_id).orderBy('id', 'desc')
-        // .paginate(ctx.request.input('page', 1), 6);
 
         let leave_policies = await LeavePolicies
             .query()
             .preload('staff_role')
             .preload('leave_type')
-            .whereIn('staff_role_id', [...staff_role.map(staff => staff.id)]).orderBy('id', 'desc')
+            .where('school_id', ctx.auth.user!.school_id).orderBy('id', 'desc')
             .paginate(ctx.request.input('page', 1), 6);
 
 
         return ctx.response.status(200).json(leave_policies);
+
+    }
+
+    async indexLeavePolicyForUser(ctx: HttpContext) {
+
+        let teacher_id = ctx.auth.user!.teacher_id
+
+        let teacher = await Teacher.find(teacher_id);
+
+        if (!teacher) {
+            return ctx.response.status(404).json({
+                message: "No Teacher available for this type !"
+            })
+        }
+
+        if (teacher_id) {
+            let leave_policies = await LeavePolicies
+                .query()
+                .preload('leave_type')
+                .where('staff_role_id', teacher.staff_role_id)
+                .andWhere('school_id', ctx.auth.user!.school_id).orderBy('id', 'desc')
+            // .paginate(ctx.request.input('page', 1), 6);
+
+
+            return ctx.response.status(200).json(leave_policies);
+        } else {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to access leave policies !"
+            })
+        }
 
     }
 
@@ -142,7 +159,7 @@ export default class LeavesController {
             })
         }
 
-        let leave = await LeavePolicies.create(paylaod);
+        let leave = await LeavePolicies.create({ ...paylaod, school_id: ctx.auth.user?.school_id });
 
         return ctx.response.status(200).json(leave);
 
@@ -355,7 +372,6 @@ export default class LeavesController {
         return numberOfDays;
     }
 
-
     async applyForLeave(ctx: HttpContext) {
         let numberOfDays: any = 0;
         let staff_type = ctx.request.input('staff');
@@ -382,6 +398,7 @@ export default class LeavesController {
                 }
 
                 // Validate leave type
+
                 let leave_type = await LeaveTypeMaster.query()
                     .where('id', payload.leave_type_id)
                     .andWhere('school_id', ctx.auth.user!.school_id)
@@ -613,6 +630,85 @@ export default class LeavesController {
             })
         }
     }
+
+    async fetchLeaveApplication(ctx: HttpContext) {
+
+        let staff_id = ctx.params.staff_id;
+        let role = ctx.request.input('role');
+        let status = ctx.request.input('status', 'pending');
+
+        if (role == 'teacher') {
+            const today = new Date().toISOString().split('T')[0];
+
+            let teacher_id = await Teacher.query().where('id', staff_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+
+            if (teacher_id) {
+                let applications = await TeacherLeaveApplication
+                    .query()
+                    .preload('leave_type')
+                    .where('teacher_id', staff_id)
+                    .andWhere('status', status)
+                    .andWhere('from_date', '>', today)
+                    .paginate(ctx.request.input('page', 1), 6);
+
+                return ctx.response.status(201).json(applications);
+            } else {
+                return ctx.response.status(404).json({
+                    message: 'This teacher is not available for your school'
+                })
+            }
+        } else if (role == 'other') {
+
+        } else {
+            return ctx.response.status(404).json({
+                message: "You need to define role correctly ! "
+            })
+        }
+
+    }
+
+    async fetchLeaveApplicationForAdmin(ctx: HttpContext) {
+        const staff = ctx.request.input('role');
+        const date = ctx.request.input('date', null);
+        const status = ctx.request.input('status', 'pending');
+        const page = ctx.request.input('page', 1);
+        const today = new Date().toISOString().split('T')[0];
+
+        let applicationQuery;
+
+        if (staff === 'teacher') {
+            applicationQuery = TeacherLeaveApplication.query()// Selecting necessary fields
+                .preload('leave_type')
+                .preload('staff', (query) => {
+                    query.select('id', 'first_name', 'last_name', 'middle_name'); // Only fetching required staff fields
+                })
+                .where('status', status);
+        } else if (staff === 'other') {
+            applicationQuery = OtherStaffLeaveApplication.query()
+                .preload('leave_type')
+                .preload('staff', (query) => {
+                    query.select('id', 'first_name', 'last_name', 'middle_name');
+                })
+                .where('status', status);
+        } else {
+            return ctx.response.status(400).json({
+                message: "Invalid role provided. Please specify 'teacher' or 'other'."
+            });
+        }
+
+        // Apply date filter if 'date' is provided
+        if (date) {
+            applicationQuery.andWhere('from_date', '>=', date);
+        } else {
+            applicationQuery.andWhere('from_date', '>', today);
+        }
+
+        // Paginate results
+        const applications = await applicationQuery.paginate(page, 6);
+
+        return ctx.response.status(200).json(applications);
+    }
+
 
 
     /**

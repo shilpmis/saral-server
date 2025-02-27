@@ -9,6 +9,9 @@ import LeaveTypeMaster from './LeaveTypeMaster.js'
 export default class LeavePolicies extends Base {
 
     @column()
+    declare school_id : number
+
+    @column()
     declare staff_role_id : number
 
     @column()
