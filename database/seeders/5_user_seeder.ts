@@ -39,7 +39,7 @@ export default class extends BaseSeeder {
         role_id: 6,
         password: "12345678",
         is_teacher : true,
-        teacher_id : 2,
+        teacher_id : 1,
         is_active : true,
       },
     ])
