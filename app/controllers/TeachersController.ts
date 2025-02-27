@@ -1,9 +1,11 @@
 import StaffMaster from '#models/StaffMaster';
 import Teacher from '#models/Teacher'
-import { CreateValidatorForTeachers, UpdateValidatorForTeachers } from '#validators/Teachers';
+import { CreateTeacherValidator, CreateValidatorForTeachers, UpdateValidatorForTeachers } from '#validators/Teachers';
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db';
-
+import { parseAndReturnJSON } from '../../utility/parseCsv.js';
+import app from '@adonisjs/core/services/app';
+import path from 'node:path';
 export default class TeachersController {
 
     async indexTeachersForSchool(ctx: HttpContext) {
@@ -94,4 +96,98 @@ export default class TeachersController {
             return ctx.response.status(403).json({ message: "You are not authorized to create a teacher" });
         }
     }
+    
+    async bulkUploadTeachers(ctx: HttpContext) {
+        const school_id = ctx.params.school_id;
+        const role_id = ctx.auth.user!.role_id;
+        console.log("school_id", school_id);
+        console.log("role_id", role_id);
+        console.log("ctx.auth.user", ctx.auth.user);
+        if (school_id !== ctx.auth.user!.school_id && (role_id === 3 || role_id === 5)) {
+            return ctx.response.status(403).json({ message: "You are not authorized to create teachers." });
+        }
+    
+        try {
+            // Ensure a file is uploaded
+            const csvFile = ctx.request.file('file', {
+                extnames: ['csv'],
+                size: '2mb',
+            });
+    
+            if (!csvFile) {
+                return ctx.response.badRequest({ message: 'CSV file is required.' });
+            }
+    
+            // Move file to temp storage
+            const uploadDir = path.join(app.tmpPath(), 'uploads');
+            await csvFile.move(uploadDir);
+    
+            if (!csvFile.isValid) {
+                return ctx.response.badRequest({ message: csvFile.errors });
+            }
+    
+            // Construct file path
+            const filePath = path.join(uploadDir, csvFile.clientName);
+    
+            // Parse CSV file into JSON
+            const jsonData = await parseAndReturnJSON(filePath);
+
+            if (!jsonData.length) {
+             return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' });
+            }
+
+            // Start a database transaction
+            const trx = await db.transaction();
+
+           try {
+            let validatedData = [];
+
+            for (const data of jsonData) {
+                // Validate each object separately
+                const validatedTeacher = await CreateTeacherValidator.validate(data);
+
+                // Check if the staff role exists in the school and is a teaching role
+                const role = await StaffMaster.query({ client: trx })
+                    .where('school_id', school_id)
+                    .andWhere('id', validatedTeacher.staff_role_id)
+                    .first();
+
+                if (!role) {
+                    await trx.rollback();
+                    return ctx.response.status(404).json({
+                        message: `Role ID ${validatedTeacher.staff_role_id} is not available for your school.`,
+                    });
+                }
+
+                validatedData.push({ ...validatedTeacher, school_id });
+            }
+            console.log("validatedData", validatedData);
+
+            // Insert only if all records are valid
+            const teachers = await Teacher.createMany(validatedData, { client: trx });
+
+            // Commit the transaction
+            await trx.commit();
+
+            return ctx.response.status(201).json({
+                message: 'Bulk upload successful',
+                totalInserted: teachers.length,
+                data: teachers,
+            });
+            } catch (validationError) {
+                console.log("validationError", validationError);
+                await trx.rollback();
+                return ctx.response.status(400).json({
+                    message: 'Validation failed',
+                    errors: validationError.messages,
+                });
+            }
+        } catch (error) {
+            return ctx.response.internalServerError({
+                message: 'An error occurred while processing the bulk upload.',
+                error: error.message,
+            });
+        }
+    }
+    
 }
