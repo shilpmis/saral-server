@@ -6,6 +6,7 @@ import StudentMeta from '#models/StudentMeta';
 import db from '@adonisjs/lucid/services/db';
 import { parseAndReturnJSON } from '../../utility/parseCsv.js';
 import path from 'path';
+import fs from 'fs/promises';
 import app from '@adonisjs/core/services/app';
 
 export default class StundetsController {
@@ -212,25 +213,28 @@ export default class StundetsController {
     
         try {
             // Ensure a file is uploaded
-            const csvFile = ctx.request.file('file', {
-                extnames: ['csv'],
-                size: '2mb',
+            const file = ctx.request.file('file', {
+                extnames: ["csv",
+                  "xlsx",
+                  "xls",
+                  ],
+                size: '20mb',
+                
             });
-    
-            if (!csvFile) {
-                return ctx.response.badRequest({ message: 'CSV file is required.' });
+            console.log("file", file);
+            if (!file) {
+                return ctx.response.status(400).json({ message: 'No file uploaded.' });
             }
-    
             // Move file to temp storage
             const uploadDir = path.join(app.tmpPath(), 'uploads');
-            await csvFile.move(uploadDir);
+            await file.move(uploadDir);
     
-            if (!csvFile.isValid) {
-                return ctx.response.badRequest({ message: csvFile.errors });
+            if (!file.isValid) {
+                return ctx.response.badRequest({ message: file.errors });
             }
     
             // Construct file path
-            const filePath = path.join(uploadDir, csvFile.clientName);
+            const filePath = path.join(uploadDir, file.clientName);
     
             // Parse CSV file into JSON
             const jsonData = await parseAndReturnJSON(filePath);
