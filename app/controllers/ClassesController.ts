@@ -69,7 +69,7 @@ export default class ClassesController {
         ];
 
         output_obj = output_obj.map((std: TypeForIndexSchoolClasses) => {
-          console.log("Check Classes" , [...classes])
+          // console.log("Check Classes" , [...classes])
           let divisions = [...classes].filter((item) => {
             return item.class == std.class
           })
