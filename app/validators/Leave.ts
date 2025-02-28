@@ -147,3 +147,10 @@ export const UpdateValidatorForTeachersLeaveApplication = vine.compile(
     })
 )
 
+export const ValidatorForApproveApplication = vine.compile(
+    vine.object({
+      status: vine.enum(['approved' , 'rejected' , 'cancelled']),
+      remarks: vine.string().trim().minLength(2).maxLength(200).optional(),
+    })
+  
+  )

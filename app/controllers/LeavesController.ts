@@ -4,7 +4,7 @@ import OtherStaff from '#models/OtherStaff';
 import OtherStaffLeaveApplication from '#models/OtherStaffLeaveApplication';
 import Teacher from '#models/Teacher';
 import TeacherLeaveApplication from '#models/TeacherLeaveApplication';
-import { CreateValidatorForLeavePolicies, CreateValidatorForLeaveType, CreateValidatorForOtherStaffLeaveApplication, CreateValidatorForTeachersLeaveApplication, UpdateValidatorForLeavePolicies, UpdateValidatorForLeaveType, UpdateValidatorForOtherStaffLeaveApplication, UpdateValidatorForTeachersLeaveApplication } from '#validators/Leave';
+import { CreateValidatorForLeavePolicies, CreateValidatorForLeaveType, CreateValidatorForOtherStaffLeaveApplication, CreateValidatorForTeachersLeaveApplication, UpdateValidatorForLeavePolicies, UpdateValidatorForLeaveType, UpdateValidatorForOtherStaffLeaveApplication, UpdateValidatorForTeachersLeaveApplication, ValidatorForApproveApplication } from '#validators/Leave';
 import { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db';
 import { DateTime } from 'luxon';
@@ -545,11 +545,11 @@ export default class LeavesController {
     async updateAppliedLeave(ctx: HttpContext) {
 
         let leave_application_id = ctx.params.uuid;
-        let staff_type = ctx.request.input('staff_type');
+        let staff_type = ctx.request.input('staff');
 
         let numberOfDays: any = 0
 
-        if (staff_type === "teaching") {
+        if (staff_type === "teacher") {
 
             let applcation = await TeacherLeaveApplication.query().where('uuid', leave_application_id).first();
 
@@ -559,6 +559,7 @@ export default class LeavesController {
                 })
             }
 
+            
             let paylaod = await UpdateValidatorForTeachersLeaveApplication.validate(ctx.request.body());
 
             // Teacher for staff id 
@@ -697,11 +698,13 @@ export default class LeavesController {
         }
 
         // Apply date filter if 'date' is provided
+
+        console.log("date", date, date !== undefined)
         if (date) {
-            applicationQuery.andWhere('from_date', '>=', date);
-        } else {
-            applicationQuery.andWhere('from_date', '>', today);
+            applicationQuery.andWhere('from_date', '=', date);
         }
+        applicationQuery.andWhere('from_date', '>', today);
+
 
         // Paginate results
         const applications = await applicationQuery.paginate(page, 6);
@@ -709,7 +712,67 @@ export default class LeavesController {
         return ctx.response.status(200).json(applications);
     }
 
+    async approveTeachersLeaveApplication(ctx: HttpContext) {
 
+        const leave_application_id = ctx.params.uuid;
+
+        const leave_application = await TeacherLeaveApplication.findBy('uuid', leave_application_id);
+
+        if (!leave_application) {
+            return ctx.response.status(404).json({
+                message: "Leave application you are requesting is not available"
+            });
+        }
+
+        let teacher = await Teacher
+            .query()
+            .where('id', leave_application.teacher_id)
+            .andWhere('school_id', ctx.auth.user!.school_id)
+            .first();;
+
+        if (!teacher) {
+            return ctx.response.status(404).json({
+                message: "You are not authorized to perform this action ."
+            });
+        }
+
+        const paylaod = await ValidatorForApproveApplication.validate(ctx.request.body());
+        await leave_application.merge(paylaod).save()
+
+        return ctx.response.status(201).json(leave_application);
+    }
+
+    async approveOtherStaffLeaveApplication(ctx: HttpContext) {
+
+        const leave_application_id = ctx.params.uuid;
+
+        const leave_application = await OtherStaffLeaveApplication.findBy('uuid', leave_application_id);
+
+        if (!leave_application) {
+            return ctx.response.status(404).json({
+                message: "Leave application you are requesting is not available"
+            });
+        }
+
+        let staff = await OtherStaff
+            .query()
+            .where('id', leave_application.other_staff_id)
+            .andWhere('school_id', ctx.auth.user!.school_id)
+            .first();
+
+        if (!staff) {
+            return ctx.response.status(404).json({
+                message: "You are not authorized to perform this action ."
+            });
+        }
+
+        const paylaod = await ValidatorForApproveApplication.validate(ctx.request.body());
+        
+        
+        await leave_application.merge(paylaod).save()
+
+        return ctx.response.status(201).json(leave_application);
+    }
 
     /**
      *  Controller for handle application approval , status and Balance 

@@ -8,9 +8,9 @@ export const CreateValidatorForUsers = vine.compile(
 
       name : vine.string().trim().minLength(3).maxLength(30),
       username : vine.string().trim().minLength(3).maxLength(30).unique({table : 'users' ,column : 'username'}),
-      password : vine.string().trim().minLength(8).maxLength(30), 
+      // password : vine.string().trim().minLength(8).maxLength(30), 
       role_id : vine.number(),
-      is_active : vine.boolean(),
+      // is_active : vine.boolean(),
   })
 )
 

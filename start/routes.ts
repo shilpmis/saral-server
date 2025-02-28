@@ -86,6 +86,8 @@ router.group(() => {
   router.get('leave-application', [LeavesController, 'fetchLeaveApplicationForAdmin'])
   router.post('leave-application', [LeavesController, 'applyForLeave'])
   router.put('leave-application/:uuid', [LeavesController, 'updateAppliedLeave'])
+  router.put('/leave-application/other/status/:uuid', [LeavesController, 'approveOtherStaffLeaveApplication'])
+  router.put('/leave-application/teacher/status/:uuid', [LeavesController, 'approveTeachersLeaveApplication'])
 
 }).prefix('/api/v1/').use(middleware.auth())
 

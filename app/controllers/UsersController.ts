@@ -44,6 +44,8 @@ export default class UsersController {
       const user = await User.create({
         ...payload,
         school_id: school_id,
+        is_active: true ,
+        password : "12345678",
         saral_email: `${payload.username}@${ctx.auth.user?.username}.saral`
       });
       return ctx.response.json(user.serialize());
