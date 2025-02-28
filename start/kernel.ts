@@ -24,7 +24,7 @@ server.errorHandler(() => import('#exceptions/handler'))
  */
 server.use([
   () => import('#middleware/container_bindings_middleware'),
-  () => import('#middleware/force_json_response_middleware'),
+  // () => import('#middleware/force_json_response_middleware'),
   () => import('@adonisjs/cors/cors_middleware'),
 ])
 
@@ -32,7 +32,13 @@ server.use([
  * The router middleware stack runs middleware on all the HTTP
  * requests with a registered route.
  */
-router.use([() => import('@adonisjs/core/bodyparser_middleware'), () => import('@adonisjs/auth/initialize_auth_middleware'), () => import('#middleware/initialize_bouncer_middleware'), () => import('@adonisjs/session/session_middleware')])
+router.use([
+  () => import('@adonisjs/core/bodyparser_middleware'), // ✅ Ensure BodyParser runs first
+  () => import('@adonisjs/session/session_middleware'),
+  () => import('@adonisjs/auth/initialize_auth_middleware'),
+  () => import('#middleware/initialize_bouncer_middleware'),
+])
+
 
 /**
  * Named middleware collection must be explicitly assigned to
@@ -41,3 +47,11 @@ router.use([() => import('@adonisjs/core/bodyparser_middleware'), () => import('
 export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware')
 })
+
+
+
+/**
+ * ✅ Correctly register the BodyParser middleware 
+ * to allow file uploads via `multipart/form-data`
+ */
+// router.use([() => import('@adonisjs/core/bodyparser_middleware')])
