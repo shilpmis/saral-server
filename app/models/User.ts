@@ -4,6 +4,7 @@ import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import hash from '@adonisjs/core/services/hash'
 import Schools from './Schools.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
+import Teacher from './Teacher.js'
 
 export default class User extends Base {
  
@@ -13,8 +14,8 @@ export default class User extends Base {
   @column()
   declare name : string
   
-  @column()
-  declare username : string
+  // @column()
+  // declare username : string
   
   @column()
   declare saral_email : string
@@ -26,6 +27,7 @@ export default class User extends Base {
   declare role_id : number
   
   @column()
+
   declare is_teacher : boolean
   
   @column()
@@ -39,6 +41,12 @@ export default class User extends Base {
     foreignKey : 'id'
   })
   declare school : HasOne<typeof Schools>
+
+  @hasOne(() => Teacher , {
+    localKey : 'teacher_id',
+    foreignKey : 'id'
+  })
+  declare teacher : HasOne<typeof Teacher>
 
   @beforeSave()
   static async hashPassword(user: User) {
