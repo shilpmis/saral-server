@@ -55,7 +55,7 @@ export default class OtherStaffLeaveApplication extends Base {
   declare documents: Object
 
   @column()
-  declare status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+declare status: 'pending' | 'approved' | 'rejected' | 'cancelled'
 
   @hasOne(() => LeaveTypeMaster, {
     localKey: 'leave_type_id',

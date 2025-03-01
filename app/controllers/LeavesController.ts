@@ -728,7 +728,7 @@ export default class LeavesController {
             .query()
             .where('id', leave_application.teacher_id)
             .andWhere('school_id', ctx.auth.user!.school_id)
-            .first();;
+            .first();
 
         if (!teacher) {
             return ctx.response.status(404).json({
