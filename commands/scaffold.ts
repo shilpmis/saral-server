@@ -1,5 +1,4 @@
 import { BaseCommand } from '@adonisjs/core/ace'
-import MakeValidator from '@adonisjs/core/commands/make/validator'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
 export default class Scaffold extends BaseCommand {
