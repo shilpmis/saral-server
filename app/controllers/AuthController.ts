@@ -3,7 +3,6 @@ import User from '#models/User';
 import { CreateValidatorForSchools } from '#validators/Schools';
 import type { HttpContext } from '@adonisjs/core/http'
 import hash from '@adonisjs/core/services/hash';
-import auth from '@adonisjs/auth/services/main';
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon';
 
@@ -35,7 +34,6 @@ export default class AuthController {
         saral_email: `admin@${school.username}.saral`,
         password: '12345678',
         role_id: 1,
-        username: `admin-${school.username}`,
         name: 'Admin',
         is_active: true
       }, { client: trx });
@@ -60,7 +58,15 @@ export default class AuthController {
 
     if (email) {
       try {
-        let user = await User.query().preload('school').where('saral_email', email).first();
+        let userQuery = User.query()
+          .preload('school')
+          .where('saral_email', email)
+
+        let user = await userQuery.first()
+
+        if (user && user.teacher_id) {
+          await user.load('teacher')
+        }
         if (user && await hash.verify(user.password, password)) {
           const token = await User.accessTokens.create(user, ['*'], {
             expiresIn: '7 days' // expires in 30 days
@@ -81,10 +87,18 @@ export default class AuthController {
       return ctx.response.status(401).json({ message: 'Unauthorized' });
     } else {
       // let auth = await ctx.auth.use('api').authenticate();
-      let user = await User.query().preload('school').where('id', ctx.auth.user.id).first();
+      let userQuery = User.query()
+        .preload('school')
+        .where('id', ctx.auth.user.id)
+
+      let user = await userQuery.first()
+
+      if (user && user.teacher_id) {
+        await user.load('teacher')
+      }
       if (user) {
 
-        const token = await User.accessTokens.create(user, ['*'], {
+        await User.accessTokens.create(user, ['*'], {
           expiresIn: '7 days' // expires in 30 days
         });
         return ctx.response.json({ user: user.serialize() });
