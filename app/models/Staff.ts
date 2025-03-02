@@ -1,8 +1,7 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { beforeSave, column } from '@adonisjs/lucid/orm'
-import { before } from 'node:test'
+import { column } from '@adonisjs/lucid/orm'
 
 export default class Staff extends Base {
 

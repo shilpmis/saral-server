@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Schools from '#models/Schools'
-import { CreateValidatorForSchools, UpdateValidatorForSchools } from '#validators/Schools'
+import { UpdateValidatorForSchools } from '#validators/Schools'
 
 
 export default class SchoolsController {

@@ -16,5 +16,8 @@ export default class Classes extends Base {
 
     @column()
     declare aliases : string 
+
+    @column()
+    declare is_assigned : boolean 
      
 }

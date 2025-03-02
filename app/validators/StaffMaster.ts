@@ -1,5 +1,4 @@
 import vine from "@vinejs/vine";
-import { visitNode } from "typescript";
 
 /**
  * Validates the post's creation action

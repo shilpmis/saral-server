@@ -6,7 +6,6 @@ import StudentMeta from '#models/StudentMeta';
 import db from '@adonisjs/lucid/services/db';
 import { parseAndReturnJSON } from '../../utility/parseCsv.js';
 import path from 'path';
-import fs from 'fs/promises';
 import app from '@adonisjs/core/services/app';
 
 export default class StundetsController {

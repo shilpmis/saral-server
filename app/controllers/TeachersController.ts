@@ -49,8 +49,6 @@ export default class TeachersController {
 
     async indexTeacherNotActiveAsUser(ctx: HttpContext) {
 
-        console.log("CHECK THIS OUT ===>")
-
         let school_id = ctx.auth.user!.school_id;
         // let page = ctx.request.input('page');
 

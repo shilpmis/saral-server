@@ -1,13 +1,11 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column, hasOne, SnakeCaseNamingStrategy } from '@adonisjs/lucid/orm'
+import { column, hasOne } from '@adonisjs/lucid/orm'
 import StudentMeta from './StudentMeta.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
 
 export default class Students extends Base {
-
-  public static namingStrategy = new SnakeCaseNamingStrategy()
 
     @column()
     declare school_id : number
