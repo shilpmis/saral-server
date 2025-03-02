@@ -10,21 +10,18 @@ export const CreateValidatorForUsers = vine.compile(
   })
 )
 
-export const CreateValidatorForTeacherAsUsers = vine.compile(
+export const CreateValidatorForOnBoardTeacherAsUser = vine.compile(
   vine.object({
-    name: vine.string().trim().minLength(3).maxLength(30),
     teacher_id: vine.number(),
     class_id: vine.number().optional(),
     is_active: vine.boolean()
   })
 )
 
-export const UpdateValidatorForTeacherAsUsers = vine.compile(
+export const UpdateValidatorForOnBoardTeacherAsUser = vine.compile(
   vine.object({
-    name: vine.string().trim().minLength(3).maxLength(30).optional(),
     is_active: vine.boolean().optional(),
     class_id: vine.number().optional(),
-    // teacher_id : vine.number(),
   })
 )
 
