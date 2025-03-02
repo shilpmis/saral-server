@@ -385,7 +385,6 @@ export default class LeavesController {
                  * need to check leave balance for this type here ! 
                  */
 
-
                 let teacher = await Teacher.query()
                     .where('id', payload.teacher_id)
                     .andWhere('school_id', ctx.auth.user!.school_id)
@@ -551,7 +550,10 @@ export default class LeavesController {
 
         if (staff_type === "teacher") {
 
-            let applcation = await TeacherLeaveApplication.query().where('uuid', leave_application_id).first();
+            let applcation = await TeacherLeaveApplication
+            .query()
+            .preload('leave_type')
+            .where('uuid', leave_application_id).first();
 
             if (!applcation) {
                 return ctx.response.status(404).json({
@@ -779,9 +781,9 @@ export default class LeavesController {
      *  
      */
 
-    async addLeaveBalanceForStaff(ctx: HttpContext) {
+    // async addLeaveBalanceForStaff(ctx: HttpContext) {
 
-    }
+    // }
 
 }
 
