@@ -23,10 +23,10 @@ export default class AttendanceMasters extends Base {
     @column()
     declare teacher_id: number
 
-    @column.date({
-        serialize: (value: Date) => Base.serializeDateAsSQLDateString(value)
+    @column({
+      serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
     })
-    declare attendance_date: DateTime
+    declare attendance_date : Date
 
     @column()
     declare is_holiday: boolean
@@ -37,7 +37,10 @@ export default class AttendanceMasters extends Base {
     @column.dateTime({ autoCreate: true, autoUpdate: true })
     declare updated_at: DateTime
 
-    @hasMany(() => AattendanceDetail)
+    @hasMany(() => AattendanceDetail, {
+        foreignKey: 'attendance_master_id',
+        localKey: 'id'
+    })
     declare attendance_details: HasMany<typeof AattendanceDetail>
 
     @belongsTo(() => Schools)

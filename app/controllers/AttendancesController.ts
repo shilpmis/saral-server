@@ -4,17 +4,17 @@ import AttendanceMaster from '#models/AttendanceMasters'
 import AttendanceDetail from '#models/AattendanceDetail'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
+import { ValidatorForMarkAttendance } from '#validators/attendance'
 
 export default class AttendanceController {
 
   /**
    * For Teachers: Mark attendance for a class
+   * 
    */
-  async markAttendance(ctx: HttpContext) {
-
-    const { class_id, date, attendance_data } = ctx.request.body()
+  async markAttendance(ctx: HttpContext) {    const payload = await ValidatorForMarkAttendance.validate(ctx.request.body())
+    const { class_id, date } = payload;
     const teacher_id = ctx.auth.user!.teacher_id
-    const school_id = ctx.auth.user!.school_id
 
     const attendance_date = DateTime.fromJSDate(new Date(date));
     const today = DateTime.now().startOf('day');
@@ -49,21 +49,21 @@ export default class AttendanceController {
       try {
         // Create attendance master entry
         const attendanceMaster = await AttendanceMaster.create({
-          school_id,
-          class_id,
-          teacher_id,
-          attendance_date: date,
+          school_id: ctx.auth.user?.school_id,
+          class_id: payload.class_id,
+          teacher_id: payload.marked_by,
+          attendance_date: payload.date,
         }, { client: trx })
 
         // Create attendance details for each student
-        const attendanceDetails = attendance_data.map((data: any) => ({
+        const attendanceDetails = payload.attendance_data.map((data) => ({
           attendance_master_id: attendanceMaster.id,
           student_id: data.student_id,
           attendance_status: data.status,
           remarks: data.remarks || null
         }))
 
-        await AttendanceDetail.createMany(attendanceDetails, { client: trx })
+        await AttendanceDetail.createMany([...attendanceDetails], { client: trx })
 
         await trx.commit()
 
@@ -87,28 +87,65 @@ export default class AttendanceController {
    * For Admin: Fetch attendance details by class and date
    */
   async getAttendanceDetails(ctx: HttpContext) {
-    const { class_id, section_id, date } = ctx.request.qs()
+    const { class_id, unix_date } = ctx.params
     const school_id = ctx.auth.user!.school_id
+
+    let date = new Date(unix_date * 1000).toISOString().split('T')[0];
+
+    // Validate date range
+    const requestedDate = DateTime.fromISO(date)
+    const today = DateTime.now().startOf('day')
+    const twoMonthsAgo = today.minus({ months: 2 }).startOf('month')
+
+    // Check if date is in future
+    if (requestedDate > today) {
+      return ctx.response.status(400).json({
+        message: "Cannot access attendance for future dates"
+      })
+    }
+
+    // Check if date is too old (before previous month)
+    if (requestedDate < twoMonthsAgo) {
+      return ctx.response.status(400).json({
+        message: "Cannot access attendance older than 2 months"
+      })
+    }
 
     try {
       const attendance = await AttendanceMaster.query()
         .where('school_id', school_id)
         .where('class_id', class_id)
-        .where('section_id', section_id)
         .where('attendance_date', date)
         .preload('attendance_details', (query) => {
           query.preload('student', (studentQuery) => {
-            studentQuery.select('id', 'first_name', 'last_name', 'roll_number')
+            studentQuery.select('id', 'first_name', 'middle_name', 'last_name', 'roll_number')
           })
-        })
-        .preload('teacher', (query) => {
-          query.select('id', 'first_name', 'last_name')
         })
         .first()
 
-      if (!attendance) {
-        return ctx.response.status(404).json({
-          message: 'No attendance record found for this date'
+        
+        if (!attendance) {
+        // Fetch students assigned to this class for new attendance marking
+        const students = await db.query()
+          .from('students')
+          .where('class_id', class_id)
+          .where('school_id', school_id)
+          .where('is_active', true)
+          .select('id', 'first_name', 'last_name', 'roll_number')
+          .orderBy('roll_number', 'asc')
+
+        return ctx.response.status(200).json({
+          date,
+          class_id,
+          marked_by: null,
+          attendance_data: students.map(student => ({
+            student_id: student.id,
+            student_name: `${student.first_name} ${student.last_name}`,
+            roll_number: student.roll_number,
+            status: null,
+            remarks: null
+          })),
+          is_marked: false
         })
       }
 
@@ -116,14 +153,15 @@ export default class AttendanceController {
       const formattedAttendance = {
         date: attendance.attendance_date,
         class_id: attendance.class_id,
-        marked_by: `${attendance.teacher.first_name} ${attendance.teacher.last_name}`,
-        students: attendance.attendance_details.map(detail => ({
+        marked_by: attendance.teacher_id,
+        attendance_data: attendance.attendance_details.map(detail => ({
           student_id: detail.student_id,
           student_name: `${detail.student.first_name} ${detail.student.last_name}`,
           roll_number: detail.student.roll_number,
           status: detail.attendance_status,
           remarks: detail.remarks
-        }))
+        })),
+        is_marked: true
       }
 
       return ctx.response.status(200).json(formattedAttendance)
