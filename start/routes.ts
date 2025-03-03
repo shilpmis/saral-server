@@ -19,6 +19,7 @@ import TeachersController from '#controllers/TeachersController'
 import OtherStaffsController from '#controllers/OtherStaffsController'
 import LeavesController from '#controllers/LeavesController'
 import AttendanceController from '#controllers/AttendancesController'
+import InquiriesController from '#controllers/InquiriesController'
 
 // router.get('/', async () => {
 //   return {
@@ -38,6 +39,7 @@ router.group(() => {
   router.get('/verify', [AuthController, 'verifyUser'])
   router.get('/logout', [AuthController, 'logout'])
 
+  router.get('/stats', [SchoolsController, 'fetchSchoolDataForDashBoard'])
   router.get('/school/:school_id', [SchoolsController, 'index'])
   router.put('/school/:school_id', [SchoolsController, 'update'])
 
@@ -96,6 +98,10 @@ router.group(() => {
 
   router.get('attendance/:class_id/:unix_date', [AttendanceController, 'getAttendanceDetails'])
   router.post('attendance', [AttendanceController, 'markAttendance'])
+
+  router.get('/inquiries' , [InquiriesController , 'indexInquiries'])
+  router.post('/inquiry' , [InquiriesController , 'addInquiry'])
+  router.get('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
 
 }).prefix('/api/v1/').use(middleware.auth())
 

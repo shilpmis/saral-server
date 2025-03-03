@@ -24,7 +24,6 @@ export const parseAndReturnJSON = async (filePath: string): Promise<any[]> => {
         results.push(row);
       })
       .on("end", () => {
-        console.log("Parsed Data:", results); // 🚀 Debugging
         if (results.length === 0) {
           return reject(new Error("Parsed CSV is empty!")); // 🚨 Prevent invalid JSON
         }
