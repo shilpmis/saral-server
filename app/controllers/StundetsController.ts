@@ -199,7 +199,6 @@ export default class StundetsController {
         const school_id = ctx.auth.user!.school_id;
         const role_id = ctx.auth.user!.role_id;
         const class_id = ctx.request.input('class_id');
-        console.log("class_id", class_id);
         // Check if the user is authorized to perform this action
         
         if(!class_id){
@@ -220,7 +219,6 @@ export default class StundetsController {
                 size: '20mb',
                 
             });
-            console.log("file", file);
             if (!file) {
                 return ctx.response.status(400).json({ message: 'No file uploaded.' });
             }
@@ -331,7 +329,6 @@ export default class StundetsController {
             
                         validatedData.push({ student_data, student_meta_data_payload });
                     } catch (validationError) {
-                        console.log("validationError", validationError);
                         errors.push({
                             row: index + 1,
                             message: 'Validation failed',

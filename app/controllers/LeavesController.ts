@@ -232,7 +232,6 @@ export default class LeavesController {
 
         if (payload.is_hourly_leave) {
             // 3 & 4 & 5. Hourly leave validations
-            console.log("CHECK THIS DATA", startDate, endDate)
             if (!startDate.equals(endDate)) {
                 throw new Error("For hourly leave, start and end date must be same");
             }
@@ -416,7 +415,6 @@ export default class LeavesController {
                     .andWhere('leave_type_id', payload.leave_type_id)
                     .first();
 
-                console.log("check this here", teacher.staff_role_id, payload.leave_type_id)
 
                 if (!leavePolicy) {
                     return ctx.response.status(404).json({
@@ -701,7 +699,6 @@ export default class LeavesController {
 
         // Apply date filter if 'date' is provided
 
-        console.log("date", date, date !== undefined)
         if (date) {
             applicationQuery.andWhere('from_date', '=', date);
         }

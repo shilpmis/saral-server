@@ -162,9 +162,6 @@ export default class TeachersController {
     async bulkUploadTeachers(ctx: HttpContext) {
         const school_id = ctx.params.school_id;
         const role_id = ctx.auth.user!.role_id;
-        console.log("school_id", school_id);
-        console.log("role_id", role_id);
-        console.log("ctx.auth.user", ctx.auth.user);
         if (school_id !== ctx.auth.user!.school_id && (role_id === 3 || role_id === 5)) {
             return ctx.response.status(403).json({ message: "You are not authorized to create teachers." });
         }
@@ -223,7 +220,6 @@ export default class TeachersController {
 
                     validatedData.push({ ...validatedTeacher, school_id });
                 }
-                console.log("validatedData", validatedData);
 
                 // Insert only if all records are valid
                 const teachers = await Teacher.createMany(validatedData, { client: trx });
@@ -237,7 +233,6 @@ export default class TeachersController {
                     data: teachers,
                 });
             } catch (validationError) {
-                console.log("validationError", validationError);
                 await trx.rollback();
                 return ctx.response.status(400).json({
                     message: 'Validation failed',

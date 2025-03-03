@@ -11,7 +11,6 @@ export default class OtherStaffsController {
 
         let school_id = ctx.params.school_id;
         let page = ctx.request.input('page', 1);
-        console.log("Check this " ,school_id, page )
 
         const other_staff = await OtherStaff.query()
             .preload('role_type')

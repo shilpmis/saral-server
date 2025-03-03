@@ -19,8 +19,10 @@ export default class AuthController {
    * @returns 
    */
   async createSchool(ctx: HttpContext) {
-
+    
     let trx = await db.transaction();
+
+    console.log("CHECK THIS  I am here !")
 
     try {
       const payload = await CreateValidatorForSchools.validate(ctx.request.all());
