@@ -549,9 +549,9 @@ export default class LeavesController {
         if (staff_type === "teacher") {
 
             let applcation = await TeacherLeaveApplication
-            .query()
-            .preload('leave_type')
-            .where('uuid', leave_application_id).first();
+                .query()
+                .preload('leave_type')
+                .where('uuid', leave_application_id).first();
 
             if (!applcation) {
                 return ctx.response.status(404).json({
@@ -559,7 +559,7 @@ export default class LeavesController {
                 })
             }
 
-            
+
             let paylaod = await UpdateValidatorForTeachersLeaveApplication.validate(ctx.request.body());
 
             // Teacher for staff id 
@@ -678,19 +678,44 @@ export default class LeavesController {
         let applicationQuery;
 
         if (staff === 'teacher') {
+
+            let teachers = await Teacher.query().where('school_id', ctx.auth.user!.school_id)
+
+            if (!teachers) {
+                return ctx.response.status(404).json({
+                    message: "No Leaves application for now !"
+                });
+            }
+
+            let teacher_ids = teachers.map((teacher) => teacher.id);
+
             applicationQuery = TeacherLeaveApplication.query()// Selecting necessary fields
                 .preload('leave_type')
                 .preload('staff', (query) => {
                     query.select('id', 'first_name', 'last_name', 'middle_name'); // Only fetching required staff fields
                 })
-                .where('status', status);
+                .where('status', status)
+                .andWhereIn('teacher_id', teacher_ids);
+
         } else if (staff === 'other') {
+
+            let other_staff = await OtherStaff.query().where('school_id', ctx.auth.user!.school_id)
+
+            if (!other_staff) {
+                return ctx.response.status(404).json({
+                    message: "No Leaves application for now !"
+                });
+            }
+
+            let other_staff_ids = other_staff.map((teacher) => teacher.id);
+
             applicationQuery = OtherStaffLeaveApplication.query()
                 .preload('leave_type')
                 .preload('staff', (query) => {
                     query.select('id', 'first_name', 'last_name', 'middle_name');
                 })
-                .where('status', status);
+                .where('status', status)
+                .andWhereIn('id', other_staff_ids);
         } else {
             return ctx.response.status(400).json({
                 message: "Invalid role provided. Please specify 'teacher' or 'other'."
@@ -766,8 +791,8 @@ export default class LeavesController {
         }
 
         const paylaod = await ValidatorForApproveApplication.validate(ctx.request.body());
-        
-        
+
+
         await leave_application.merge(paylaod).save()
 
         return ctx.response.status(201).json(leave_application);
