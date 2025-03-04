@@ -1,4 +1,4 @@
-import { flags } from '@adonisjs/core/ace'
+// import { flags } from '@adonisjs/core/ace'
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
