@@ -103,5 +103,7 @@ router.group(() => {
   router.post('/inquiry' , [InquiriesController , 'addInquiry'])
   router.get('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
 
+  router.get('/downloadExcel  ' , [SchoolsController , 'downloadTemplate'])
+
 }).prefix('/api/v1/').use(middleware.auth())
 
