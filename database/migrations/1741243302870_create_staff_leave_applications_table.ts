@@ -8,7 +8,7 @@ export default class extends BaseSchema {
       table.increments('id')
       table.string('uuid').unique();
       table.integer('academic_sessions_id').unsigned().references('id').inTable('academic_sessions')
-      table.integer('staff_id').unsigned().references('id').inTable('other_staff')
+      table.integer('staff_id').unsigned().references('id').inTable('staff')
       table.integer('leave_type_id').unsigned().references('id').inTable('leave_types_master')
       table.integer('applied_by').unsigned().references('id').inTable('users').nullable().defaultTo(null) // For clerk applications
       table.boolean('applied_by_self').defaultTo(true) 

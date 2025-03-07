@@ -17,8 +17,8 @@ export default class extends BaseSchema {
       table.integer('staff_id')
         .unsigned()
         .notNullable()
-        .references('staff')
-        .inTable('students')
+        .references('id')
+        .inTable('staff')
         .onDelete('CASCADE');
 
       table.enum('status' , ['Retained' , 'Transfer' , 'Resigned']).defaultTo('Retained');

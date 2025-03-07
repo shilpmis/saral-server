@@ -8,10 +8,7 @@ import OtherStaffLeaveApplication from '#models/OtherStaffLeaveApplication'
 import Inquiries from '#models/Inquiries'
 import Teacher from '#models/Teacher'
 import OtherStaff from '#models/OtherStaff'
-import StaffMasterController from './StaffMasterController.js'
-import StaffMaster from '#models/StaffMaster'
 import ExcelJS from 'exceljs'
-import { Application } from '@adonisjs/core/app'
 
 export default class SchoolsController {
 

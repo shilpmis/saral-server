@@ -9,8 +9,8 @@ export default class extends BaseSchema {
             table.integer('school_id').unsigned().references('id').inTable('schools').onUpdate('CASCADE').onDelete('CASCADE');
             table.integer('role_id').unsigned().references('id').inTable('role_master').onUpdate('CASCADE').onDelete('CASCADE');
             table.string('name').notNullable()
-            table.string('username').notNullable().unique();
-            // table.string('saral_email').notNullable().unique();
+            // table.string('username').notNullable().unique();
+            table.string('saral_email').notNullable().unique();
             table.string('password').notNullable();
 
             table.boolean('is_teacher').defaultTo(false).notNullable();

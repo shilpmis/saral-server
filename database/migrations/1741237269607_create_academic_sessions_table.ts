@@ -11,21 +11,22 @@ export default class extends BaseSchema {
       table.integer('school_id')
         .unsigned()
         .notNullable()
-        .references('schools')
-        .inTable('academic_sessions')
-        .onDelete('CASCADE');
+        .references('id')
+        .inTable('schools')
+        .onDelete('RESTRICT');
 
       table.string('session_name', 50).notNullable();
-      table.date('start_date').notNullable();
-      table.date('end_date').notNullable();
-      table.string('start_month').notNullable();
-      table.string('end_month').notNullable();
-      table.string('start_year').notNullable();
-      table.string('end_year').notNullable();
+      table.date('start_date').notNullable().unique();
+      table.date('end_date').notNullable().unique();
+      table.string('start_month').notNullable().unique();
+      table.string('end_month').notNullable().unique();
+      table.string('start_year').notNullable().unique();
+      table.string('end_year').notNullable().unique();
       table.string('is_active').notNullable();
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
+      table.unique(['school_id', 'start_year']) 
     })
   }
 

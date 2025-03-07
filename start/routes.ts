@@ -20,6 +20,8 @@ import OtherStaffsController from '#controllers/OtherStaffsController'
 import LeavesController from '#controllers/LeavesController'
 import AttendanceController from '#controllers/AttendancesController'
 import InquiriesController from '#controllers/InquiriesController'
+import OrganizationController from '#controllers/OrganizationController'
+import AcademicSessionsController from '#controllers/AcademicSessionController'
 
 // router.get('/', async () => {
 //   return {
@@ -31,6 +33,12 @@ router.group(() => {
 
   router.post('/signup', [AuthController, 'createSchool'])
   router.post('/login', [AuthController, 'login'])
+  router.get('/organizations', [OrganizationController, 'getAllOrganization']);
+  router.post('/onboard-organization', [OrganizationController, 'onboardOrganization']);
+  router.get('/organization/:id', [OrganizationController, 'getOrganizationById']);
+  router.put('/organization/:id', [OrganizationController, 'updateOrganizationById']);
+
+
 
 }).prefix('/api/v1/')
 
@@ -42,6 +50,10 @@ router.group(() => {
   router.get('/stats', [SchoolsController, 'fetchSchoolDataForDashBoard'])
   router.get('/school/:school_id', [SchoolsController, 'index'])
   router.put('/school/:school_id', [SchoolsController, 'update'])
+
+  router.post('/academic-session', [AcademicSessionsController, 'createAcademicSessionForSchool'])
+  router.put('/academic-sessions/:school_id', [AcademicSessionsController, 'updateAcademicSessionForSchool'])
+  router.get('/academic-sessions/:school_id', [AcademicSessionsController, 'getAllSchoolsInAcademicSession'])
 
   router.get('/users', [UsersController, 'indexSchoolUsers'])
   router.post('/user', [UsersController, 'createUser'])
