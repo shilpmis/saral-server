@@ -7,15 +7,7 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.string('employee_code').notNullable().unique();
-      // 25SSM01
-      // table
-      //   .integer('school_id')
-      //   .unsigned()
-      //   .references('id')
-      //   .inTable('schools')
-      //   .onDelete('CASCADE')
-      //   .defaultTo(null)
-
+      
       table
         .integer('staff_role_id')
         .unsigned()
