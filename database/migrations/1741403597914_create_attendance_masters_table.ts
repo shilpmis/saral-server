@@ -12,18 +12,18 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('academic_sessions')
         .onDelete('CASCADE');
-      table.integer('school_id').unsigned().references('id').inTable('schools')
+      // table.integer('school_id').unsigned().references('id').inTable('schools')
       table.integer('class_id').unsigned().references('id').inTable('classes')
-      table.integer('teacher_id').unsigned().references('id').inTable('teachers')
+      table.integer('teacher_id').unsigned().references('id').inTable('staff')
       table.date('attendance_date').notNullable()
       table.boolean('is_holiday').defaultTo(false)
       table.timestamp('created_at', { useTz: true })
       table.timestamp('updated_at', { useTz: true })
 
       // Indexes for better query performance
-      table.index(['academic_sessions', 'school_id', 'attendance_date'])
-      table.index(['academic_sessions', 'class_id', 'attendance_date'])
-      table.unique(['academic_sessions', 'class_id', 'attendance_date'])
+      // table.index(['academic_sessions', 'school_id', 'attendance_date'])
+      table.index(['academic_id', 'class_id', 'attendance_date'])
+      table.unique(['academic_id', 'class_id', 'attendance_date'])
     })
   }
 

@@ -1,6 +1,8 @@
 import Base from '#models/base'
-import { column } from '@adonisjs/lucid/orm'
+import { belongsTo, column } from '@adonisjs/lucid/orm'
+import Organization from '#models/Organization' // Import the related model
 import { DateTime } from 'luxon'
+import * as relations from '@adonisjs/lucid/types/relations'
 
 export default class Schools extends Base {
 
@@ -62,4 +64,10 @@ export default class Schools extends Base {
    
      @column.dateTime({ autoCreate: true, autoUpdate: true })
      declare updated_at: DateTime
+
+     /** Relationship: A School belongs to an Organization */
+     @belongsTo(() => Organization, {
+        foreignKey: 'organization_id', // This is the column in Schools table
+     })
+     declare organization: relations.BelongsTo<typeof Organization>
 }

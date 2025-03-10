@@ -101,7 +101,7 @@ export default class SchoolsController {
   async index(ctx: HttpContext) {
 
     let school_id = ctx.params.school_id;
-    let school = await Schools.query().where('id', school_id).first();
+    let school = await Schools.query().where('id', school_id).preload('organization').first();
     if (school) {
       return ctx.response.status(201).json(school);
     }
