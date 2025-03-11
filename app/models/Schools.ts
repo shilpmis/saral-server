@@ -1,16 +1,14 @@
 import Base from '#models/base'
-import { belongsTo, column } from '@adonisjs/lucid/orm'
+import { belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import Organization from '#models/Organization' // Import the related model
 import { DateTime } from 'luxon'
 import * as relations from '@adonisjs/lucid/types/relations'
+import AcademicSession from './AcademicSession.js'
 
 export default class Schools extends Base {
 
      public static table = 'schools'
 
-     @column({ isPrimary: true })
-     declare id: number
-    
      @column()
      declare organization_id: number
 
@@ -59,15 +57,15 @@ export default class Schools extends Base {
      @column()
      declare school_logo: string | null
      
-     @column.dateTime({ autoCreate: true })
-     declare created_at: DateTime
-   
-     @column.dateTime({ autoCreate: true, autoUpdate: true })
-     declare updated_at: DateTime
-
      /** Relationship: A School belongs to an Organization */
      @belongsTo(() => Organization, {
         foreignKey: 'organization_id', // This is the column in Schools table
      })
      declare organization: relations.BelongsTo<typeof Organization>
+
+     @hasMany(() => AcademicSession, {
+        foreignKey: 'school_id',
+        localKey: 'id'  
+     })
+     declare academicSessions: relations.HasMany<typeof AcademicSession>
 }

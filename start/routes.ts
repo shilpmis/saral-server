@@ -52,8 +52,8 @@ router.group(() => {
   router.put('/school/:school_id', [SchoolsController, 'update'])
 
   router.post('/academic-session', [AcademicSessionsController, 'createAcademicSessionForSchool'])
-  router.put('/academic-sessions/:school_id', [AcademicSessionsController, 'updateAcademicSessionForSchool'])
-  router.get('/academic-sessions/:school_id', [AcademicSessionsController, 'getAllSchoolsInAcademicSession'])
+  router.put('/academic-session/:school_id', [AcademicSessionsController, 'updateAcademicSessionForSchool'])
+  router.get('/academic-sessions/:school_id', [AcademicSessionsController, 'getAllAcademicSessionInSchool'])
 
   router.get('/users', [UsersController, 'indexSchoolUsers'])
   router.post('/user', [UsersController, 'createUser'])

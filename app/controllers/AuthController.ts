@@ -80,7 +80,9 @@ export default class AuthController {
     if (email) {
       try {
         let userQuery = User.query()
-          .preload('school')
+          .preload('school' , (query) => {
+            query.preload('academicSessions');
+          })
           .where('saral_email', email)
 
         let user = await userQuery.first()
@@ -109,7 +111,9 @@ export default class AuthController {
     } else {
       // let auth = await ctx.auth.use('api').authenticate();
       let userQuery = User.query()
-        .preload('school')
+      .preload('school' , (query) => {
+        query.preload('academicSessions');
+      })
         .where('id', ctx.auth.user.id)
 
       let user = await userQuery.first()

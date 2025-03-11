@@ -411,9 +411,6 @@ export default class SchoolsController {
     return response.send(buffer);
 }
 
-
-
-
 }
 
 

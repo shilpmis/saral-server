@@ -7,12 +7,6 @@ import * as relations from '@adonisjs/lucid/types/relations'
 export default class AcademicSession extends Base {
   static table = 'academic_sessions'
 
-  @column({ isPrimary: true })
-  declare id: number
-
-  @column()
-  declare uuid: string
-
   @column()
   declare school_id: number
 
@@ -38,13 +32,7 @@ export default class AcademicSession extends Base {
   declare end_year: string
 
   @column()
-  declare is_active: string
-
-  @column.dateTime({ autoCreate: true })
-  declare created_at: DateTime
-
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updated_at: DateTime
+  declare is_active: boolean
 
   @hasOne(() => Schools, {
       localKey: 'school_id',
