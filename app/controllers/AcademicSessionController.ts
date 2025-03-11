@@ -1,5 +1,4 @@
 import AcademicSession from '#models/AcademicSession'
-import { v4 as uuidv4 } from 'uuid'
 import { HttpContext } from '@adonisjs/core/http'
 import Schools from '#models/Schools'
 import { DateTime } from 'luxon'

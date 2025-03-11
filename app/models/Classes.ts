@@ -19,5 +19,7 @@ export default class Classes extends Base {
 
     @column()
     declare is_assigned : boolean 
-     
+
+    @column()
+    declare academic_session_id: number
 }
