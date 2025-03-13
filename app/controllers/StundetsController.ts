@@ -8,7 +8,6 @@ import { parseAndReturnJSON } from '../../utility/parseCsv.js';
 import path from 'path';
 import app from '@adonisjs/core/services/app';
 import StudentEnrollments from '#models/StudentEnrollments';
-import AcademicSession from '#models/AcademicSession';
 
 export default class StundetsController {
 

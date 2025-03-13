@@ -6,8 +6,10 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
+      table.integer('school_id').unsigned().references('id').inTable('schools').onUpdate('CASCADE').onDelete('CASCADE')
       table.string('employee_code').notNullable().unique();
-      
+      table.boolean('is_active').defaultTo(true).notNullable();
+      table.boolean('is_teaching_role').defaultTo(true).notNullable();
       table
         .integer('staff_role_id')
         .unsigned()

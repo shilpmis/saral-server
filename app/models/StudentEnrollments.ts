@@ -1,8 +1,8 @@
 
 import Base from '#models/base'
-import { belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
+import { belongsTo, column } from '@adonisjs/lucid/orm'
 import Students from './Students.js'
-import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 export default class StudentEnrollments extends Base {
 

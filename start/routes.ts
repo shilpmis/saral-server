@@ -22,6 +22,7 @@ import AttendanceController from '#controllers/AttendancesController'
 import InquiriesController from '#controllers/InquiriesController'
 import OrganizationController from '#controllers/OrganizationController'
 import AcademicSessionsController from '#controllers/AcademicSessionController'
+import StaffController from '#controllers/StaffController'
 
 // router.get('/', async () => {
 //   return {
@@ -78,6 +79,17 @@ router.group(() => {
   router.post('/staff', [StaffMasterController, 'createStaffRole']);
   router.put('/staff/:id', [StaffMasterController, 'updateStaffRole']);
   router.delete('/staff/:id', [StaffMasterController, 'deleteStaffRole']);
+
+
+  /**
+   *  added new routes as per the new schema for the staff as teaching and non-teaching staff
+   */
+  router.get('employee/all', [StaffController, 'index'])
+  // router.get('employee/activeuser/:school_id', [StaffController, 'indexTeacherActiveAsUser'])
+  // router.get('employee/non-activeuser/:school_id', [StaffController, 'indexTeacherNotActiveAsUser'])
+  router.post('employee/onboarding', [StaffController,'createStaff'])
+  router.put('employee/:school_id/:employee_id', [StaffController, 'updateStaff']);
+  // router.post('employee/bulk-upload/:school_id/', [StaffController, 'bulkUploadTeachers'])
 
   /**
    * need think of for adding school_id in teachers creation

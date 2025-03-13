@@ -24,7 +24,7 @@ export default class TeachersController {
 
     async indexTeacherActiveAsUser(ctx: HttpContext) {
         let school_id = ctx.params.school_id;
-        let page = ctx.request.input('page', 1);
+        // let page = ctx.request.input('page', 1);
 
         // Fetch users with teacher_id
         const users = await User.query()
