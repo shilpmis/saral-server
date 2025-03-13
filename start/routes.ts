@@ -20,6 +20,7 @@ import OtherStaffsController from '#controllers/OtherStaffsController'
 import LeavesController from '#controllers/LeavesController'
 import AttendanceController from '#controllers/AttendancesController'
 import InquiriesController from '#controllers/InquiriesController'
+import FeesController from '#controllers/FeesController'
 
 // router.get('/', async () => {
 //   return {
@@ -79,7 +80,7 @@ router.group(() => {
 
   router.get('other-staff/:school_id', [OtherStaffsController, 'indexOtherStaffForSchool'])
   router.post('other-staff/:school_id', [OtherStaffsController, 'createOtherStaff'])
-  router.put('other-staff/:school_id/:other_staff', [OtherStaffsController, 'updateOtherStaff'])
+  router.put('other-staff/:school_id/:other_staff_id', [OtherStaffsController, 'updateOtherStaff'])
 
   router.get('leave-type', [LeavesController, 'indexLeaveTypesForSchool'])
   router.post('leave-type', [LeavesController, 'createLeaveTypeForSchool'])
@@ -102,6 +103,19 @@ router.group(() => {
   router.get('/inquiries' , [InquiriesController , 'indexInquiries'])
   router.post('/inquiry' , [InquiriesController , 'addInquiry'])
   router.get('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
+
+  router.get('/feestype' , [FeesController , 'indexFeesTyeForSchool'])
+  router.post('/feestype' , [FeesController , 'createFeesType'])
+  router.put('/feestype/:id' , [FeesController , 'updateFeesType'])
+  router.get('/feesplan' , [FeesController , 'indexFeesPlanForSchool'])
+  router.get('/feesplan/detail/:plan_id' , [FeesController , 'fetchFeesPlanDetails'])
+  router.post('/feesplan' , [FeesController , 'createFeePlan'])
+
+  router.get('/fees/status/class/:class_id' , [FeesController , 'fetchFeesStatusForClass'])
+  router.get('/fees/status/student/:student_id' , [FeesController , 'fetchFeesStatusForSingleStundent'])
+  router.post('/fees/pay/:student_id' , [FeesController , 'payFees'])
+  router.post('/fees/pay/installments/:student_id' , [FeesController , 'payMultipleInstallments'])
+  router.put('/transaction/:transaction_id' , [FeesController , 'updateFeesStatus'])
 
 }).prefix('/api/v1/').use(middleware.auth())
 

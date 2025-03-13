@@ -1,0 +1,627 @@
+import AcademicYears from '#models/AcademicYears';
+import Classes from '#models/Classes';
+import FeesPlan from '#models/FeesPlan';
+import FeesPlanDetails from '#models/FeesPlanDetails';
+import FeesType from '#models/FeesType';
+import InstallmentBreakDowns from '#models/InstallmentBreakDowns';
+import StudentFeesInstallments from '#models/StudentFeesInstallments';
+import StudentFeesMaster from '#models/StudentFeesMaster';
+import Students from '#models/Students';
+import { CreateValidationForMultipleInstallments, CreateValidationForPayFees, CreateValidatorForFeesPlan, CreateValidatorForFeesType, UpdateValidationForInstallment, UpdateValidatorForFeesType } from '#validators/Fees'
+import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db';
+import { Has, HasOne } from '@adonisjs/lucid/types/relations';
+
+
+export default class FeesController {
+
+
+    async indexFeesTyeForSchool(ctx: HttpContext) {
+
+        let fees_types = await FeesType
+            .query()
+            .where('school_id', ctx.auth.user!.school_id)
+            .paginate(ctx.request.input('page', 1), 10);
+        return ctx.response.json(fees_types);
+    }
+
+    async createFeesType(ctx: HttpContext) {
+
+        if (ctx.auth.user?.role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to perform this action !"
+            })
+        }
+
+        let payload = await CreateValidatorForFeesType.validate(ctx.request.body());
+        console.log(payload);
+        let fees_type = await FeesType.create({
+            ...payload,
+            academic_year_id: 1,
+            school_id: ctx.auth.user.school_id
+        });
+
+        return ctx.response.status(201).json(fees_type);
+    }
+
+    async updateFeesType(ctx: HttpContext) {
+        if (ctx.auth.user?.role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to perform this action !"
+            })
+        }
+        let payload = await UpdateValidatorForFeesType.validate(ctx.request.body());
+
+        let fees_type = await FeesType
+            .query()
+            .where('id', ctx.params.id)
+            .andWhere('school_id', ctx.auth.user.school_id).first();
+
+        if (!fees_type) {
+            return ctx.response.status(404).json({
+                message: "Fees Type not found"
+            })
+        }
+        fees_type.merge(payload).save();
+
+        return ctx.response.status(201).json(fees_type);
+
+    }
+
+    async indexFeesPlanForSchool(ctx: HttpContext) {
+
+        let academic_years = await AcademicYears.query().where('school_id', ctx.auth.user!.school_id).andWhere('status', 'Active').first();
+        // let plan_id = ctx.request.input('plan_id');
+        if (!academic_years) {
+            return ctx.response.status(404).json({
+                message: "No active academic year found for this school"
+            })
+        }
+
+        let fees_types = await FeesPlan.query()
+            .where('academic_year_id', academic_years!.id)
+            .paginate(ctx.request.input('page', 1), 10);
+
+        return ctx.response.json(fees_types);
+
+    }
+
+    async fetchFeesPlanDetails(ctx: HttpContext) {
+
+        let academic_years = await AcademicYears.query().where('school_id', ctx.auth.user!.school_id).andWhere('status', 'Active').first();
+        let plan_id = ctx.params.plan_id;
+
+        if (!academic_years) {
+            return ctx.response.status(404).json({
+                message: "No active academic year found for this school"
+            })
+        }
+
+        type TypeForResObj = {
+            fees_plan: FeesPlan | null
+            fees_types: {
+                fees_type: FeesPlanDetails,
+                installment_breakDowns: InstallmentBreakDowns[]
+            }[]
+        }
+
+        let resObj: TypeForResObj = {
+            fees_plan: null,
+            fees_types: []
+        }
+
+        if (!plan_id) {
+            return ctx.response.status(400).json({
+                message: "Please provide plan_id"
+            })
+        }
+
+        let plan = await FeesPlan
+            .query().where('id', plan_id)
+            .andWhere('academic_year_id', academic_years.id).first();
+
+        if (!plan) {
+            return ctx.response.status(404).json({
+                message: "No fees plan found for this school"
+            })
+        }
+
+        resObj.fees_plan = plan;
+
+        let fees_types = await FeesPlanDetails.query()
+            .where('academic_year_id', academic_years!.id)
+            .andWhere('fees_plan_id', plan_id);
+
+
+        for (let i = 0; i < fees_types.length; i++) {
+            let installment_breakDowns: InstallmentBreakDowns[] = await InstallmentBreakDowns.query().where('fee_plan_details_id', fees_types[i].id)
+            resObj.fees_types.push({
+                fees_type: fees_types[i],
+                installment_breakDowns: installment_breakDowns
+            })
+        }
+
+        return ctx.response.json(resObj);
+
+    }
+
+    async createFeePlan(ctx: HttpContext) {
+
+        if (ctx.auth.user?.role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to perform this action !"
+            })
+        }
+
+        let payload = await CreateValidatorForFeesPlan.validate(ctx.request.body());
+
+        type res = {
+            fees_plan: FeesPlan,
+            fees_types: {
+                fees_type: FeesPlanDetails,
+                installment_breakDowns: InstallmentBreakDowns[]
+            }[]
+        }
+
+        let trx = await db.transaction();
+
+        try {
+            let fees_type = await FeesPlan.create({
+                ...payload.fees_plan,
+                academic_year_id: 1,
+                total_amount: payload.plan_details.reduce((acc: number, detail: any) => acc + detail.total_amount, 0)
+            }, { client: trx });
+
+            let resp: res = {
+                fees_plan: fees_type,
+                fees_types: []
+            }
+
+            for (let i = 0; i < payload.plan_details.length; i++) {
+
+                let fees_plan_details = await FeesPlanDetails.create({
+                    fees_type_id: payload.plan_details[i].fees_type_id,
+                    total_amount: payload.plan_details[i].total_amount,
+                    total_installment: payload.plan_details[i].total_installment,
+                    installment_type: payload.plan_details[i].installment_type,
+                    academic_year_id: 1,
+                    fees_plan_id: fees_type.id,
+                    status: 'Active'
+                }, { client: trx });
+
+                resp.fees_types.push({
+                    fees_type: fees_plan_details,
+                    installment_breakDowns: []
+                })
+
+                for (let j = 0; j < payload.plan_details[i].installment_breakDowns.length; j++) {
+                    let installment_breakDowns = await InstallmentBreakDowns.create({
+                        ...payload.plan_details[i].installment_breakDowns[j],
+                        fee_plan_details_id: fees_plan_details.id,
+                        status: 'Active'
+                    }, { client: trx });
+
+                    resp.fees_types[i].installment_breakDowns.push(installment_breakDowns);
+                }
+            }
+            await trx.commit();
+            return ctx.response.status(201).json(resp);
+        } catch (error) {
+            await trx.rollback();
+            return ctx.response.status(500).json({
+                message: "Internal Server Error",
+                errors: error
+            })
+        }
+
+
+    }
+
+    async updatePlan(ctx: HttpContext) {
+
+        if (ctx.auth.user?.role_id !== 1) {
+            return ctx.response.status(401).json({
+                message: "You are not authorized to perform this action !"
+            })
+        }
+
+    }
+
+    /**
+     * Controller for student to handle
+     *
+     *  1 . Api for create consession.
+     *  2 . Api for apply consession tp student !.
+     */
+
+    /**
+     * Api for clerk to handle 
+     * 
+     *  1 . Api for student per class , with fees status . 
+     *  2 . Fetch fees status for single student 
+     *  3 . Api for pay fees 
+     *  4 . Api to apply consession to student 
+     */
+
+    async fetchFeesStatusForClass(ctx: HttpContext) {
+
+        let class_id = ctx.params.class_id;
+        if (!class_id) {
+            return ctx.response.status(400).json({
+                message: "Please provide class_id"
+            })
+        }
+
+        let clas = await Classes.query().where('id', class_id)
+            .andWhere('school_id', ctx.auth.user!.school_id).first();
+
+        if (!clas) {
+            return ctx.response.status(404).json({
+                message: "Class not found"
+            })
+        }
+
+        let fees_paln_for_clas = await FeesPlan.query()
+            .where('class_id', class_id)
+            .andWhere('academic_year_id', 1)
+            .first();
+
+        if (!fees_paln_for_clas) {
+            return ctx.response.status(404).json({
+                message: "No fees plan found for this class in which student belongs !"
+            })
+        }
+
+        let students = await Students
+            .query()
+            .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
+            .preload('fees_status')
+            .where('class_id', class_id)
+            .andWhere('school_id', ctx.auth.user!.school_id);
+
+        let res: Students[] = [];
+
+        for (let i = 0; i < students.length; i++) {
+            if (!students[i].fees_status) {
+                let student = students[i].serialize();
+                student.fees_status = {
+                    student_id: students[i].id,
+                    academic_year_id: 1,
+                    fees_plan_id: fees_paln_for_clas.id,
+                    discounted_amount: 0,
+                    paid_amount: 0,
+                    total_amount: fees_paln_for_clas.total_amount,
+                    due_amount: fees_paln_for_clas.total_amount,
+                    status: 'Pending'
+                };
+                res.push(student as Students);
+            } else {
+                res.push(students[i]);
+            }
+        }
+
+        return ctx.response.json(res);
+    }
+
+    async fetchFeesStatusForSingleStundent(ctx: HttpContext) {
+
+        let student_id = ctx.params.student_id;
+
+        if (!student_id) {
+            return ctx.response.status(400).json({
+                message: "Please provide student_id"
+            })
+        }
+
+        let student = await Students
+            .query()
+            .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number', 'class_id')
+            .preload('fees_status')
+            .where('id', student_id)
+            .andWhere('school_id', ctx.auth.user!.school_id)
+            .first();
+
+        if (!student) {
+            return ctx.response.status(404).json({
+                message: "Student not found"
+            })
+        }
+
+        type res_type = {
+            fees_plan: FeesPlan,
+            fees_details: FeesPlanDetails[],
+            paid_fees: StudentFeesInstallments[]
+        }
+
+        let res: res_type = {
+            fees_details: [],
+            fees_plan: {} as FeesPlan,
+            paid_fees: []
+        }
+
+        let fees_Plan = await FeesPlan.query()
+            .where('class_id', student.class_id)
+            .first();
+
+        if (!fees_Plan) {
+            return ctx.response.status(404).json({
+                message: "No fees plan found for this Student"
+            })
+        }
+
+        /**
+         * Fetched payed fees for student
+         */
+
+        let student_obj: any = { ...student.serialize() };
+
+        if (!student.fees_status) {
+            student_obj.fees_status = {
+                student_id: student.id,
+                academic_year_id: 1,
+                fees_plan_id: fees_Plan.id,
+                discounted_amount: 0,
+                paid_amount: 0,
+                total_amount: fees_Plan.total_amount,
+                due_amount: fees_Plan.total_amount,
+                status: 'Pending'
+            };
+        } else {
+            // let stundet_fees = await StudentFeesMaster.query().where('id', student.fees_status.id).first();
+            let paid_fees = await StudentFeesInstallments.query().where('student_fees_master_id', student.fees_status.id);
+            res.paid_fees = paid_fees;
+        }
+
+        let fees_details = await FeesPlanDetails.query()
+            .preload('installments_breakdown')
+            .where('fees_plan_id', fees_Plan.id);
+
+        res.fees_plan = fees_Plan;
+        res.fees_details = fees_details;
+
+        return ctx.response.json({ student: student_obj, fees_plan: res });
+
+    }
+
+    async payFees(ctx: HttpContext) {
+
+        let student_id = ctx.params.student_id;
+
+        if (!student_id) {
+            return ctx.response.status(400).json({
+                message: "Please provide student_id"
+            })
+        }
+
+        let student = await Students.query()
+            .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number', 'class_id')
+            .preload('fees_status')
+            .where('id', student_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+
+        if (!student) {
+            return ctx.response.status(404).json({
+                message: "Student not found"
+            })
+        }
+
+        const payload = await CreateValidationForPayFees.validate(ctx.request.body());
+
+        let fees_plan = await FeesPlan.query().where('class_id', student.class_id).first();
+
+        if (!fees_plan) {
+            return ctx.response.status(404).json({
+                message: "No fees plan found for this student"
+            })
+        }
+
+        /**
+         * TODO : Need to add more security checks
+         */
+        let fees_installment = await InstallmentBreakDowns.query()
+            .andWhere('id', payload.installment_id).first();
+
+        if (!fees_installment) {
+            return ctx.response.status(404).json({
+                message: "No installment found for this student"
+            })
+        }
+
+        if ((fees_installment.installment_amount).toString() !== payload.paid_amount) {
+            return ctx.response.status(400).json({
+                message: "Paid amount is not equal to installment amount"
+            })
+        }
+
+        let trx = await db.transaction();
+
+        try {
+            if (!student.fees_status) {
+                let studentFeesMaster = await StudentFeesMaster.create({
+                    student_id: student_id,
+                    fees_plan_id: fees_plan.id,
+                    academic_year_id: 1,
+                    discounted_amount: 0,
+                    paid_amount: Number(payload.paid_amount),
+                    total_amount: fees_plan.total_amount,
+                    due_amount: fees_plan.total_amount - Number(payload.paid_amount),
+                    status: fees_plan.total_amount - Number(payload.paid_amount) === 0 ? 'Paid' : 'Partially Paid'
+                }, { client: trx });
+                student.fees_status = studentFeesMaster as HasOne<typeof StudentFeesMaster>;
+            } else {
+                console.log("====>", student.fees_status!.paid_amount + Number(payload.paid_amount));
+                let studentFeesMaster = await StudentFeesMaster.query().where('student_id', student.id).first();
+                if (!studentFeesMaster) {
+                    await trx.rollback();
+                    return ctx.response.status(404).json({
+                        message: "No fees master found for this student"
+                    })
+                }
+                await studentFeesMaster.merge({
+                    paid_amount: Number(student.fees_status!.paid_amount) + Number(payload.paid_amount),
+                    due_amount: Number(student.fees_status!.due_amount) - Number(payload.paid_amount),
+                    status: student.fees_status!.due_amount - Number(payload.paid_amount) === 0 ? 'Paid' : 'Partially Paid'
+                }).useTransaction(trx).save();
+            }
+
+            let StundedFeesMaster = await StudentFeesInstallments.create({
+                student_fees_master_id: student.fees_status.id,
+                installment_id: fees_installment.id,
+                paid_amount: Number(payload.paid_amount),
+                remaining_amount: fees_installment.installment_amount - Number(payload.paid_amount),
+                payment_mode: payload.payment_mode,
+                transaction_reference: payload.transaction_reference,
+                payment_date: payload.payment_date,
+                remarks: payload.remarks,
+                status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid'
+            }, { client: trx });
+
+            await trx.commit();
+            return ctx.response.json(StundedFeesMaster);
+
+        } catch (error) {
+            await trx.rollback();
+            return ctx.response.status(500).json({
+                message: "Internal Server Error",
+                error: error
+            })
+
+        }
+
+    }
+
+    async payMultipleInstallments(ctx: HttpContext) {
+        let student_id = ctx.params.student_id;
+
+        if (!student_id) {
+            return ctx.response.status(400).json({
+                message: "Please provide student_id"
+            })
+        }
+
+        let student = await Students.query()
+            .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number', 'class_id')
+            .preload('fees_status')
+            .where('id', student_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+
+        if (!student) {
+            return ctx.response.status(404).json({
+                message: "Student not found"
+            })
+        }
+
+        const payload = await CreateValidationForMultipleInstallments.validate(ctx.request.body());
+
+        let fees_plan = await FeesPlan.query().where('class_id', student.class_id).first();
+
+        if (!fees_plan) {
+            return ctx.response.status(404).json({
+                message: "No fees plan found for this student"
+            })
+        }
+
+        let trx = await db.transaction();
+
+        try {
+
+            let total_payed_amount = payload.reduce((acc: number, installment: any) => acc + Number(installment.paid_amount), 0);
+
+            if (!student.fees_status) {
+                let studentFeesMaster = await StudentFeesMaster.create({
+                    student_id: student_id,
+                    fees_plan_id: fees_plan.id,
+                    academic_year_id: 1,
+                    discounted_amount: 0,
+                    paid_amount: Number(total_payed_amount),
+                    total_amount: fees_plan.total_amount,
+                    due_amount: fees_plan.total_amount - Number(total_payed_amount),
+                    status: fees_plan.total_amount - Number(total_payed_amount) === 0 ? 'Paid' : 'Partially Paid'
+                }, { client: trx });
+                student.fees_status = studentFeesMaster as HasOne<typeof StudentFeesMaster>;
+            } else {
+                let studentFeesMaster = await StudentFeesMaster.query().where('student_id', student.id).first();
+                if (!studentFeesMaster) {
+                    await trx.rollback();
+                    return ctx.response.status(404).json({
+                        message: "No fees master found for this student"
+                    })
+                }
+                await studentFeesMaster.merge({
+                    paid_amount: Number(student.fees_status!.paid_amount) + Number(total_payed_amount),
+                    due_amount: Number(student.fees_status!.due_amount) - Number(total_payed_amount),
+                    status: Number(student.fees_status!.due_amount) - Number(total_payed_amount) === 0 ? 'Paid' : 'Partially Paid'
+                }).useTransaction(trx).save();
+            }
+
+            for (let installment of payload) {
+                console.log(installment);
+                let fees_installment = await InstallmentBreakDowns.query()
+                    .andWhere('id', installment.installment_id).first();
+
+                if (!fees_installment) {
+                    await trx.rollback();
+                    return ctx.response.status(404).json({
+                        message: `No installment found for installment number ${installment.installment_id}`
+                    })
+                }
+
+                if ((fees_installment.installment_amount).toString() !== installment.paid_amount) {
+                    await trx.rollback();
+                    return ctx.response.status(400).json({
+                        message: `Paid amount for installment number ${installment.installment_id} is not equal to installment amount`
+                    })
+                }
+
+                await StudentFeesInstallments.create({
+                    student_fees_master_id: student.fees_status.id,
+                    installment_id: fees_installment.id,
+                    paid_amount: Number(installment.paid_amount),
+                    remaining_amount: fees_installment.installment_amount - Number(installment.paid_amount),
+                    payment_mode: installment.payment_mode,
+                    transaction_reference: installment.transaction_reference,
+                    payment_date: installment.payment_date,
+                    remarks: installment.remarks,
+                    status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid'
+                }, { client: trx });
+            }
+
+            await trx.commit();
+            return ctx.response.status(201).json({
+                message: "Installments paid successfully"
+            });
+
+        } catch (error) {
+            console.log("error", error);
+            await trx.rollback();
+            return ctx.response.status(500).json({
+                message: "Internal Server Error",
+                error: error
+            })
+        }
+    }
+
+    async updateFeesStatus(ctx: HttpContext) {
+        let transaction_id = ctx.params.transaction_id;
+
+        let transaction = await StudentFeesInstallments.query()
+            .where('id', transaction_id).first();
+
+        if (!transaction) {
+            return ctx.response.status(404).json({
+                message: "Transaction not found"
+            })
+        }
+        let payload = await UpdateValidationForInstallment.validate(ctx.request.body());
+        let trx = await db.transaction();
+        try {
+            await transaction.merge(payload).useTransaction(trx).save();
+            await trx.commit();
+            return ctx.response.status(201).json(transaction);
+        } catch (error) {
+            await trx.rollback();
+            return ctx.response.status(500).json({
+                message: "Internal Server Error",
+                error: error
+            })
+        }
+    }
+}

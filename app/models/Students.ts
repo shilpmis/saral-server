@@ -4,6 +4,7 @@ import Base from '#models/base'
 import { column, hasOne } from '@adonisjs/lucid/orm'
 import StudentMeta from './StudentMeta.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
+import StudentFeesMaster from './StudentFeesMaster.js'
 
 export default class Students extends Base {
 
@@ -68,8 +69,14 @@ export default class Students extends Base {
 
     @hasOne(()=> StudentMeta , {
         foreignKey : 'student_id',
-        localKey : 'id'
+        localKey : 'id',       
     })
     declare student_meta : HasOne<typeof StudentMeta>
+
+    @hasOne(()=> StudentFeesMaster , {
+        foreignKey : 'student_id',
+        localKey : 'id',       
+    })
+    declare fees_status : HasOne<typeof StudentFeesMaster>
 
 }
