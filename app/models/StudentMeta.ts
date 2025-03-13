@@ -5,7 +5,7 @@ import { column } from '@adonisjs/lucid/orm'
 
 export default class StudentMeta extends Base {
 
-    public static table = "student_meta"
+    public static table = "student_metas"
 
     @column()
     declare student_id : number 
@@ -33,6 +33,15 @@ export default class StudentMeta extends Base {
 
     @column()
     declare category :'ST' | 'SC' | 'OBC' | 'OPEN'
+
+    @column()
+    declare blood_group : 'A+'| 'A-'| 'B+'| 'B-'| 'O+'| 'O-'| 'AB+'| 'AB-'
+
+    @column()
+    declare identification_mark : string
+
+    @column()
+    declare residence_type : 'day_scholar'| 'residential' | 'semi_residential'
 
     @column({
         serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),

@@ -52,10 +52,6 @@ export default class extends BaseSchema {
       table.date('joining_date').notNullable()
 
       table
-        .enum('employment_type', ['Full-time', 'Part-time', 'Contract'])
-        .defaultTo('Full-time')
-
-      table
         .enum('employment_status', ['Permanent', 'Trial_period', 'Resigned', 'Contract_base', 'Notice_Period'])
         .defaultTo('Permanent')
 

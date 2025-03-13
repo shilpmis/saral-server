@@ -1,6 +1,6 @@
 import Base from '#models/base'
 import { belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
-import Organization from '#models/Organization' // Import the related model
+import Organization from '#models/organization' // Import the related model
 import * as relations from '@adonisjs/lucid/types/relations'
 import AcademicSession from './AcademicSession.js'
 

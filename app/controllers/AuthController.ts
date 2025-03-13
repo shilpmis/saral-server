@@ -1,4 +1,4 @@
-import Organization from '#models/Organization';
+import Organization from '#models/organization';
 import Schools from '#models/Schools';
 import User from '#models/User';
 import { CreateValidatorForSchools } from '#validators/Schools';

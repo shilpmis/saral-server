@@ -1,8 +1,9 @@
 import Base from '#models/base'
-import { column, hasOne } from '@adonisjs/lucid/orm'
+import { column, hasOne, manyToMany } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 import Schools from '#models/Schools'
 import * as relations from '@adonisjs/lucid/types/relations'
+import Students from './Students.js'
 
 export default class AcademicSession extends Base {
   static table = 'academic_sessions'
@@ -39,4 +40,11 @@ export default class AcademicSession extends Base {
       foreignKey: 'id',
   })
   declare school: relations.HasOne<typeof Schools>
+
+  @manyToMany(() => Students, {
+    pivotTable: 'student_enrollments',
+    pivotForeignKey: 'academic_id',
+    pivotRelatedForeignKey: 'student_id',
+  })
+  declare students: relations.ManyToMany<typeof Students>
 }

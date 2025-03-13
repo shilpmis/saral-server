@@ -10,8 +10,14 @@ export default class Students extends Base {
     @column()
     declare school_id : number
 
+    // @column()
+    // declare class_id : number   // link table will be used to fetch the student's class
+
     @column()
-    declare class_id : number
+    declare enrollment_code : string
+
+    @column()
+    declare admission_number : string
 
     @column()
     declare first_name : string

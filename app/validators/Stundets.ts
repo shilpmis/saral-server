@@ -3,9 +3,10 @@ import vine from "@vinejs/vine";
 
 export const CreateValidatorStundet = vine.compile(vine.object({
   students_data: vine.object({
-    
     class_id: vine.number(),
-
+    academic_session_id: vine.number(),
+    enrollment_code : vine.string().trim().minLength(2).maxLength(50),
+    admission_number : vine.string().trim().minLength(2).maxLength(50).optional(),
     first_name: vine.string().trim().minLength(2).maxLength(50),
     middle_name: vine.string().trim().minLength(2).maxLength(50).optional(),
     last_name: vine.string().trim().minLength(2).maxLength(50),
@@ -40,10 +41,11 @@ export const CreateValidatorStundet = vine.compile(vine.object({
       .unique({ table: 'students', column: 'aadhar_no' }),
 
     is_active: vine.boolean(),
+    remarks: vine.string().trim().optional()
   }),
   student_meta_data: vine.object({
 
-    aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }),
+    aadhar_dise_no: vine.number().positive().unique({ table: 'student_metas', column: 'aadhar_dise_no' }),
 
     birth_place: vine.string().trim().minLength(2).maxLength(100),
     birth_place_in_guj: vine.string().trim().optional(),
@@ -56,6 +58,12 @@ export const CreateValidatorStundet = vine.compile(vine.object({
 
     category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']),
 
+    blood_group : vine.enum(['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']),
+
+    identification_mark : vine.string().trim().optional(),
+
+    residence_type : vine.enum(['day_scholar', 'residential', 'semi_residential']),
+    
     admission_date: vine.date(),
 
     admission_class_id: vine.number(),
@@ -123,7 +131,7 @@ export const CreateValidatorForUpload = vine.compile(vine.object({
   }),
   student_meta_data: vine.object({
 
-    aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }),
+    aadhar_dise_no: vine.number().positive().unique({ table: 'student_metas', column: 'aadhar_dise_no' }),
 
     birth_place: vine.string().trim().minLength(2).maxLength(100),
     birth_place_in_guj: vine.string().trim().optional(),
@@ -206,7 +214,7 @@ export const CreateValidatorForMultipleStundets = vine.compile(
 
       // student_id: vine.number().exists({ table: 'students', column: 'id' }),
 
-      aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }),
+      aadhar_dise_no: vine.number().positive().unique({ table: 'student_metas', column: 'aadhar_dise_no' }),
 
       birth_place: vine.string().trim().minLength(2).maxLength(100),
       birth_place_in_guj: vine.string().trim().optional(),
@@ -306,7 +314,7 @@ export const UpdateValidatorForStundets = vine.compile(
 
       // student_id: vine.number().exists({ table: 'students', column: 'id' }),
 
-      aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }).optional(),
+      aadhar_dise_no: vine.number().positive().unique({ table: 'student_metas', column: 'aadhar_dise_no' }).optional(),
 
       birth_place: vine.string().trim().minLength(2).maxLength(100).optional(),
       birth_place_in_guj: vine.string().trim().optional(),
