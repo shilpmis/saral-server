@@ -7,12 +7,12 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
 
-      table.integer('academic_id')
-        .unsigned()
-        .notNullable()
-        .references('id')
-        .inTable('academic_sessions')
-        .onDelete('CASCADE');
+      table.integer('academic_session_id')
+      .unsigned()
+      .notNullable()
+      .references('id')
+      .inTable('academic_sessions')
+      .onDelete('CASCADE');
 
       table.integer('staff_id')
         .unsigned()

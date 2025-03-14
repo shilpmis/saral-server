@@ -25,10 +25,7 @@ export default class AuthController {
 
     try {
       const payload = await CreateValidatorForSchools.validate(ctx.request.all());  // Ensure organization_id exists in request payload
-      if (!payload.organization_id) {
-        throw new Error("Organization ID is required")
-      }
-
+      
       const organization = await Organization.find(payload.organization_id)
       if (!organization) {
         return ctx.response.notFound({ message: 'Organization not found' })
@@ -52,7 +49,7 @@ export default class AuthController {
       */
       const admin_user = await User.create({
         school_id: school.id,
-        saral_email: `admin@${school.name.toLowerCase().split(" ").join("")}.saral`,
+        saral_email: `admin@${payload.branch_code}.saral`,
         password: '12345678',
         role_id: 1,
         name: 'Admin',

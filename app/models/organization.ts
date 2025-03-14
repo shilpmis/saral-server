@@ -13,9 +13,6 @@ export default class Organization extends Base {
   declare email: string
 
   @column()
-  declare username: string
-
-  @column()
   declare contact_number: bigint
 
   @column()

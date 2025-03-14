@@ -7,10 +7,9 @@ export const CreateValidatorForSchools = vine.compile(
   vine.object({
     name: vine.string().trim().maxLength(50),
     organization_id: vine.number(),
-
     email: vine.string().email().unique({ table: 'schools', column: 'email' }),
     established_year: vine.string(),
-    school_type: vine.enum(['Public', 'Private', 'Charter']),
+    school_type: vine.enum(['PUBLIC', 'PRIVATE', 'CHARTER']),
     branch_code: vine.string().trim().maxLength(10).optional(),  // Auto-generated but can be manually passed
     contact_number: vine.number().min(1000000000).max(999999999999).unique({ table: 'schools', column: 'contact_number' }),
     address: vine.string().maxLength(500).optional(),

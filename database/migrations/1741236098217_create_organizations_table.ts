@@ -8,7 +8,7 @@ export default class extends BaseSchema {
       table.increments('id')
       table.string('name').notNullable();
       table.string('email').unique().notNullable();
-      table.string('username').notNullable().unique();
+      // table.string('username').notNullable().unique();
       table.bigInteger('contact_number').unique().notNullable();
       table.enum('subscription_type', ['FREE', 'PREMIUM']).notNullable().defaultTo('FREE');
       table.date('subscription_start_date').notNullable();

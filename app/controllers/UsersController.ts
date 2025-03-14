@@ -58,7 +58,7 @@ export default class UsersController {
           school_id: school_id,
           is_active: true,
           password: "12345678",
-          saral_email: `${user_type}@${school?.username}.saral`
+          saral_email: `${user_type}@${school?.branch_code}.saral`
         });
         return ctx.response.json(user.serialize());
       } else {
@@ -105,7 +105,7 @@ export default class UsersController {
         role_id: 6,
         is_teacher: true,
         name: teacher.first_name + " " + teacher.last_name,
-        saral_email: `${teacher.first_name.toLowerCase()}-${teacher.last_name.toLowerCase()}@${teacher.school.username}.saral`
+        saral_email: `${teacher.first_name.toLowerCase()}-${teacher.last_name.toLowerCase()}@${teacher.school.branch_code}.saral`
       }, { client: trx });
 
       if (payload.class_id) {

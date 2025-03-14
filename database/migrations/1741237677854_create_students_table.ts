@@ -14,22 +14,15 @@ export default class extends BaseSchema {
         .inTable('schools')
         .onDelete('CASCADE');
 
-      // table
-      //   .integer('class_id')
-      //   .unsigned()
-      //   .references('id')
-      //   .inTable('classes') // Assuming the parent table is `schools`
-      //   .onDelete('CASCADE'); // Ensure cascading delete
-
       table.string('enrollment_code').notNullable().unique(); 
       table.string('admission_number').nullable().unique();
       table.string('first_name', 100).notNullable();
       table.string('middle_name', 100).notNullable();
       table.string('last_name', 100).notNullable();
 
-      table.string('first_name_in_guj', 100).notNullable();
-      table.string('middle_name_in_guj', 100).notNullable();
-      table.string('last_name_in_guj', 100).notNullable();
+      table.string('first_name_in_guj', 100).nullable();
+      table.string('middle_name_in_guj', 100).nullable();
+      table.string('last_name_in_guj', 100).nullable();
 
       table.enum('gender', ['Male', 'Female']).notNullable();
       
@@ -46,14 +39,17 @@ export default class extends BaseSchema {
         .notNullable()
 
       table.string('father_name', 100).notNullable();
-      table.string('father_name_in_guj', 100).notNullable();
-      table.string('mother_name', 100).notNullable();
+      table.string('father_name_in_guj', 100).nullable();
+      table.string('mother_name', 100).nullable();
       table.string('mother_name_in_guj', 100).notNullable();
 
       table.integer('roll_number').nullable().defaultTo(null);
 
       table.bigInteger('aadhar_no').unsigned().notNullable().unique();
+      table.text('profile_photo').nullable()
       table.boolean('is_active').notNullable().defaultTo(true);
+
+
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

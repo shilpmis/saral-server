@@ -6,13 +6,13 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-
-      table.integer('academic_id')
-        .unsigned()
-        .notNullable()
-        .references('id')
-        .inTable('academic_sessions')
-        .onDelete('CASCADE');
+      
+      table.integer('academic_session_id')
+      .unsigned()
+      .notNullable()
+      .references('id')
+      .inTable('academic_sessions')
+      .onDelete('CASCADE');
 
       table.integer('class_id')
         .unsigned()
@@ -28,7 +28,7 @@ export default class extends BaseSchema {
         .inTable('students')
         .onDelete('CASCADE');
 
-      table.enum('status' , ['Permoted' , 'Failed' , 'Pursuing']).defaultTo('Pursuing')
+      table.enum('status' , ['PROMOTED', 'DEMOTED', 'NEW-ADMISSION']).defaultTo('PROMOTED');
 
       table.string('remarks', 255).nullable();
       

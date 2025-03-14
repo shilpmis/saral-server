@@ -14,21 +14,21 @@ export default class extends BaseSchema {
         .inTable('students')
         .onDelete('CASCADE');
 
-      table.bigInteger('aadhar_dise_no').notNullable().unique();
+      table.bigInteger('aadhar_dise_no').nullable().unique();
 
-      table.string('birth_place', 50).notNullable();
-      table.string('birth_place_in_guj', 50).notNullable();
+      table.string('birth_place', 50).nullable();
+      table.string('birth_place_in_guj', 50).nullable();
 
-      table.string('religiion', 50).notNullable();
-      table.string('religiion_in_guj', 50).notNullable();
+      table.string('religiion', 50).nullable();
+      table.string('religiion_in_guj', 50).nullable();
 
-      table.string('caste', 100).notNullable();
-      table.string('caste_in_guj', 100).notNullable();
-      table.enum('category', ['ST', 'SC', 'OBC', 'OPEN']).notNullable();
+      table.string('caste', 100).nullable();
+      table.string('caste_in_guj', 100).nullable();
+      table.enum('category', ['ST', 'SC', 'OBC', 'OPEN']).nullable();
 
-      table.enum('residence_type' , ['day_scholar' , 'residential' , 'semi_residential']);
+      table.enum('residence_type' , ['DAY_SCHOLAR' , 'RESIDENTIAL' , 'SEMI_RESIDENTIAL']).nullable();
 
-      table.enum('blood_group', ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']);
+      table.enum('blood_group', ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']).nullable();
 
       // table.json('sibling_details')  
       table.string('identification_mark' , 100).nullable()  
@@ -47,15 +47,15 @@ export default class extends BaseSchema {
       table.string('privious_school', 100).nullable().defaultTo(null);
       table.string('privious_school_in_guj', 100).nullable().defaultTo(null);
 
-      table.string('address', 100).notNullable();
-      table.string('district', 100).notNullable();
-      table.string('city', 100).notNullable();
-      table.string('state', 100).notNullable();
-      table.integer('postal_code').notNullable().unsigned();
+      table.string('address', 100).nullable();
+      table.string('district', 100).nullable();
+      table.string('city', 100).nullable();
+      table.string('state', 100).nullable();
+      table.integer('postal_code').nullable().unsigned();
 
-      table.string('bank_name', 100).notNullable();
-      table.bigInteger('account_no').notNullable().unique().unsigned();
-      table.string('IFSC_code', 15).notNullable();
+      table.string('bank_name', 100).nullable();
+      table.bigInteger('account_no').nullable().unique().unsigned();
+      table.string('IFSC_code', 15).nullable();
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

@@ -24,10 +24,10 @@ export default class Schools extends Base {
      declare established_year: string
 
      @column()
-     declare school_type: 'Public' | 'Private' | 'Charter'
+     declare school_type: 'PUBLIC'| 'PRIVATE' | 'CHARTER'
 
-     @column()
-     declare username : string
+   //   @column()
+   //   declare username : string
      
      @column()
      declare contact_number: number
