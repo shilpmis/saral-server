@@ -21,6 +21,7 @@ import LeavesController from '#controllers/LeavesController'
 import AttendanceController from '#controllers/AttendancesController'
 import InquiriesController from '#controllers/InquiriesController'
 import FeesController from '#controllers/FeesController'
+import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
 
 // router.get('/', async () => {
 //   return {
@@ -116,6 +117,14 @@ router.group(() => {
   router.post('/fees/pay/:student_id' , [FeesController , 'payFees'])
   router.post('/fees/pay/installments/:student_id' , [FeesController , 'payMultipleInstallments'])
   router.put('/transaction/:transaction_id' , [FeesController , 'updateFeesStatus'])
+  
+  router.get('/concessions' , [FeesController, 'indexConcessionType'])
+  router.get('/concession/:concession_id' , [FeesController, 'fetchDetailConcessionType'])
+  router.post('/concession' , [FeesController, 'createConcession'])
+  router.put('/concession/:concession_id' , [FeesController, 'updateConcession'])
+  router.post('/concession/apply/plan' , [FeesController, 'applyConcessionToPlan'])
+  router.post('/concession/apply/student' , [FeesController, 'applyConcessionToStudent'])
+
 
 }).prefix('/api/v1/').use(middleware.auth())
 

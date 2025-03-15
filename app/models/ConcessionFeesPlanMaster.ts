@@ -4,10 +4,11 @@ import Base from '#models/base'
 import { belongsTo, column, hasOne } from '@adonisjs/lucid/orm'
 import Concessions from './Concessions.js'
 import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
+import FeesPlan from './FeesPlan.js'
 
-export default class ConcessionStudentMaster extends Base {
+export default class ConcessionFeesPlanMaster extends Base {
 
-    public static table = 'concessions_student_masters'
+    public static table = 'concession_fees_paln_master'
 
     @column()
     declare academic_year_id : number
@@ -16,10 +17,7 @@ export default class ConcessionStudentMaster extends Base {
     declare concession_id : number
 
     @column()
-    declare student_id : number
-
-    @column()
-    declare fees_plan_id : number
+    declare fees_plan_id : number 
 
     @column()
     declare fees_type_id : number | null
@@ -34,11 +32,18 @@ export default class ConcessionStudentMaster extends Base {
     declare percentage : number | null
 
     @column()
-    declare status : 'Active'|'Inactive'
+    declare status : 'Active'| 'Inactive'
 
-    @belongsTo(()=> Concessions , {
-        foreignKey : 'id',
-        localKey : 'concession_id',
+    @belongsTo(()=> Concessions, {
+        foreignKey : 'concession_id',
+        localKey : 'id'
     })
-    declare provconcession : BelongsTo<typeof Concessions>
+    declare concession : BelongsTo<typeof Concessions>
+
+    @hasOne(()=> FeesPlan, {
+        foreignKey : 'id',
+        localKey : 'fees_plan_id'
+    })
+    declare fees_plan : HasOne<typeof FeesPlan>
+
 }

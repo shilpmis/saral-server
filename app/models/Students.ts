@@ -1,10 +1,11 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column, hasOne } from '@adonisjs/lucid/orm'
+import { column, hasMany, hasOne } from '@adonisjs/lucid/orm'
 import StudentMeta from './StudentMeta.js'
-import type { HasOne } from '@adonisjs/lucid/types/relations'
+import type { HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import StudentFeesMaster from './StudentFeesMaster.js'
+import ConcessionStudentMaster from './ConcessionStudentMaster.js'
 
 export default class Students extends Base {
 
@@ -79,4 +80,9 @@ export default class Students extends Base {
     })
     declare fees_status : HasOne<typeof StudentFeesMaster>
 
+    @hasMany(()=> ConcessionStudentMaster , {
+        foreignKey : 'student_id',
+        localKey : 'id',
+    })
+    declare provided_concession : HasMany<typeof ConcessionStudentMaster>    
 }

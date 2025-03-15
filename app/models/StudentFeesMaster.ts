@@ -29,6 +29,13 @@ export default class StudentFeesMaster extends Base {
     declare due_amount: number
 
     @column()
+    declare total_refund_amount: number
+
+    @column()
+    declare refunded_amount: number
+
+
+    @column()
     declare status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue'
 
 }

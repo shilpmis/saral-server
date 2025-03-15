@@ -86,10 +86,11 @@ export const CreateValidatorForconcessions = vine.compile(
 
 export const CreateValidationForPayFees = vine.compile(
   vine.object({
-    // student_fees_master_id: vine.number(),
     installment_id: vine.number(),
-    // fees_plan_details_id: vine.number(),
     paid_amount: vine.string(),
+    discounted_amount: vine.string(),
+    paid_as_refund: vine.boolean(),
+    refunded_amount: vine.string(),
     payment_mode: vine.enum(['Cash', 'Online', 'Bank Transfer']),
     transaction_reference: vine.string().nullable(),
     payment_date: vine.date(),
@@ -117,3 +118,56 @@ export const UpdateValidationForInstallment = vine.compile(
     remarks: vine.string().optional()
   })
 )
+
+export const CreateValidationForConcessionType = vine.compile(
+  vine.object({
+    name: vine.string().trim().minLength(2).maxLength(50),
+    description: vine.string().trim().minLength(2).maxLength(200),  
+    applicable_to: vine.enum(['fees_types' , 'plan' , 'students']),  
+    category: vine.enum(['Family', 'Sports' , 'Staff' , 'Education' , 'Financial', 'Other']),  
+  }))
+
+export const UpdateValidationForConcessionType = vine.compile(
+  vine.object({
+    name: vine.string().trim().minLength(2).maxLength(50).optional(),
+    description: vine.string().trim().minLength(2).maxLength(200).optional(),
+    applicable_to: vine.enum(['fees_types' , 'plan' , 'students']).optional(),    
+    category: vine.enum(['Family', 'Sports' , 'Staff' , 'Education' , 'Financial', 'Other']),  
+  }))
+
+export const CreateValidationForApplyConcessionToPlan = vine.compile(
+  vine.object({
+    concession_id: vine.number(),
+    fees_plan_id: vine.number(),
+    fees_type_id: vine.number().nullable(),
+    deduction_type: vine.enum(['percentage' , 'fixed_amount']),  
+    amount: vine.number().max(1000000).min(100).nullable(),  
+    percentage: vine.number().max(100).min(1).nullable(),    
+  }
+))
+
+
+export const UpdateValidationForApplyConcessionToPlan = vine.compile(
+  vine.object({
+    applicable_to: vine.enum(['percentage' , 'fixed_amount']).optional(),  
+    amount: vine.number().max(1000000).min(100).nullable().optional(),  
+    percentage: vine.number().max(100).min(1).nullable().optional(),
+    status: vine.enum(['Active', 'Inactive']).optional()
+  }
+))
+
+export const CreateValidationForApplyConcessionToStudent = vine.compile(
+  vine.object({
+    concession_id: vine.number(),
+    student_id: vine.number(),
+    deduction_type: vine.enum(['percentage' , 'fixed_amount']),  
+    amount: vine.number().max(1000000).min(100).nullable(),  
+    percentage: vine.number().max(100).min(1).nullable(),
+    /** 
+     *  
+     * fees_plan_id will be the paln which assign to student through plan allocated to class  
+     * */    
+    // fees_plan_id: vine.number(),
+    // fees_type_id: vine.number().nullable(),
+  }
+))

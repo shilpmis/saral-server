@@ -18,6 +18,9 @@ export default class Concessions extends Base {
     declare description : string
 
     @column()
-    declare applicable_to : 'fees_types' | 'plan'
+    declare applicable_to : 'fees_types' | 'plan' |'students'
+
+    @column()
+    declare category : 'Family'| 'Sports' | 'Staff' | 'Education' | 'Financial' | 'Other'
 
 }

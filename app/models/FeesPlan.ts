@@ -1,5 +1,7 @@
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { column, hasMany } from '@adonisjs/lucid/orm'
 import Base from './base.js'
+import ConcessionFeesPlanMaster from './ConcessionFeesPlanMaster.js'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 
 export default class FeesPlan extends Base {
    
@@ -22,6 +24,12 @@ export default class FeesPlan extends Base {
   
   @column()
   declare status : 'Active' | 'Inactive'
+
+  @hasMany(() => ConcessionFeesPlanMaster, {
+    foreignKey: 'fees_plan_id',
+    localKey : 'id'  
+  })
+  declare concession_for_plan: HasMany<typeof ConcessionFeesPlanMaster>
 
 
 }

@@ -18,7 +18,16 @@ export default class StudentFeesInstallments extends Base {
     declare remaining_amount: number
 
     @column()
-    declare payment_mode: 'Cash' | 'Online'| 'Bank Transfer'
+    declare discounted_amount: number
+
+    @column()
+    declare paid_as_refund: boolean
+
+    @column()
+    declare refunded_amount: number
+
+    @column()
+    declare payment_mode: 'Cash' | 'Online' | 'Bank Transfer'
 
     @column()
     declare transaction_reference: string | null
