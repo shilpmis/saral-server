@@ -10,51 +10,103 @@ export const CreateValidatorForOtherStaff = vine.compile(
       // add here
       staff_role_id: vine.number(),
       first_name: vine.string().trim().minLength(2).maxLength(50),
-      middle_name: vine.string().trim().minLength(2).maxLength(50),
+      middle_name: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
       last_name: vine.string().trim().minLength(2).maxLength(50),
      
-      first_name_in_guj: vine.string().trim().minLength(2).maxLength(50),
-      middle_name_in_guj: vine.string().trim().minLength(2).maxLength(50),
-      last_name_in_guj: vine.string().trim().minLength(2).maxLength(50),
+      first_name_in_guj: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      middle_name_in_guj: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      last_name_in_guj: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
 
       aadhar_no: vine.number()
         .unique({ table: 'other_staff', column: 'aadhar_no' }),
 
-      religiion: vine.string().trim().minLength(2).maxLength(50),
-      religiion_in_guj: vine.string().trim().optional(),
+      religiion: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      religiion_in_guj: vine.string().trim().optional().nullable().optional(),
   
-      caste: vine.string().trim().minLength(2).maxLength(50),
-      caste_in_guj: vine.string().trim().optional(),
+      caste: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      caste_in_guj: vine.string().trim().optional().nullable().optional(),
   
-      category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']),
+      category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']).optional(),
 
-      address: vine.string().trim().minLength(5).maxLength(200),
+      address: vine.string().trim().minLength(5).maxLength(200).nullable().optional(),
   
-      district: vine.string().trim().minLength(3).maxLength(100),
-      city: vine.string().trim().minLength(3).maxLength(100),
+      district: vine.string().trim().minLength(3).maxLength(100).nullable().optional(),
+      city: vine.string().trim().minLength(3).maxLength(100).nullable().optional(),
   
-      state: vine.string().trim().minLength(3).maxLength(50),
+      state: vine.string().trim().minLength(3).maxLength(50).nullable().optional(),
   
-      postal_code: vine.number(),
+      postal_code: vine.number().nullable().optional(),
       
-      bank_name: vine.string().trim(),
+      bank_name: vine.string().trim().nullable().optional(),
       
-      account_no: vine.number().positive(),
+      account_no: vine.number().positive().nullable().optional(),
   
-      IFSC_code: vine.string().trim(),
+      IFSC_code: vine.string().trim().nullable().optional(),
 
       gender: vine.enum(['Male', 'Female']),
 
-      birth_date: vine.date(),
+      birth_date: vine.date().nullable().optional(),
 
       mobile_number: vine.number(),
-      email: vine.string().email(),
-      joining_date: vine.date(),
+      email: vine.string().email().nullable().optional(),
+      joining_date: vine.date().nullable().optional(),
 
       employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']),
 
     })
   )
+)
+
+export const CreateValidatorForBulkUpload= vine.compile(
+
+    vine.object({
+      // add here
+      // staff_role_id: vine.number(),
+      first_name: vine.string().trim().minLength(2).maxLength(50),
+      middle_name: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      last_name: vine.string().trim().minLength(2).maxLength(50),
+     
+      first_name_in_guj: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      middle_name_in_guj: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      last_name_in_guj: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+
+      aadhar_no: vine.number()
+        .unique({ table: 'other_staff', column: 'aadhar_no' }),
+
+      religiion: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      religiion_in_guj: vine.string().trim().optional().nullable().optional(),
+  
+      caste: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      caste_in_guj: vine.string().trim().optional().nullable().optional(),
+  
+      category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']).optional(),
+
+      address: vine.string().trim().minLength(5).maxLength(200).nullable().optional(),
+  
+      district: vine.string().trim().minLength(3).maxLength(100).nullable().optional(),
+      city: vine.string().trim().minLength(3).maxLength(100).nullable().optional(),
+  
+      state: vine.string().trim().minLength(3).maxLength(50).nullable().optional(),
+  
+      postal_code: vine.number().nullable().optional(),
+      
+      bank_name: vine.string().trim().nullable().optional(),
+      
+      account_no: vine.number().positive().nullable().optional(),
+  
+      IFSC_code: vine.string().trim().nullable().optional(),
+
+      gender: vine.enum(['Male', 'Female']),
+
+      birth_date: vine.date().nullable().optional(),
+
+      mobile_number: vine.number(),
+      email: vine.string().email().nullable().optional(),
+      joining_date: vine.date().nullable().optional(),
+
+      employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']),
+
+    })
 )
 
 

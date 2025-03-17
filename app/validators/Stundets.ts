@@ -3,7 +3,7 @@ import vine from "@vinejs/vine";
 
 export const CreateValidatorStundet = vine.compile(vine.object({
   students_data: vine.object({
-    
+
     class_id: vine.number(),
 
     first_name: vine.string().trim().minLength(2).maxLength(50),
@@ -81,11 +81,10 @@ export const CreateValidatorStundet = vine.compile(vine.object({
     IFSC_code: vine.string().trim()
   })
 }))
+
+
 export const CreateValidatorForUpload = vine.compile(vine.object({
   students_data: vine.object({
-    class_id: vine.number().optional(),
-    class: vine.string().trim().minLength(2).maxLength(50).optional(),
-    division: vine.string().trim().minLength(2).maxLength(50).optional(),
     first_name: vine.string().trim().minLength(2).maxLength(50),
     middle_name: vine.string().trim().minLength(2).maxLength(50).optional(),
     last_name: vine.string().trim().minLength(2).maxLength(50),
@@ -96,7 +95,7 @@ export const CreateValidatorForUpload = vine.compile(vine.object({
 
     gender: vine.enum(['Male', 'Female']),
 
-    birth_date: vine.date(),
+    birth_date: vine.date().optional(),
 
     /**
      * FIX : this should be unique in between school's students
@@ -108,13 +107,13 @@ export const CreateValidatorForUpload = vine.compile(vine.object({
     father_name: vine.string().trim().minLength(3).maxLength(50),
     father_name_in_guj: vine.string().trim().optional(),
 
-    mother_name: vine.string().trim().minLength(3).maxLength(50),
+    mother_name: vine.string().trim().minLength(3).maxLength(50).optional(),
     mother_name_in_guj: vine.string().trim().optional(),
 
     /**
      * FIX : make this optional or remove roll number from table in next migrtion 
      *  */
-    roll_number: vine.number().positive(),
+    roll_number: vine.number().positive().optional(),
 
     aadhar_no: vine.number()
       .unique({ table: 'students', column: 'aadhar_no' }),
@@ -123,43 +122,45 @@ export const CreateValidatorForUpload = vine.compile(vine.object({
   }),
   student_meta_data: vine.object({
 
-    aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }),
+    aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }).optional(),
 
-    birth_place: vine.string().trim().minLength(2).maxLength(100),
+    birth_place: vine.string().trim().minLength(2).maxLength(100).optional(),
     birth_place_in_guj: vine.string().trim().optional(),
 
-    religiion: vine.string().trim().minLength(2).maxLength(50),
+    religiion: vine.string().trim().minLength(2).maxLength(50).optional(),
     religiion_in_guj: vine.string().trim().optional(),
 
-    caste: vine.string().trim().minLength(2).maxLength(50),
+    caste: vine.string().trim().minLength(2).maxLength(50).optional(),
     caste_in_guj: vine.string().trim().optional(),
 
-    category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']),
+    category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']).optional(),
 
     admission_date: vine.date().optional(),
 
     admission_class_id: vine.number().optional(),
 
-    secondary_mobile: vine.number(),
+    secondary_mobile: vine.number().optional(),
 
-    privious_school: vine.string().trim().minLength(5).maxLength(100),
-    privious_school_in_guj: vine.string().trim().optional(),
+    privious_school: vine.string().trim().minLength(5).maxLength(100).optional(),
+    privious_school_in_guj: vine.string().trim().optional().optional(),
 
-    address: vine.string().trim().minLength(5).maxLength(200),
+    address: vine.string().trim().minLength(5).maxLength(200).optional(),
 
-    district: vine.string().trim().minLength(3).maxLength(100),
-    city: vine.string().trim().minLength(3).maxLength(100),
+    district: vine.string().trim().minLength(3).maxLength(100).optional(),
+    city: vine.string().trim().minLength(3).maxLength(100).optional(),
 
-    state: vine.string().trim().minLength(3).maxLength(50),
+    state: vine.string().trim().minLength(3).maxLength(50).optional(),
 
-    postal_code: vine.string().trim(),
+    postal_code: vine.string().trim().optional(),
 
-    bank_name: vine.string().trim(),
 
-    account_no: vine.number().positive(),
+    bank_name: vine.string().trim().optional(),
 
-    IFSC_code: vine.string().trim()
-  })
+    account_no: vine.number().positive().optional(),
+
+    IFSC_code: vine.string().trim().optional()
+  }).optional()
+
 }))
 
 export const CreateValidatorForMultipleStundets = vine.compile(
@@ -177,7 +178,7 @@ export const CreateValidatorForMultipleStundets = vine.compile(
 
       gender: vine.enum(['Male', 'Female']),
 
-      birth_date: vine.date(),
+      birth_date: vine.date().optional(),
 
       /**
        * FIX : this should be unique in between school's students
@@ -189,13 +190,13 @@ export const CreateValidatorForMultipleStundets = vine.compile(
       father_name: vine.string().trim().minLength(3).maxLength(50),
       father_name_in_guj: vine.string().trim().optional(),
 
-      mother_name: vine.string().trim().minLength(3).maxLength(50),
+      mother_name: vine.string().trim().minLength(3).maxLength(50).optional(),
       mother_name_in_guj: vine.string().trim().optional(),
 
       /**
        * FIX : make this optional or remove roll number from table in next migrtion 
        *  */
-      roll_number: vine.number().positive(),
+      roll_number: vine.number().positive().optional(),
 
       aadhar_no: vine.number()
         .unique({ table: 'students', column: 'aadhar_no' }),
@@ -206,53 +207,53 @@ export const CreateValidatorForMultipleStundets = vine.compile(
 
       // student_id: vine.number().exists({ table: 'students', column: 'id' }),
 
-      aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }),
+      aadhar_dise_no: vine.number().positive().unique({ table: 'student_meta', column: 'aadhar_dise_no' }).optional(),
 
-      birth_place: vine.string().trim().minLength(2).maxLength(100),
+      birth_place: vine.string().trim().minLength(2).maxLength(100).optional(),
       birth_place_in_guj: vine.string().trim().optional(),
 
-      religiion: vine.string().trim().minLength(2).maxLength(50),
+      religiion: vine.string().trim().minLength(2).maxLength(50).optional(),
       religiion_in_guj: vine.string().trim().optional(),
 
-      caste: vine.string().trim().minLength(2).maxLength(50),
+      caste: vine.string().trim().minLength(2).maxLength(50).optional(),
       caste_in_guj: vine.string().trim().optional(),
 
-      category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']),
+      category: vine.enum(['ST', 'SC', 'OBC', 'OPEN']).optional(),
 
-      admission_date: vine.date(),
+      admission_date: vine.date().optional(),
 
-      admission_class_id: vine.number(),
+      admission_class_id: vine.number().optional(),
 
-      secondary_mobile: vine.number(),
+      secondary_mobile: vine.number().optional(),
 
-      privious_school: vine.string().trim().minLength(5).maxLength(100),
-      privious_school_in_guj: vine.string().trim().optional(),
+      privious_school: vine.string().trim().minLength(5).maxLength(100).optional(),
+      privious_school_in_guj: vine.string().trim().optional().optional(),
 
-      address: vine.string().trim().minLength(5).maxLength(200),
+      address: vine.string().trim().minLength(5).maxLength(200).optional(),
 
-      district: vine.string().trim().minLength(3).maxLength(100),
-      city: vine.string().trim().minLength(3).maxLength(100),
+      district: vine.string().trim().minLength(3).maxLength(100).optional(),
+      city: vine.string().trim().minLength(3).maxLength(100).optional(),
 
-      state: vine.string().trim().minLength(3).maxLength(50),
+      state: vine.string().trim().minLength(3).maxLength(50).optional(),
 
-      postal_code: vine.string().trim(),
+      postal_code: vine.string().trim().optional(),
       // .check((value, field) => {
       //   if (!/^\d{6}$/.test(value)) {
       //     field.report('Postal code must be exactly 6 digits.')
       //   }
       // }),
 
-      bank_name: vine.string().trim(),
+      bank_name: vine.string().trim().optional(),
 
-      account_no: vine.number().positive(),
+      account_no: vine.number().positive().optional(),
 
-      IFSC_code: vine.string().trim()
+      IFSC_code: vine.string().trim().optional()
       // .check((value, field) => {
       //   if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) {
       //     field.report('Invalid IFSC code format.')
       //   }
       // }),
-    })
+    }).optional()
 
   })).minLength(1)
 )
