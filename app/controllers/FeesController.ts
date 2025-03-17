@@ -384,38 +384,85 @@ export default class FeesController {
         let fees_details = await FeesPlanDetails.query()
             .preload('installments_breakdown')
             .where('fees_plan_id', fees_Plan.id);
-        
-        // let concession = student.provided_concession;
-        
-        // /**
-        //  * Consession management for student.
-        //  */
-        // let totoal_discount = 0;
-        // if (concession.length > 0) {
-        //     let total_consession_amount = concession.reduce((acc: number, cons: ConcessionStudentMaster) => {
-        //         if (cons.amount) {
-        //             return acc + cons.amount;
-        //         }
-        //         return acc;
-        //     }, 0);
-        //     let total_consession_percentage = concession.reduce((acc: number, cons: ConcessionStudentMaster) => {
-        //         if (cons.percentage) {
-        //             return acc + (cons.percentage * fees_Plan.total_amount) / 100;
-        //         }
-        //         return acc;
-        //     }, 0);
-        //     totoal_discount = total_consession_amount + total_consession_percentage;
-        // }
-
-
-        
 
         res.fees_plan = fees_Plan;
         res.fees_details = fees_details;
 
+        let concession = student.provided_concession;
+        let paid_amount = res.paid_fees.reduce((acc: number, fees: StudentFeesInstallments) => acc + fees.paid_amount, 0);
+        /**
+         * Consession management for student.
+         */
+        let totoal_discount = 0;
+        if (concession.length > 0) {
+            let total_consession_amount = concession.reduce((acc: number, cons: ConcessionStudentMaster) => {
+                if (cons.amount) {
+                    return acc + cons.amount;
+                }
+                return acc;
+            }, 0);
+            let total_consession_percentage = concession.reduce((acc: number, cons: ConcessionStudentMaster) => {
+                if (cons.percentage) {
+                    return acc + (cons.percentage * fees_Plan.total_amount) / 100;
+                }
+                return acc;
+            }, 0);
+            totoal_discount = total_consession_amount + total_consession_percentage;
+        }
+
+        if (paid_amount > (res.fees_plan.total_amount - totoal_discount)) {
+
+            let refundable_discount_amount = paid_amount - totoal_discount;
+
+            let stundentFeesInstallMent = await StudentFeesInstallments.query().where('student_fees_master_id', student.fees_status.id);
+
+            let all_installment  =  
+            fees_details.map((detail: FeesPlanDetails) => detail.installments_breakdown)
+            .map((installments: InstallmentBreakDowns[]) => installments)
+            .flat();
+
+            let unpaid_installments = stundentFeesInstallMent.length > 0
+            ? all_installment.filter((installment: InstallmentBreakDowns) => {
+               return !stundentFeesInstallMent.map((installment: StudentFeesInstallments) => installment.installment_id).includes(installment.id)
+            })
+            : []
+
+            
+
+        }
+        else if (paid_amount < totoal_discount) {
+
+        } else {
+
+        }
+
+
         return ctx.response.json({ student: student_obj, fees_plan: res });
 
     }
+
+    /**
+     *  Concession Before fees payed 
+     *    simple - minus concessionn from all the installment and then pay the fees with discount amount 
+     *  
+     *  Consession when some of the amont been payed 
+     *    
+     *    payed amount is greater then amount reduced after consession 
+     *       - pay left installments as an discount amount 
+     *       - show refund amount in fees status
+     * 
+     *    Payed amount is less then amount reduced after consession
+     *      - for the very next installment whatever amount is left after consession will be paid and left as discount amount
+     *      - and othet left installment will be payed as concession amount
+     * 
+     *    Payed amount is equal to amount reduced after consession
+     *      and othet left installment will be payed as concession amount
+     *   
+     * 
+     *  Consession after full payment has been done by student 
+     *      make sure to update refund column in fees status
+     *  
+     */
 
     async payFees(ctx: HttpContext) {
 
@@ -488,7 +535,7 @@ export default class FeesController {
             totoal_discount = total_consession_amount + total_consession_percentage;
         }
 
-        let studentFeesMaster : StudentFeesMaster | null = null;
+        let studentFeesMaster: StudentFeesMaster | null = null;
 
         try {
             if (!student.fees_status) {
@@ -518,15 +565,15 @@ export default class FeesController {
                     paid_amount: Number(student.fees_status!.paid_amount) + Number(payload.paid_amount),
                     due_amount: Number(student.fees_status!.due_amount) - Number(payload.paid_amount),
                     discounted_amount: totoal_discount,
-                    total_refund_amount : studentFeesMaster.total_refund_amount + (payload.paid_as_refund ? Number(payload.refunded_amount) : 0) , 
+                    total_refund_amount: studentFeesMaster.total_refund_amount + (payload.paid_as_refund ? Number(payload.refunded_amount) : 0),
                     status: student.fees_status!.due_amount - Number(payload.paid_amount) === 0 ? 'Paid' : 'Partially Paid'
                 }).useTransaction(trx).save();
             }
 
-            if(studentFeesMaster.total_amount - totoal_discount < studentFeesMaster.paid_amount + Number(payload.paid_amount)){
+            if (studentFeesMaster.total_amount - totoal_discount < studentFeesMaster.paid_amount + Number(payload.paid_amount)) {
                 await trx.rollback();
                 return ctx.response.status(400).json({
-                    message : "Total paid amount is greater than total amount (after apply concession) , Need to pay this fees as a refund amount for student !" 
+                    message: "Total paid amount is greater than total amount (after apply concession) , Need to pay this fees as a refund amount for student !"
                 })
 
             }
@@ -540,8 +587,8 @@ export default class FeesController {
                 transaction_reference: payload.transaction_reference,
                 payment_date: payload.payment_date,
                 remarks: payload.remarks,
-                paid_as_refund : payload.paid_as_refund,
-                refunded_amount : payload.paid_as_refund ? Number(payload.refunded_amount) : 0,
+                paid_as_refund: payload.paid_as_refund,
+                refunded_amount: payload.paid_as_refund ? Number(payload.refunded_amount) : 0,
                 status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid'
             }, { client: trx });
 

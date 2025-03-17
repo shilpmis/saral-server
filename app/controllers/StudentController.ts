@@ -7,6 +7,8 @@ import db from '@adonisjs/lucid/services/db';
 import { parseAndReturnJSON } from '../../utility/parseCsv.js';
 import path from 'path';
 import app from '@adonisjs/core/services/app';
+import ExcelJS from 'exceljs'
+import { serialize } from 'v8';
 
 export default class StundetsController {
 
@@ -200,24 +202,33 @@ export default class StundetsController {
         const role_id = ctx.auth.user!.role_id;
         const class_id = ctx.request.input('class_id');
         // Check if the user is authorized to perform this action
-        
-        if(!class_id){
-            return ctx.response.status(400).json({ message: "Class ID is required." });
-        }
 
         if (role_id !== 1) {
             return ctx.response.status(403).json({ message: "You are not authorized to perform this action." });
         }
-    
+
+        if (!class_id) {
+            return ctx.response.status(400).json({ message: "Class ID is required." });
+        }
+
+        const classRecord = await Classes.query()
+            .where('id', class_id)
+            .andWhere('school_id', school_id)
+            .first();
+
+        if (!classRecord) {
+            return ctx.response.status(400).json({ message: "Class not found." });
+        }
+
         try {
             // Ensure a file is uploaded
             const file = ctx.request.file('file', {
                 extnames: ["csv",
-                  "xlsx",
-                  "xls",
-                  ],
+                    "xlsx",
+                    "xls",
+                ],
                 size: '20mb',
-                
+
             });
             if (!file) {
                 return ctx.response.status(400).json({ message: 'No file uploaded.' });
@@ -225,100 +236,65 @@ export default class StundetsController {
             // Move file to temp storage
             const uploadDir = path.join(app.tmpPath(), 'uploads');
             await file.move(uploadDir);
-    
+
             if (!file.isValid) {
                 return ctx.response.badRequest({ message: file.errors });
             }
-    
+
             // Construct file path
             const filePath = path.join(uploadDir, file.clientName);
-    
+
             // Parse CSV file into JSON
             const jsonData = await parseAndReturnJSON(filePath);
-    
+
             if (!jsonData.length) {
                 return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' });
             }
-    
+
             // Start a database transaction
             const trx = await db.transaction();
-    
-            try {
-                let validatedData = [];    
-                let errors = [];
 
+            try {
+                let validatedData = [];
+                let errors = [];
                 for (const [index, data] of jsonData.entries()) {
 
                     // Transform the flat data into nested structure
-                    const transformedData = {
+                    let transformedData = {
                         students_data: {
-                            gr_no: data.gr_no,
                             first_name: data.first_name,
                             middle_name: data.middle_name,
                             last_name: data.last_name,
-                            first_name_in_guj: data.first_name_in_guj,
-                            middle_name_in_guj: data.middle_name_in_guj,
-                            last_name_in_guj: data.last_name_in_guj,
                             gender: data.gender,
-                            birth_date: data.birth_date,
-                            primary_mobile: data.primary_mobile,
-                            father_name: data.father_name,
-                            father_name_in_guj: data.father_name_in_guj,
-                            mother_name: data.mother_name,
-                            mother_name_in_guj: data.mother_name_in_guj,
-                            roll_number: data.roll_number,
+                            gr_no: data.gr_no,
+                            primary_mobile: data.phone,
                             aadhar_no: data.aadhar_no,
-                            is_active: data.is_active === 'TRUE', // Convert to boolean
+                            father_name: data.father_name,
+                            is_active: true,
                         },
-                        student_meta_data: {
-                            aadhar_dise_no: data.aadhar_dise_no,
-                            birth_place: data.birth_place,
-                            birth_place_in_guj: data.birth_place_in_guj,
-                            religiion: data.religiion,
-                            religiion_in_guj: data.religiion_in_guj,
-                            caste: data.caste,
-                            caste_in_guj: data.caste_in_guj,
-                            category: data.category,
-                            admission_date: data.admission_date,
-                            secondary_mobile: data.secondary_mobile,
-                            privious_school: data.privious_school,
-                            privious_school_in_guj: data.privious_school_in_guj,
-                            address: data.address,
-                            district: data.district,
-                            city: data.city,
-                            state: data.state,
-                            postal_code: data.postal_code,
-                            bank_name: data.bank_name,
-                            account_no: data.account_no,
-                            IFSC_code: data.IFSC_code,
-                        }
                     };
-                
-                    try {
-                        // Remove class_id from validation and use class_name & division instead
-                        const validatedStudent = await CreateValidatorForUpload.validate(transformedData);
-                        // Find the class ID using school_id, class_name, and division
-                        const classRecord = await Classes.query({ client: trx })
-                            .where('school_id', school_id)
-                            .andWhere('class', data.class)
-                            .andWhere('division', data.division)
-                            .first();
 
-                        if((classRecord?.school_id != school_id ) && (classRecord?.id != class_id)){
-                            errors.push({
-                                row: index + 1,
-                                message: `Class "${validatedStudent.students_data.class}" with division "${validatedStudent.students_data.division}" not found.`,
-                            });
-                            continue;
-                        }
-            
+
+                    try {
+                        const validatedStudent = await CreateValidatorForUpload.validate(transformedData);
+
+
+                        // if ((classRecord?.school_id != school_id) && (classRecord?.id != class_id)) {
+                        //     errors.push({
+                        //         row: index + 1,
+                        //         message: `Class "${validatedStudent.students_data.class}" with division "${validatedStudent.students_data.division}" not found.`,
+                        //     });
+                        //     continue;
+                        // }
+
                         // Assign class ID dynamically
-                        validatedStudent.students_data.class_id = classRecord?.id;
-            
+                        // validatedStudent.students_data.class_id = classRecord?.id;
+
                         // Insert student data
                         const student_data = await Students.create({
                             ...validatedStudent.students_data,
                             school_id,
+                            class_id: class_id
                         }, { client: trx });
 
                         // Insert student meta data
@@ -326,7 +302,7 @@ export default class StundetsController {
                             ...validatedStudent.student_meta_data,
                             student_id: student_data.id,
                         }, { client: trx });
-            
+
                         validatedData.push({ student_data, student_meta_data_payload });
                     } catch (validationError) {
                         errors.push({
@@ -336,7 +312,7 @@ export default class StundetsController {
                         });
                     }
                 }
-            
+
                 // If there were errors, rollback transaction and return them
                 if (errors.length) {
                     await trx.rollback();
@@ -345,11 +321,11 @@ export default class StundetsController {
                         errors,
                     });
                 }
-            
+
                 // Commit transaction if everything is fine
                 await trx.commit();
-  
-            
+
+
                 return ctx.response.status(201).json({
                     message: 'Bulk upload successful',
                     totalInserted: validatedData.length,
@@ -369,4 +345,64 @@ export default class StundetsController {
             });
         }
     }
+
+    public async exportToExcel(ctx: HttpContext) {
+        const { class_id, fields } = ctx.request.only(['class_id', 'fields'])
+        
+        if (!class_id || !fields) {
+            return ctx.response.badRequest({ error: 'Class ID and fields are required' })
+        }
+
+        let clas = await Classes.find(class_id);
+
+        if(!clas) {
+            return ctx.response.badRequest({ error: 'Class not found' })
+        } 
+
+        // Fetch student data
+        const students: Students[] = await Students.query().where('class_id', class_id);
+
+        if(students.length === 0) {
+            return ctx.response.badRequest({ error: 'No students found for this class' }) 
+        }
+
+        const studentMeta: StudentMeta[] = await StudentMeta.query().whereIn('student_id', students.map((student) => student.id))
+
+        // Merge `students` and `student_meta` data by `student_id`
+        const mergedData = students.map((student: Students) => {
+            const meta: StudentMeta | undefined = studentMeta.find((meta) => meta.student_id === student.id)
+            return { ...student.$attributes, ...meta!.$attributes }
+        })
+
+        // Create Excel Workbook
+        const workbook = new ExcelJS.Workbook()
+        const worksheet = workbook.addWorksheet('Class Data')
+
+        // Prepare Headers
+        const headers = ['class', 'division', ...fields.students, ...fields.student_meta ]
+        worksheet.addRow(headers)
+
+        // Add Data
+        mergedData.forEach((data) => {
+            const rowValues = headers.map((header: string) => {
+                if(header === 'class') return clas.class
+                if(header === 'division') return clas.division
+                return (data as Record<string, any>)[header] || ''
+            })
+            worksheet.addRow(rowValues)
+        })
+
+        // Generate File Buffer
+        const buffer = await workbook.xlsx.writeBuffer()
+
+        // Generate unique value for the file name
+        const uniqueValue = new Date().getTime();
+
+        // Send Excel File as Response
+        ctx.response.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        ctx.response.header('Content-Disposition', `attachment; filename="class_${class_id}_data_${uniqueValue}.xlsx"`)
+
+        return ctx.response.send(buffer)
+    }
+
 }

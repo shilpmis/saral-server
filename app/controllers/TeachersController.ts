@@ -1,6 +1,6 @@
 import StaffMaster from '#models/StaffMaster';
 import Teacher from '#models/Teacher'
-import { CreateTeacherValidator, CreateValidatorForTeachers, UpdateValidatorForTeachers } from '#validators/Teachers';
+import { CreateValidatorForBulkUpload, CreateValidatorForSingleTeacher, CreateValidatorForTeachers, UpdateValidatorForTeachers } from '#validators/Teachers';
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db';
 import { parseAndReturnJSON } from '../../utility/parseCsv.js';
@@ -204,22 +204,22 @@ export default class TeachersController {
 
                 for (const data of jsonData) {
                     // Validate each object separately
-                    const validatedTeacher = await CreateTeacherValidator.validate(data);
 
                     // Check if the staff role exists in the school and is a teaching role
                     const role = await StaffMaster.query({ client: trx })
                         .where('school_id', school_id)
-                        .andWhere('id', validatedTeacher.staff_role_id)
+                        .andWhere('role', data.role.trim())
                         .first();
 
                     if (!role) {
                         await trx.rollback();
                         return ctx.response.status(404).json({
-                            message: `Role ID ${validatedTeacher.staff_role_id} is not available for your school.`,
+                            message: `Role ${data.role} is not available for your school.`,
                         });
                     }
 
-                    validatedData.push({ ...validatedTeacher, school_id });
+                    const validatedTeacher = await CreateValidatorForBulkUpload.validate(data);
+                    validatedData.push({ ...validatedTeacher, school_id , staff_role_id: role.id });
                 }
 
                 // Insert only if all records are valid
@@ -234,6 +234,7 @@ export default class TeachersController {
                     data: teachers,
                 });
             } catch (validationError) {
+                console.log("validationError", validationError);
                 await trx.rollback();
                 return ctx.response.status(400).json({
                     message: 'Validation failed',
