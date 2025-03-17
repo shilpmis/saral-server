@@ -39,6 +39,7 @@ export default class extends BaseSchema {
       table
         .bigInteger('mobile_number')
         .notNullable()
+
       table.string('email', 255).notNullable().unique()
       
       table.string('qualification', 255).notNullable()
