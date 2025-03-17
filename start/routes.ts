@@ -12,7 +12,7 @@ import { middleware } from './kernel.js'
 import AuthController from '#controllers/AuthController'
 import ClassesController from '#controllers/ClassesController'
 import UsersController from '#controllers/UsersController'
-import StundetsController from '#controllers/StundetsController'
+import StundetsController from '#controllers/StudentController'
 import StaffMasterController from '#controllers/StaffMasterController'
 import SchoolsController from '#controllers/SchoolsController'
 import TeachersController from '#controllers/TeachersController'
@@ -63,6 +63,7 @@ router.group(() => {
   router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents']);
   router.put('student/:student_id', [StundetsController, 'updateStudents']);
   router.post('students/bulk-upload/:school_id/', [StundetsController, 'bulkUploadStudents']);
+  router.post('students/export/:class_id/', [StundetsController, 'exportToExcel']);
 
   router.get('/staff/:school_id', [StaffMasterController, 'indexStaffMasterForSchool']);
   router.post('/staff', [StaffMasterController, 'createStaffRole']);
@@ -78,10 +79,11 @@ router.group(() => {
   router.post('teachers/:school_id', [TeachersController, 'createTeacher'])
   router.put('teacher/:school_id/:teacher_id', [TeachersController, 'updateTeacher']);
   router.post('teachers/bulk-upload/:school_id/', [TeachersController, 'bulkUploadTeachers'])
-
+  
   router.get('other-staff/:school_id', [OtherStaffsController, 'indexOtherStaffForSchool'])
   router.post('other-staff/:school_id', [OtherStaffsController, 'createOtherStaff'])
   router.put('other-staff/:school_id/:other_staff_id', [OtherStaffsController, 'updateOtherStaff'])
+  router.post('other-staff/bulk-upload/:school_id/', [OtherStaffsController, 'bulkUploadOtherStaff'])
 
   router.get('leave-type', [LeavesController, 'indexLeaveTypesForSchool'])
   router.post('leave-type', [LeavesController, 'createLeaveTypeForSchool'])
