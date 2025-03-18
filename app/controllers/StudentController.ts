@@ -8,106 +8,173 @@ import { parseAndReturnJSON } from '../../utility/parseCsv.js';
 import path from 'path';
 import app from '@adonisjs/core/services/app';
 import ExcelJS from 'exceljs'
-import { serialize } from 'v8';
+import StudentEnrollments from '#models/StudentEnrollments';
+import AcademicSession from '#models/AcademicSession';
+import Schools from '#models/Schools';
+import { Console } from 'console';
+import { compose } from '@adonisjs/core/helpers';
 
 export default class StundetsController {
 
     async indexClassStudents(ctx: HttpContext) {
 
-        // get ---> http://localhsot:3333/students/<class_id>?page=1&student_meta=false&asc=name
+        const class_id = ctx.params.class_id;
+        const academic_sessions_id = ctx.params.academic_sessions_id;
+        const page = ctx.request.input('page', 1);
+        const is_meta_req = ctx.request.input('student_meta', false) === "true";
 
-        let class_id = ctx.params.class_id;
-        let page = ctx.request.input('page', 1);
-        let is_meta_req = ctx.request.input('student_meta', false) === "true";
+        const std = await Classes.query()
+            .where('id', class_id)
+            .andWhere('school_id', ctx.auth.user!.school_id)
+            .andWhere('school_id', ctx.auth.user!.school_id)
+            .first();
 
-        let std = await Classes.findBy('id', class_id);
-
-        if (std) {
-
-            if (std.school_id != ctx.auth.user?.school_id) {
-                return ctx.response
-                    .status(401)
-                    .json({ message: 'You are not authorized to perform this action!' });
-            }
-
-            let students = []
-
-            if (is_meta_req) {
-                students = await Students.query().where('class_id', class_id)
-                    .preload('student_meta')
-                    .orderBy('gr_no')
-                    .paginate(page, 6);
-            } else {
-                students = await Students.query().where('class_id', class_id)
-                    // .preload('student_meta')
-                    .orderBy('gr_no')
-                    .paginate(page, 6);
-            }
-
-            return ctx.response.status(200).json(students);
-
-        } else {
-            return ctx.response
-                .status(404)
-                .json({ message: 'No class has been found ! Please provide valid class' });
+        if (!std) {
+            return ctx.response.status(404).json({ message: 'No class has been found! Please provide a valid class.' });
         }
 
+        if (std.school_id !== ctx.auth.user?.school_id) {
+            return ctx.response.status(401).json({ message: 'You are not authorized to perform this action!' });
+        }
+
+        try {
+            let studentsQuery = await StudentEnrollments.query()
+                .where('class_id', class_id)
+                .andWhere('academic_sessions_id', academic_sessions_id)
+                .preload('student', (studentQuery) => {
+                    if (is_meta_req) {
+                        studentQuery.preload('student_meta');
+                    }
+                }).paginate(page, 10);
+
+            const students = studentsQuery.all();
+            const pageMeta = studentsQuery.getMeta();
+
+            let res = {
+                data: students.map((student) => {
+                    return {
+                        ...student.student.serialize(),
+                        class_id: student.class_id
+                    }
+                }),
+                meta: pageMeta
+            }
+
+            return ctx.response.status(200).json(res);
+        } catch (error) {
+            return ctx.response.status(500).json({ message: 'Error fetching students', error: error.message });
+        }
     }
 
     async fetchStudent(ctx: HttpContext) {
+        const student_id = ctx.params.student_id;
+        const school_id = ctx.auth.user!.school_id;
+        const is_meta_req = ctx.request.input('student_meta', false) === "true";
 
-        let student_id = ctx.params.student_id;
-        let school_id = ctx.params.school_id;
-        let is_meta_req = ctx.request.input('student_meta', false) === "true";
-
-        if (school_id != ctx.auth.user?.school_id) {
-            return ctx.response
-                .status(401)
-                .json({ message: 'You are not authorized to perform this action!' });
+        if (school_id !== ctx.auth.user?.school_id) {
+            return ctx.response.status(401).json({ message: 'You are not authorized to perform this action!' });
         }
 
-        let student: any = {}
+        try {
+            // Fetch the student enrollment record
+            const studentEnrollment = await StudentEnrollments.query()
+                .where('student_id', student_id)
+                .first();
 
-        if (is_meta_req) {
-            student = await Students.query().where('id', student_id)
-                .preload('student_meta').first();
-        } else {
-            student = await Students.query().where('id', student_id).first();
+            if (!studentEnrollment) {
+                return ctx.response.status(404).json({ message: "No Student Enrollment Available!" });
+            }
+
+            let student: Students | null = null
+
+            if (is_meta_req) {
+                student = await Students
+                    .query()
+                    .where('id', student_id)
+                    .preload('student_meta')
+                    .first();
+            } else {
+                student = await Students
+                    .query()
+                    .where('id', student_id)
+                    .first();
+            }
+            return ctx.response.status(200).json({ ...student?.serialize(), class_id: studentEnrollment.class_id });
+        } catch (error) {
+            return ctx.response.status(500).json({ message: 'Error fetching student', error: error.message });
         }
-
-        if (!student) return ctx.response.status(404).json({ message: "No Student Available !" });
-
-        return ctx.response.status(200).json(student);
-
     }
+
 
     async createSingleStudent(ctx: HttpContext) {
-        let school_id = ctx.auth.user!.school_id;
-        // let class_id = ctx.params.class_id;
+        const academic_sessions_id = ctx.request.qs().academic_sessions;
+        console.log(academic_sessions_id)
+        const trx = await db.transaction()
+        try {
 
-        let payload = await CreateValidatorStundet.validate(ctx.request.body());
+            const academicSession = await AcademicSession
+                .query()
+                .where('id', academic_sessions_id)
+                .andWhere('school_id', ctx.auth.user!.school_id).first()
 
-        let std = await Classes.query().where('id', payload.students_data.class_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+            if (!academicSession) {
+                return ctx.response.status(404).json({ message: 'Academic Session not found' })
+            }
 
-        if (!std || ctx.auth.user?.role_id !== 1) {
-            return ctx.response
-                .status(401)
-                .json({ message: 'You are not authorized to perform this action!' });
+            let school_id = ctx.auth.user!.school_id;
+
+            let payload = await CreateValidatorStundet.validate(ctx.request.body());
+
+            console.log("payload", payload)
+
+            let std = await Classes.query().where('id', payload.students_data.class_id).andWhere('school_id', ctx.auth.user!.school_id).first()
+
+            if (!std) {
+                return ctx.response.status(404).json({ message: "Class not found." })
+            }
+
+            if (ctx.auth.user?.role_id != 1) {
+                return ctx.response.status(401).json({ message: 'You are not authorized to perform this action!' })
+            }
+
+            // Remove class_id from payload.students_data
+            const { class_id, remarks, ...studentDataWithoutClassId } = payload.students_data
+
+            // Create student within the transaction
+            let student_data = await Students.create({
+                ...studentDataWithoutClassId,
+                school_id: school_id,
+                enrollment_code: 'ENR' + Math.floor(1000 + Math.random() * 9000)
+            }, { client: trx })
+
+            // Create student meta data within the transaction
+            let student_meta_data_payload = await StudentMeta.create({ ...payload.student_meta_data, student_id: student_data.id }, { client: trx })
+
+            // Add a row in the student_enrollments table within the transaction
+            await StudentEnrollments.create({
+                student_id: student_data.id,
+                class_id: class_id,
+                academic_sessions_id: academicSession.id,
+                status: 'Pursuing',
+                remarks: remarks || ''
+            }, { client: trx })
+
+            // Commit the transaction
+            await trx.commit()
+
+            return ctx.response.status(201).json({ student_data: student_data, student_meta: student_meta_data_payload })
+        } catch (error) {
+            // Rollback the transaction in case of error
+            console.log(error)
+            await trx.rollback()
+            return ctx.response.status(500).json({ message: 'Error creating student', error: error.message })
         }
-
-
-        let student_data = await Students.create(
-            { ...payload.students_data, school_id: school_id });
-
-        let student_meta_data_payload = await StudentMeta.create({
-            ...payload.student_meta_data,
-            student_id: student_data.id
-        })
-
-        return ctx.response.status(201).json({ student_data: student_data, student_meta: student_meta_data_payload });
-
     }
 
+
+    /**
+     * TODO : Need to update as per academic session
+     */
     async createMultipleStudents(ctx: HttpContext) {
         let school_id = ctx.auth.user!.school_id;
         let class_id = ctx.params.class_id;
@@ -135,7 +202,7 @@ export default class StundetsController {
             for (var i = 0; i < payload.length; i++) {
 
                 let student_data = await Students.create(
-                    { ...payload[i].students_data, class_id: class_id, school_id: school_id }, { client: trx });
+                    { ...payload[i].students_data, school_id: school_id }, { client: trx });
 
                 let student_meta_data_payload = await StudentMeta.create({
                     ...payload[i].student_meta_data,
@@ -157,19 +224,36 @@ export default class StundetsController {
         }
     }
 
+
     async updateStudents(ctx: HttpContext) {
 
         let student_id = ctx.params.student_id;
 
-        let student = await Students.findOrFail(student_id);
-        let student_meta = await StudentMeta.findByOrFail('student_id', student_id);
+        let StudentEnrollment = await StudentEnrollments.query()
+            .where('student_id', student_id)
+            .preload('student', (studentQuery) => {
+                studentQuery.preload('student_meta');
+            })
+            .first();
 
-        if (student.school_id != ctx.auth.user?.school_id) {
-            return ctx.response
-                .status(401)
-                .json({ message: 'You are not authorized to perform this action!' });
+        if (!StudentEnrollment) {
+            return ctx.response.status(404).json({ message: "Student Enrollment not found." });
         }
+
+        let enroll_student = StudentEnrollment.serialize()
+
+        if (enroll_student.student.school_id !== ctx.auth.user?.school_id) {
+            return ctx.response.status(401).json({ message: 'You are not authorized to perform this action!' });
+        }
+
+        // let student = await Students.findOrFail(student_id);
+        // let student_meta = await StudentMeta.findByOrFail('student_id', student_id);
+
+        let student = StudentEnrollment.student;
+        let student_meta = StudentEnrollment.student.student_meta;
+
         let payload = await UpdateValidatorForStundets.validate(ctx.request.body());
+        console.log("payload", payload)
         const trx = await db.transaction();
 
         try {
@@ -191,6 +275,7 @@ export default class StundetsController {
             });
 
         } catch (error) {
+            console.log(error)
             await trx.rollback()
             return ctx.response.status(500).json({ message: "Something went wrong!", error: error.message });
         }
@@ -198,10 +283,17 @@ export default class StundetsController {
     }
 
     public async bulkUploadStudents(ctx: HttpContext) {
-        const school_id = ctx.auth.user!.school_id;
+
+        const school_id = ctx.params.school_id;
+        const class_id = ctx.params.class_id;
+        const academic_sessions_id = ctx.params.academic_sessions_id;
         const role_id = ctx.auth.user!.role_id;
-        const class_id = ctx.request.input('class_id');
         // Check if the user is authorized to perform this action
+
+
+        if (school_id != ctx.auth.user?.school_id) {
+            return ctx.response.status(403).json({ message: "You are not authorized to perform this action." });
+        }
 
         if (role_id !== 1) {
             return ctx.response.status(403).json({ message: "You are not authorized to perform this action." });
@@ -210,6 +302,8 @@ export default class StundetsController {
         if (!class_id) {
             return ctx.response.status(400).json({ message: "Class ID is required." });
         }
+
+        let school = await Schools.findOrFail(school_id);
 
         const classRecord = await Classes.query()
             .where('id', class_id)
@@ -267,34 +361,18 @@ export default class StundetsController {
                             last_name: data.last_name,
                             gender: data.gender,
                             gr_no: data.gr_no,
-                            primary_mobile: data.phone,
-                            aadhar_no: data.aadhar_no,
-                            father_name: data.father_name,
+                            primary_mobile: data.phone_number,
+                            school_id : school_id,
                             is_active: true,
                         },
                     };
 
-
                     try {
                         const validatedStudent = await CreateValidatorForUpload.validate(transformedData);
-
-
-                        // if ((classRecord?.school_id != school_id) && (classRecord?.id != class_id)) {
-                        //     errors.push({
-                        //         row: index + 1,
-                        //         message: `Class "${validatedStudent.students_data.class}" with division "${validatedStudent.students_data.division}" not found.`,
-                        //     });
-                        //     continue;
-                        // }
-
-                        // Assign class ID dynamically
-                        // validatedStudent.students_data.class_id = classRecord?.id;
-
                         // Insert student data
                         const student_data = await Students.create({
                             ...validatedStudent.students_data,
-                            school_id,
-                            class_id: class_id
+                            enrollment_code: `${school.branch_code}` + Math.floor(1000 + Math.random() * 9000),
                         }, { client: trx });
 
                         // Insert student meta data
@@ -303,8 +381,16 @@ export default class StundetsController {
                             student_id: student_data.id,
                         }, { client: trx });
 
-                        validatedData.push({ student_data, student_meta_data_payload });
+                        const studentEnrollment = await StudentEnrollments.create({
+                            student_id: student_data.id,
+                            class_id: class_id,
+                            academic_sessions_id: academic_sessions_id,
+                            status: 'Pursuing',
+                        }, { client: trx });
+
+                        validatedData.push({ student_data, student_meta_data_payload, studentEnrollment });
                     } catch (validationError) {
+                        console.log("validationError ", validationError)
                         errors.push({
                             row: index + 1,
                             message: 'Validation failed',
@@ -347,46 +433,61 @@ export default class StundetsController {
     }
 
     public async exportToExcel(ctx: HttpContext) {
-        const { class_id, fields } = ctx.request.only(['class_id', 'fields'])
-        
+
+        const { fields } = ctx.request.only(['class_id', 'fields'])
+
+        const class_id = ctx.params.class_id;
+        const academic_sessions_id = ctx.params.academic_sessions_id;
+
         if (!class_id || !fields) {
             return ctx.response.badRequest({ error: 'Class ID and fields are required' })
         }
 
-        let clas = await Classes.find(class_id);
+        let academic_session = await AcademicSession.query().where('id', academic_sessions_id).andWhere('school_id', ctx.auth.user!.school_id).first();
 
-        if(!clas) {
-            return ctx.response.badRequest({ error: 'Class not found' })
-        } 
-
-        // Fetch student data
-        const students: Students[] = await Students.query().where('class_id', class_id);
-
-        if(students.length === 0) {
-            return ctx.response.badRequest({ error: 'No students found for this class' }) 
+        if (!academic_session) {
+            return ctx.response.badRequest({ error: 'Academic session not found' })
         }
 
-        const studentMeta: StudentMeta[] = await StudentMeta.query().whereIn('student_id', students.map((student) => student.id))
+        let clas = await Classes.query().where('id', class_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+
+        if (!clas) {
+            return ctx.response.badRequest({ error: 'Class not found' })
+        }
+
+        let class_students = await StudentEnrollments.query()
+            .where('class_id', class_id)
+            .andWhere('academic_sessions_id', academic_sessions_id)
+            .preload('student', (studentQuery) => {
+                studentQuery.preload('student_meta');
+            });
+        // Fetch student data
+        // const students: Students[] = await Students.query().where('class_id', class_id);
+
+        if (class_students.length === 0) {
+            return ctx.response.badRequest({ error: 'No students found' })
+        }
 
         // Merge `students` and `student_meta` data by `student_id`
-        const mergedData = students.map((student: Students) => {
-            const meta: StudentMeta | undefined = studentMeta.find((meta) => meta.student_id === student.id)
-            return { ...student.$attributes, ...meta!.$attributes }
+        const mergedData = class_students.map((student: StudentEnrollments) => {
+            const studentMeta = student.student.student_meta;
+            return { ...student.student.serialize(), ...studentMeta.serialize() }
         })
 
+        
         // Create Excel Workbook
         const workbook = new ExcelJS.Workbook()
         const worksheet = workbook.addWorksheet('Class Data')
 
         // Prepare Headers
-        const headers = ['class', 'division', ...fields.students, ...fields.student_meta ]
+        const headers = ['class', 'division', ...fields.students, ...fields.student_meta]
         worksheet.addRow(headers)
-
+        
         // Add Data
-        mergedData.forEach((data) => {
+        mergedData.forEach((data : any) => {
             const rowValues = headers.map((header: string) => {
-                if(header === 'class') return clas.class
-                if(header === 'division') return clas.division
+                if (header === 'class') return clas.class
+                if (header === 'division') return clas.division
                 return (data as Record<string, any>)[header] || ''
             })
             worksheet.addRow(rowValues)

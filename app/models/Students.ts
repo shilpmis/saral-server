@@ -12,26 +12,32 @@ export default class Students extends Base {
     @column()
     declare school_id : number
 
+    // @column()
+    // declare class_id : number   // link table will be used to fetch the student's class
+
     @column()
-    declare class_id : number
+    declare enrollment_code : string
+
+    @column()
+    declare admission_number : string | null
 
     @column()
     declare first_name : string
 
     @column()
-    declare middle_name : string
+    declare middle_name : string | null
 
     @column()
     declare last_name : string
 
     @column()
-    declare first_name_in_guj : string
+    declare first_name_in_guj : string | null
 
     @column()
-    declare middle_name_in_guj : string
+    declare middle_name_in_guj : string | null
 
     @column()
-    declare last_name_in_guj : string
+    declare last_name_in_guj : string | null
 
     @column()
     declare gender : 'Male' | 'Female' 
@@ -39,31 +45,31 @@ export default class Students extends Base {
     @column({
       serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
     })
-    declare birth_date : Date
+    declare birth_date : Date | null
 
     @column()
-    declare gr_no : number
+    declare gr_no : number 
 
     @column()
     declare primary_mobile : number
 
     @column()
-    declare father_name : string
+    declare father_name : string | null 
 
     @column()
-    declare father_name_in_guj : string
+    declare father_name_in_guj : string | null
 
     @column()
-    declare mother_name : string
+    declare mother_name : string | null
 
     @column()
-    declare mother_name_in_guj : string
+    declare mother_name_in_guj : string | null
 
     @column()
-    declare roll_number : number
+    declare roll_number : number | null
 
     @column()
-    declare aadhar_no : number
+    declare aadhar_no : number | null
 
     @column()
     declare is_active : boolean
