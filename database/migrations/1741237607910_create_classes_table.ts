@@ -18,9 +18,6 @@ export default class extends BaseSchema {
         .onDelete('CASCADE');
       table.boolean('is_active').defaultTo(true);
       table.unique(['school_id', 'class', 'division']);
-      table.integer('total_seats').notNullable().defaultTo(0);
-      table.integer('filled_seats').defaultTo(0);
-      table.integer('remaining_seats').defaultTo(0);
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

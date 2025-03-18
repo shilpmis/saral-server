@@ -23,6 +23,9 @@ import InquiriesController from '#controllers/InquiriesController'
 import OrganizationController from '#controllers/OrganizationController'
 import AcademicSessionsController from '#controllers/AcademicSessionController'
 import StaffController from '#controllers/StaffController'
+import ClassSeatAvailabilitiesController from '#controllers/ClassSeatAvailabilitiesController'
+import QuotasController from '#controllers/QuotaController'
+import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 
 // router.get('/', async () => {
 //   return {
@@ -67,6 +70,27 @@ router.group(() => {
   router.post('/classes', [ClassesController, 'createMultipleClasses']);
   router.post('/class/division', [ClassesController, 'createDivision']);
   router.put('/class/:class_id', [ClassesController, 'updateClass']);
+
+  // routes for the class seat availability
+  router.post('/classes/seat-availability', [ClassSeatAvailabilitiesController,'addSeatAvailability']);
+  router.get('/classes/seat-availability', [ClassSeatAvailabilitiesController,'getAllClassesSeatAvailability']);
+  router.get('/classes/:class_id/seat-availability', [ClassSeatAvailabilitiesController,'getSeatAvailability']);
+  router.put('/classes/:class_id/update-seat-availability', [ClassSeatAvailabilitiesController,'updateSeatAvailability']);
+
+
+  // routes for the quota and quota allocation
+  router.post('/quota', [QuotasController,'createQuotaForSeats']);
+  router.get('/quota/all', [QuotasController,'listAllQuotas']);
+  router.put('/quota/:id', [QuotasController,'updateQuota']);
+  router.delete('/quota/:id', [QuotasController,'delete']); 
+
+  router.post('/quota-allocation/:class_id', [QuotaAllocationsController,'allocateQuotaToClass']);
+  router.get('/quota-allocation/all', [QuotaAllocationsController,'listAllQuotaAllocation']);
+  router.put('/quota-allocation/:id', [QuotaAllocationsController,'updateFilledSeats']);
+
+  // router.post('/admission', [AdmissionsController, 'createAdmission']);
+  // router.get('/admissions/:school_id', [AdmissionsController, 'indexAdmissionsForSchool']);
+  // router.get('/admission/:school_id/:admission_id', [AdmissionsController, 'fetchAdmission']);
 
   router.get('students/:class_id', [StundetsController, 'indexClassStudents']);
   router.get('student/:school_id/:student_id', [StundetsController, 'fetchStudent']);

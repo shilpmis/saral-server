@@ -28,6 +28,9 @@ export default class StudentEnrollments extends Base {
     @column()
     declare remarks: string
 
+    @column()
+    declare type: 'New Admission' | 'Existing Student'
+
     @belongsTo(() => Students, {
         foreignKey: 'student_id',
         localKey: 'id'

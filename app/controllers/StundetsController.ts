@@ -113,9 +113,14 @@ export default class StundetsController {
     
           // Create student meta data within the transaction
           let student_meta_data_payload = await StudentMeta.create({ ...payload.student_meta_data, student_id: student_data.id }, { client: trx })
-    
+
+          
           // Add a row in the student_enrollments table within the transaction
+          const isOldStudent = await StudentEnrollments.query().where('student_id', student_data.id).andWhere('status', '!=', 'Failed').first()
+
+          const type = isOldStudent ? 'Existing Student' : 'New Admission';
           await StudentEnrollments.create({
+            type,
             student_id: student_data.id,
             class_id: class_id,
             academic_id: academic_session_id,

@@ -37,6 +37,8 @@ export default class extends BaseSchema {
       table.enum('status' , ['Admitted','Permoted' , 'Failed' , 'Pursuing']).defaultTo('Pursuing')
 
       table.string('remarks', 255).nullable();
+
+      table.enum('type', ['New Admission', 'Existing Student']).notNullable();
       
       table.timestamp('created_at')
       table.timestamp('updated_at')
