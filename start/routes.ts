@@ -73,18 +73,19 @@ router.group(() => {
 
   // routes for the class seat availability
   router.post('/classes/seat-availability', [ClassSeatAvailabilitiesController,'addSeatAvailability']);
-  router.get('/classes/seat-availability', [ClassSeatAvailabilitiesController,'getAllClassesSeatAvailability']);
+  router.get('/classes/seat-availability/all', [ClassSeatAvailabilitiesController,'getAllClassesSeatAvailability']);
   router.get('/classes/:class_id/seat-availability', [ClassSeatAvailabilitiesController,'getSeatAvailability']);
-  router.put('/classes/:class_id/update-seat-availability', [ClassSeatAvailabilitiesController,'updateSeatAvailability']);
+  // router.put('/classes/:class_id/update-seat-availability', [ClassSeatAvailabilitiesController,'updateSeatAvailability']);
 
 
-  // routes for the quota and quota allocation
+  // routes for the quota 
   router.post('/quota', [QuotasController,'createQuotaForSeats']);
   router.get('/quota/all', [QuotasController,'listAllQuotas']);
   router.put('/quota/:id', [QuotasController,'updateQuota']);
   router.delete('/quota/:id', [QuotasController,'delete']); 
 
-  router.post('/quota-allocation/:class_id', [QuotaAllocationsController,'allocateQuotaToClass']);
+  // routes for the quota allocation
+  router.post('/quota-allocation/', [QuotaAllocationsController,'allocateQuotaToClass']);
   router.get('/quota-allocation/all', [QuotaAllocationsController,'listAllQuotaAllocation']);
   router.put('/quota-allocation/:id', [QuotaAllocationsController,'updateFilledSeats']);
 

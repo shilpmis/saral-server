@@ -1,15 +1,16 @@
-import { BaseModel, belongsTo, column } from "@adonisjs/lucid/orm";
+import {  belongsTo, column, hasMany } from "@adonisjs/lucid/orm";
 import Classes from "./Classes.js";
 import * as relations from "@adonisjs/lucid/types/relations";
 import QuotaAllocation from "./QuotaAllocation.js";
+import Base from "./base.js";
 
 
-export default class ClassSeatAvailability extends BaseModel {
+export default class ClassSeatAvailability extends Base {
   @column()
   declare class_id: number;
 
   @column()
-  declare quota_seat_allocated_id: number;
+  declare academic_session_id: number;
 
   @column()
   declare total_seats: number;
@@ -29,6 +30,9 @@ export default class ClassSeatAvailability extends BaseModel {
   @belongsTo(() => Classes, { foreignKey: 'class_id' })
   declare class: relations.BelongsTo<typeof Classes>;
 
-  @belongsTo(() => QuotaAllocation, { foreignKey: 'quota_seat_allocated_id' })
-  declare quota_allocation: relations.BelongsTo<typeof QuotaAllocation>;
+  @hasMany(() => QuotaAllocation, { 
+    foreignKey: 'class_id',
+    localKey: 'class_id'
+   })
+  declare quota_allocation: relations.HasMany<typeof QuotaAllocation>;
 }

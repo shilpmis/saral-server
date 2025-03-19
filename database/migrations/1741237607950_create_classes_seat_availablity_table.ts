@@ -6,9 +6,8 @@ export default class CreateClassSeatAvailabilityTable extends BaseSchema {
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').primary();
+      table.integer('academic_session_id').unsigned().notNullable().references('id').inTable('academic_sessions').onDelete('CASCADE');
       table.integer('class_id').unsigned().notNullable().references('id').inTable('classes').onDelete('CASCADE');
-      table.integer('quota_seat_allocated_id').unsigned().notNullable().references('id').inTable('quota_allocations').onDelete('CASCADE');
-
       table.integer('total_seats').notNullable();
       table.integer('quota_allocated_seats').notNullable().defaultTo(0);
       table.integer('general_available_seats').notNullable().defaultTo(0);
