@@ -6,30 +6,72 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments("id").primary()
+
       table
         .integer('school_id')
         .unsigned()
         .references('id')
-        .inTable('schools') // Assuming the parent table is `schools`
-        .onDelete('CASCADE'); // Ensure cascading delete
-      table.integer('academic_id')
+        .inTable('schools')
+        .onDelete('CASCADE')
+
+      table
+        .integer('academic_id')
         .unsigned()
         .notNullable()
         .references('id')
         .inTable('academic_sessions')
-        .onDelete('CASCADE');
+        .onDelete('CASCADE')
+
       table.string("student_name", 255).notNullable()
+      table.date("dob").notNullable()
+      table.enum("gender", ['male', 'female', 'other']).notNullable()
+      
+      table
+        .integer("class_applying")
+        .unsigned()
+        .notNullable()
+        .references("id")
+        .inTable("class_seat_availabilities")
+        .onDelete("CASCADE")
+
       table.string("parent_name", 255).notNullable()
-      table.bigInteger("contact_number").notNullable()
-      table.string("email", 255).nullable()
-      table.integer("grade_applying").unsigned().notNullable()
-      table.enum("status", ['pendding', 'rejected', 'approved']).defaultTo('pendding')
+      table.string("parent_contact", 15).notNullable()
+      table.string("parent_email", 255).nullable()
+
+      table.text("address").notNullable()
+
+      // Previous school details (optional)
+      table.string("previous_school").nullable()
+      table.string("previous_class").nullable()
+      table.string("previous_percentage").nullable()
+      table.string("previous_year").nullable()
+      table.text("special_achievements").nullable()
+
+      // Applying for Quota
+      table.boolean("applying_for_quota").notNullable().defaultTo(false)
+
+      table
+        .integer("quota_type")
+        .unsigned()
+        .nullable()
+        .references("id")
+        .inTable("quotas")
+        .onDelete("SET NULL") 
+
+      table.enum("status", ['pending', 'eligible', 'approved', 'ineligible']).defaultTo('pending')
       table.text("admin_notes").nullable()
-      table.integer("created_by").unsigned().notNullable().references("id").inTable("users")
+
+      table
+        .integer("created_by")
+        .unsigned()
+        .notNullable()
+        .references("id")
+        .inTable("users")
+
       table.boolean("is_converted_to_student").notNullable().defaultTo(false)
 
-      table.timestamp('created_at')
-      table.timestamp('updated_at')
+      table.timestamp('created_at').defaultTo(this.now())
+      table.timestamp('updated_at').defaultTo(this.now())
     })
   }
 
