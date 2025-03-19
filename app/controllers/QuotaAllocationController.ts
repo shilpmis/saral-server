@@ -3,9 +3,12 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 
 export default class QuotaAllocationsController {
-  public async allocateQuotaToClass({ request, response }: HttpContext) {
-    const data = request.only(['quota_id', 'class_id', 'total_seats']);
-    const allocation = await QuotaAllocation.create({ ...data, filled_seats: 0 });
+  public async allocateQuotaToClass({ request, response, params }: HttpContext) {
+    const class_id = params.class_id;
+    console.log("class_id", class_id);
+    const data = request.only(['quota_id', 'total_seats']);
+    
+    const allocation = await QuotaAllocation.create({ ...data, class_id: Number(class_id), filled_seats: 0 });
     return response.created(allocation);
   }
 

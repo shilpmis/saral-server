@@ -28,15 +28,16 @@ export default class ClassSeatAvailabilitiesController {
     const quotaSeats = await QuotaAllocation.query()
       .where('class_id', class_id)
       .sum('total_seats as total');
-    
+
     const quota_allocated_seats = quotaSeats[0]?.total_seats || 0;
-    console.log("quota_allocated_seats",quota_allocated_seats);
+
     // Get filled seats
     const filledSeats = await StudentEnrollments.query()
       .where('class_id', class_id)
       .count('* as total');
-   console.log("filledSeats",filledSeats);
-    const filled_seats = filledSeats[0]?.total || 0;
+    console.log("filledSeats", filledSeats)
+
+    const filled_seats = filledSeats[0]?.$extras.total || 0;
 
     // Calculate available general seats
     const general_available_seats = total_seats - quota_allocated_seats;
@@ -91,8 +92,11 @@ export default class ClassSeatAvailabilitiesController {
    * Update class seat availability for a specific class
    */
   public async updateSeatAvailability({ params, request, response }: HttpContext) {
-    const classData = await Classes.findOrFail(params.class_id);
-    const total_seats = request.input('total_seats', classData.total_seats);
+    const classWithSeats = await Classes.query()
+      .where('id', params.class_id)
+      .preload('seat_availability'); // Ensure this relation exists
+  
+    const totalSeats = classWithSeats?.seat_availability?.total_seats || 0;
 
     // Get quota-allocated seats
     const quotaSeats = await QuotaAllocation.query()
