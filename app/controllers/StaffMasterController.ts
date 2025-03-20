@@ -1,3 +1,4 @@
+import AcademicSession from '#models/AcademicSession';
 import OtherStaffMaster from '#models/OtherStaff';
 import StaffMaster from '#models/StaffMaster';
 import Teacher from '#models/Teacher';
@@ -36,12 +37,29 @@ export default class StaffMasterController {
 
     async createStaffRole(ctx: HttpContext) {
 
-        let school_id = ctx.auth.user?.school_id
+        let school_id = ctx.auth.user!.school_id;
+        const academic_session_id = ctx.request.input('academic_session');
+
+        if (!academic_session_id) {
+            return ctx.response.status(400).json({ message: 'Please provide academic session id.' });
+        }
+
+        let academic_session = await AcademicSession.query().where('id', academic_session_id).andWhere('school_id', school_id).first();
+
+        if (!academic_session) {
+            return ctx.response.status(404).json({ message: 'Academic session not found.' });
+        }
+
         if (ctx.auth.user?.role_id !== 1) {
             return ctx.response.status(403).json({ message: 'You are not allocated to manage this functions.' });
         }
         const payload = await CreateValidatorForStaffRole.validate(ctx.request.body());
-        const created_class = await StaffMaster.create({ ...payload, school_id: school_id, permissions: {} });
+        const created_class = await StaffMaster.create({ 
+            ...payload, 
+            school_id: school_id,
+            permissions: {},
+            academic_session_id: academic_session_id
+         });
         return ctx.response.json(created_class.serialize());
     }
 

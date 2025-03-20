@@ -15,17 +15,17 @@ export default class extends BaseSchema {
       table.date('subscription_end_date').notNullable();
       table.boolean('is_email_verified').notNullable().defaultTo(false);
       table.enum('status', ['ACTIVE', 'INACTIVE']).notNullable().defaultTo('ACTIVE');
-      table.text('organization_logo').nullable();
+      table.text('organization_logo').nullable().defaultTo(null);
       table.string('established_year').notNullable();
       table.string('address', 255).nullable().defaultTo(null)
       // table.enum('school_type', ['Public', 'Private', 'Charter']),
 
-      table.string('head_name' , 100).notNullable();
+      table.string('head_name' , 100).nullable().defaultTo(null);
       table.bigInteger('head_contact_number').unique().notNullable();
-      table.string('district' , 100).notNullable();
+      table.string('district' , 100).nullable().defaultTo(null);
       table.string('city' , 100).notNullable();
       table.string('state' , 100).notNullable();
-      table.bigInteger('pincode').unsigned().notNullable();
+      table.bigInteger('pincode').nullable().defaultTo(null);
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

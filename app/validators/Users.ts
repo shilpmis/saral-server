@@ -12,7 +12,7 @@ export const CreateValidatorForUsers = vine.compile(
 
 export const CreateValidatorForOnBoardTeacherAsUser = vine.compile(
   vine.object({
-    teacher_id: vine.number(),
+    staff_id: vine.number(),
     class_id: vine.number().optional(),
     is_active: vine.boolean()
   })

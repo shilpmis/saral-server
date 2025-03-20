@@ -8,11 +8,11 @@ export default class extends BaseSchema {
       table.increments('id')
 
       table.integer('academic_session_id')
-      .unsigned()
-      .notNullable()
-      .references('id')
-      .inTable('academic_sessions')
-      .onDelete('CASCADE');
+        .unsigned()
+        .notNullable()
+        .references('id')  
+        .inTable('academic_sessions')
+        .onDelete('CASCADE');
 
       table.integer('staff_id')
         .unsigned()

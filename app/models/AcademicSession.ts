@@ -14,11 +14,15 @@ export default class AcademicSession extends Base {
   @column()
   declare session_name: string
 
-  @column.date()
-  declare start_date: DateTime
+  @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
+  declare start_date: Date
 
-  @column.date()
-  declare end_date: DateTime
+  @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
+  declare end_date: Date
 
   @column()
   declare start_month: string
@@ -36,14 +40,14 @@ export default class AcademicSession extends Base {
   declare is_active: boolean
 
   @hasOne(() => Schools, {
-      localKey: 'school_id',
-      foreignKey: 'id',
+    localKey: 'school_id',
+    foreignKey: 'id',
   })
   declare school: relations.HasOne<typeof Schools>
 
   @manyToMany(() => Students, {
     pivotTable: 'student_enrollments',
-    pivotForeignKey: 'academic_id',
+    pivotForeignKey: 'academic_session_id',
     pivotRelatedForeignKey: 'student_id',
   })
   declare students: relations.ManyToMany<typeof Students>

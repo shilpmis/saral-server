@@ -24,31 +24,28 @@ export default class Schools extends Base {
      declare established_year: string
 
      @column()
-     declare school_type: 'PUBLIC'| 'PRIVATE' | 'CHARTER'
-
-   //   @column()
-   //   declare username : string
+     declare school_type: 'Public' | 'Private' | 'Charter'
      
      @column()
      declare contact_number: number
      
      @column()
-     declare address: string
+     declare address: string | null
 
      @column({serializeAs : null})
-     declare is_email_verified: boolean
+     declare is_email_verified: boolean 
 
      @column()
      declare status : 'ACTIVE' | 'INACTIVE'
      
      @column()
-     declare district: string
+     declare district: string | null
    
      @column()
-     declare city: string
+     declare city: string 
      
      @column()
-     declare pincode: number
+     declare pincode: number | null
    
      @column()
      declare state: string

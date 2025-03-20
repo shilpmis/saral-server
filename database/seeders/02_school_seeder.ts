@@ -18,7 +18,8 @@ export default class extends BaseSeeder {
         city: "Ahmedabad",
         state: "Gujarat",
         pincode: 380001,
-        status: "ACTIVE"
+        status: "ACTIVE",
+        branch_code : 'HHS2324'
       }
     ])
   }

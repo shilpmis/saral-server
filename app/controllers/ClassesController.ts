@@ -15,6 +15,20 @@ export default class ClassesController {
       // .andWhere('academic_session_id', 
         // ctx.params.academic_session_id);
 
+      if (ctx.request.qs().without_fees_plan === "true") {
+        try {
+          classes = await Classes.query()
+            .where('school_id', ctx.params.school_id)
+            .doesntHave('fees_plan');
+
+          return ctx.response.json(classes);
+
+        } catch (error) {
+          return ctx.response.status(500).json({ message: error });
+        }
+
+      }
+
       /**
        * Edjust output object according to `
        */

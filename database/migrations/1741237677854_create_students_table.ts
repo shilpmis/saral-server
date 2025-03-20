@@ -15,7 +15,7 @@ export default class extends BaseSchema {
         .onDelete('CASCADE');
 
       table.string('enrollment_code').notNullable().unique(); 
-      table.string('admission_number').nullable().unique();
+      table.string('admission_number').nullable().unique().defaultTo(null);
       table.string('first_name', 100).notNullable();
       table.string('middle_name', 100).notNullable();
       table.string('last_name', 100).notNullable();
@@ -48,8 +48,6 @@ export default class extends BaseSchema {
       table.bigInteger('aadhar_no').unsigned().notNullable().unique();
       table.text('profile_photo').nullable()
       table.boolean('is_active').notNullable().defaultTo(true);
-
-
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

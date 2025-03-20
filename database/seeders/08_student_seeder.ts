@@ -8,7 +8,6 @@ export default class extends BaseSeeder {
       {
         id: 1,
         school_id: 1,
-        class_id: 1,
         first_name: "Sneha",
         middle_name: "Vikas",
         last_name: "Trivedi",
@@ -25,12 +24,12 @@ export default class extends BaseSeeder {
         mother_name_in_guj: "કવિતા ત્રિવેદી",
         roll_number: 20,
         aadhar_no: 123456789125,
-        is_active: true
+        is_active: true,
+        enrollment_code : "HSS23S1"
       },
       {
         id: 2,
         school_id: 1,
-        class_id: 1,
         first_name: "Rohan",
         middle_name: "Jitendra",
         last_name: "Desai",
@@ -47,12 +46,12 @@ export default class extends BaseSeeder {
         mother_name_in_guj: "મીના દેસાઈ",
         roll_number: 10,
         aadhar_no: 123456789126,
-        is_active: true
+        is_active: true,
+        enrollment_code : "HSS23S2"
       },
       {
         id: 3,
         school_id: 1,
-        class_id: 1,
         first_name: "Deepika",
         middle_name: "Mahesh",
         last_name: "Joshi",
@@ -69,12 +68,12 @@ export default class extends BaseSeeder {
         mother_name_in_guj: "લતા જોશી",
         roll_number: 8,
         aadhar_no: 123456789127,
-        is_active: true
+        is_active: true,
+        enrollment_code : "HSS23S3"
       },
       {
         id: 4,
         school_id: 1,
-        class_id: 1,
         first_name: "Varun",
         middle_name: "Harish",
         last_name: "Kapadia",
@@ -91,7 +90,8 @@ export default class extends BaseSeeder {
         mother_name_in_guj: "સીમા કાપડિયા",
         roll_number: 5,
         aadhar_no: 123456789134,
-        is_active: true
+        is_active: true,
+        enrollment_code : "HSS23S4"
       }
     ])
   }

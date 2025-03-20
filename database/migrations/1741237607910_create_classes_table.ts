@@ -9,7 +9,7 @@ export default class extends BaseSchema {
       table.integer('school_id').unsigned().references('id').inTable('schools').onUpdate('CASCADE').onDelete('CASCADE');
       table.enum('class', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).notNullable();
       table.enum('division', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']).notNullable().defaultTo('A')
-      table.string('aliases').nullable();
+      table.string('aliases').nullable().defaultTo(null);
       table.integer('academic_session_id')
         .unsigned()
         .notNullable()

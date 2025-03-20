@@ -19,8 +19,16 @@ export default class extends BaseSchema {
       table.string('permissions').nullable();
 
       table.integer('working_hours').notNullable().defaultTo(8);
-      table.unique(['school_id', 'role'])
+      
+      table.integer('academic_session_id')
+      .unsigned()
+      .notNullable()
+      .references('id')
+      .inTable('academic_sessions')
+      .onDelete('CASCADE');
 
+      table.unique(['school_id', 'role'])
+      
       table.timestamp('created_at')
       table.timestamp('updated_at')
     })

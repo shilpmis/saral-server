@@ -8,22 +8,19 @@ export default class StaffEnrollment extends BaseModel {
   declare id: number
 
   @column()
-  declare academicId: number
+  declare academic_session_id: number
 
   @column()
-  declare staffId: number
+  declare staff_id: number
 
   @column()
-  declare status: 'Retained' | 'Transfer' | 'Resigned'
+  declare school_id : number
+
+  @column()
+  declare status: 'Retained' | 'Transfer' | 'Resigned' | 'New-Joiner'
 
   @column()
   declare remarks: string | null
-
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
 
   @belongsTo(() => Staff, {
     foreignKey: 'staffId',

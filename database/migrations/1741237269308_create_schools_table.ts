@@ -21,11 +21,11 @@ export default class extends BaseSchema {
       table.string('established_year').notNullable();
       table.enum('school_type', ['Public', 'Private', 'Charter']),
       table.string('address', 255).nullable().defaultTo(null)
-      table.string('district', 100).notNullable();
+      table.string('district', 100).nullable().defaultTo(null);
       table.string('city', 100).notNullable();
       table.string('state', 100).notNullable();
-      table.text('school_logo').nullable();
-      table.bigInteger('pincode').unsigned().notNullable();
+      table.text('school_logo').nullable().defaultTo(null);
+      table.bigInteger('pincode').unsigned().nullable().defaultTo(null);
       table.timestamp('created_at')
       table.timestamp('updated_at')
     })

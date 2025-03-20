@@ -1,11 +1,7 @@
 import { column } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
 import Base from '#models/base'
 
 export default class Organization extends Base {
-  @column({ isPrimary: true })
-  declare id: number
-
   @column()
   declare name: string
 
@@ -13,23 +9,23 @@ export default class Organization extends Base {
   declare email: string
 
   @column()
-  declare contact_number: bigint
+  declare contact_number: number
 
   @column()
   declare subscription_type: 'FREE' | 'PREMIUM'
 
-  
+
   @column({
     serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-    serializeAs : null     
+    serializeAs: null
   })
   declare subscription_start_date: Date
 
-  
-     @column({
-          serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-          serializeAs : null     
-        })
+
+  @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+    serializeAs: null
+  })
   declare subscription_end_date: Date
 
   @column()
@@ -48,13 +44,13 @@ export default class Organization extends Base {
   declare address: string | null
 
   @column()
-  declare head_name: string
+  declare head_name: string | null
 
   @column()
-  declare head_contact_number: bigint
+  declare head_contact_number: number
 
   @column()
-  declare district: string
+  declare district: string | null
 
   @column()
   declare city: string
@@ -63,11 +59,6 @@ export default class Organization extends Base {
   declare state: string
 
   @column()
-  declare pincode: bigint
+  declare pincode: number | null
 
-  @column.dateTime({ autoCreate: true })
-  declare created_at: DateTime
-
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updated_at: DateTime
 }

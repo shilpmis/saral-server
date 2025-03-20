@@ -1,15 +1,20 @@
+//import { DateTime } from 'luxon'
+//import { column } from '@ioc:Adonis/Lucid/Orm'
+import Base from '#models/base'
 import { column } from '@adonisjs/lucid/orm'
-import Base from './base.js'
 
 export default class ClassTeacherMaster extends Base {
-  
-  @column()
-  declare school_id: number
 
-  @column()
-  declare class_id: number
+    @column()
+    declare academic_session_id: number
 
-  @column()
-  declare teacher_id: number
+    @column()
+    declare class_id: number
+
+    @column()
+    declare staff_id: number
+
+    @column()
+    declare status:'Active' | 'Inactive'
 
 }

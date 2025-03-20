@@ -1,12 +1,13 @@
 import StaffMaster from '#models/StaffMaster';
 import Teacher from '#models/Teacher'
-import { CreateTeacherValidator, CreateValidatorForTeachers, UpdateValidatorForTeachers } from '#validators/Teachers';
+import { CreateValidatorForBulkUpload, CreateValidatorForSingleTeacher, CreateValidatorForTeachers, UpdateValidatorForTeachers } from '#validators/Teachers';
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db';
 import { parseAndReturnJSON } from '../../utility/parseCsv.js';
 import app from '@adonisjs/core/services/app';
 import path from 'node:path';
 import User from '#models/User';
+import Staff from '#models/Staff';
 export default class TeachersController {
 
     async indexTeachersForSchool(ctx: HttpContext) {
@@ -24,7 +25,6 @@ export default class TeachersController {
 
     async indexTeacherActiveAsUser(ctx: HttpContext) {
         let school_id = ctx.params.school_id;
-        // let page = ctx.request.input('page', 1);
 
         // Fetch users with teacher_id
         const users = await User.query()
@@ -124,39 +124,41 @@ export default class TeachersController {
 
     async updateTeacher(ctx: HttpContext) {
 
-        let role_id = ctx.auth.user!.role_id;
-        let school_id = ctx.params.school_id;
-        let teacher_id = ctx.params.teacher_id;
+        // let school_id = ctx.auth.user!.school_id;
+        // let role_id = ctx.auth.user!.role_id;
+        // let staff_id= ctx.params.staff_id;
 
-        const trx = await db.transaction();
+        // const trx = await db.transaction();
 
-        if (school_id !== ctx.auth.user!.school_id && (role_id !== 3 && role_id !== 5)) {
-            let payload = await UpdateValidatorForTeachers.validate(ctx.request.body());
-            let teacher = (await Teacher.findOrFail(teacher_id)).useTransaction(trx);
-            if (teacher) {
-                if (payload.staff_role_id && payload.staff_role_id !== teacher.staff_role_id) {
-                    let role = await StaffMaster.query({ client: trx })
-                        .where('school_id', school_id)
-                        .andWhere('id', payload.staff_role_id)
-                        .andWhere('is_teaching_role', true)
+        // if (school_id !== ctx.auth.user!.school_id && (role_id !== 3 && role_id !== 5)) {
+        //     let payload = await UpdateValidatorForTeachers.validate(ctx.request.body());
 
-                    if (!role) {
-                        return ctx.response.status(404).
-                            json({ message: "This role is not available for your school !" });
-                    }
-                }
-                (await teacher.merge(payload).save()).useTransaction(trx);
+        //     let staff = await Staff.query().where('id' , staff_id).andWhere('school_id' , school_id).first();
+            
+        //     if (staff) {
+        //         if (payload.staff_role_id && payload.staff_role_id !== staff.staff_role_id) {
+        //             let role = await StaffMaster.query({ client: trx })
+        //                 .where('school_id', school_id)
+        //                 .andWhere('id', payload.staff_role_id)
+        //                 .andWhere('is_teaching_role', true)
 
-                await trx.commit()
-                return ctx.response.status(200).json(teacher);
-            } else {
-                await trx.rollback()
-                return ctx.response.status(404).json({ message: "Teacher not found" });
-            }
-        } else {
-            await trx.rollback()
-            return ctx.response.status(403).json({ message: "You are not authorized to create a teacher" });
-        }
+        //             if (!role) {
+        //                 return ctx.response.status(404).
+        //                     json({ message: "This role is not available for your school !" });
+        //             }
+        //         }
+        //         (await staff.merge(payload).save()).useTransaction(trx);
+
+        //         await trx.commit()
+        //         return ctx.response.status(200).json(staff);
+        //     } else {
+        //         await trx.rollback()
+        //         return ctx.response.status(404).json({ message: "Teacher not found" });
+        //     }
+        // } else {
+        //     await trx.rollback()
+        //     return ctx.response.status(403).json({ message: "You are not authorized to create a teacher" });
+        // }
     }
 
     async bulkUploadTeachers(ctx: HttpContext) {
@@ -203,22 +205,22 @@ export default class TeachersController {
 
                 for (const data of jsonData) {
                     // Validate each object separately
-                    const validatedTeacher = await CreateTeacherValidator.validate(data);
 
                     // Check if the staff role exists in the school and is a teaching role
                     const role = await StaffMaster.query({ client: trx })
                         .where('school_id', school_id)
-                        .andWhere('id', validatedTeacher.staff_role_id)
+                        .andWhere('role', data.role.trim())
                         .first();
 
                     if (!role) {
                         await trx.rollback();
                         return ctx.response.status(404).json({
-                            message: `Role ID ${validatedTeacher.staff_role_id} is not available for your school.`,
+                            message: `Role ${data.role} is not available for your school.`,
                         });
                     }
 
-                    validatedData.push({ ...validatedTeacher, school_id });
+                    const validatedTeacher = await CreateValidatorForBulkUpload.validate(data);
+                    validatedData.push({ ...validatedTeacher, school_id , staff_role_id: role.id });
                 }
 
                 // Insert only if all records are valid
@@ -233,6 +235,7 @@ export default class TeachersController {
                     data: teachers,
                 });
             } catch (validationError) {
+                console.log("validationError", validationError);
                 await trx.rollback();
                 return ctx.response.status(400).json({
                     message: 'Validation failed',
