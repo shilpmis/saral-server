@@ -15,7 +15,7 @@ export default class AdmissionInquiry extends Base {
   declare school_id: number;
 
   @column()
-  declare academic_id: number;
+  declare academic_session_id: number;
 
   @column()
   declare student_name: string;
@@ -80,7 +80,7 @@ export default class AdmissionInquiry extends Base {
   @belongsTo(() => Schools, { foreignKey: 'school_id' })
   declare school: relations.BelongsTo<typeof Schools>;
 
-  @belongsTo(() => AcademicSession, { foreignKey: 'academic_id' })
+  @belongsTo(() => AcademicSession, { foreignKey: 'academic_session_id' })
   declare academic_session: relations.BelongsTo<typeof AcademicSession>;
 
   @belongsTo(() => ClassSeatAvailability, { foreignKey: 'class_applying' })

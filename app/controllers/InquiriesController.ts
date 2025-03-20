@@ -129,7 +129,7 @@ export default class InquiriesController {
       await StudentEnrollments.create({
         student_id: student.id,
         class_id: inquiry.class_applying,
-        academic_session_id: inquiry.academic_id,
+        academic_session_id: inquiry.academic_session_id,
         quota_id: quotaId ?? undefined,
         status: 'Admitted',
         remarks: 'Converted from Inquiry',
