@@ -148,9 +148,11 @@ router.group(() => {
   router.get('attendance/:class_id/:unix_date', [AttendanceController, 'getAttendanceDetails'])
   router.post('attendance', [AttendanceController, 'markAttendance'])
 
-  router.get('/inquiries' , [InquiriesController , 'indexInquiries'])
-  router.post('/inquiry' , [InquiriesController , 'addInquiry'])
-  router.get('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
+  router.get('/inquiries' , [InquiriesController , 'listAllInquiries'])
+  router.post('/inquiry' , [InquiriesController , 'addInquiryForClass'])
+  router.get('/inquiry/:id' , [InquiriesController , 'getInquiryById'])
+  router.put('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
+  router.post('/inquiry/:id/enroll-student' , [InquiriesController , 'convertInquiryToStudent'])
 
   router.get('/downloadExcel  ' , [SchoolsController , 'downloadTemplate'])
 
