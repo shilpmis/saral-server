@@ -47,7 +47,7 @@ export default class AcademicSession extends Base {
 
   @manyToMany(() => Students, {
     pivotTable: 'student_enrollments',
-    pivotForeignKey: 'academic_sessions_id',
+    pivotForeignKey: 'academic_session_id',
     pivotRelatedForeignKey: 'student_id',
   })
   declare students: relations.ManyToMany<typeof Students>

@@ -70,13 +70,13 @@ router.group(() => {
   router.post('/class/division', [ClassesController, 'createDivision']);
   router.put('/class/:class_id', [ClassesController, 'updateClass']);
 
-  router.get('students/:academic_sessions_id/:class_id', [StundetsController, 'indexClassStudents']);
+  router.get('students/:academic_session_id/:class_id', [StundetsController, 'indexClassStudents']);
   router.get('student/:student_id', [StundetsController, 'fetchStudent']);
   router.post('student', [StundetsController, 'createSingleStudent']);
   router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents']);
   router.put('student/:student_id', [StundetsController, 'updateStudents']);
-  router.post('students/bulk-upload/:school_id/:academic_sessions_id/:class_id', [StundetsController, 'bulkUploadStudents']);
-  router.post('students/export/:academic_sessions_id/:class_id', [StundetsController, 'exportToExcel']);
+  router.post('students/bulk-upload/:school_id/:academic_session_id/:class_id', [StundetsController, 'bulkUploadStudents']);
+  router.post('students/export/:academic_session_id/:class_id', [StundetsController, 'exportToExcel']);
   
   router.get('/staff-role/:school_id', [StaffMasterController, 'indexStaffMasterForSchool']);
   router.post('/staff-role', [StaffMasterController, 'createStaffRole']);
@@ -104,7 +104,7 @@ router.group(() => {
   router.post('staff', [StaffController, 'createStaff'])
   router.put('staff/:staff_id', [StaffController, 'updateStaff'])
   router.post('staff/bulk-upload', [StaffController, 'bulkUploadStaff'])
-  router.post('staff/export/:school_id/:academic_sessions_id/', [StaffController, 'exportToExcel']);
+  router.post('staff/export/:school_id/:academic_session_id/', [StaffController, 'exportToExcel']);
 
 
   router.get('leave-type', [LeavesController, 'indexLeaveTypesForSchool'])

@@ -7,7 +7,7 @@ export default class extends BaseSeeder {
     await FeesPlanDetails.createMany([
       {
         id: 1,
-        academic_session_id: 1,
+        academic_session_id: 2,
         fees_plan_id: 1,
         fees_type_id: 1,
         installment_type: 'Admission',
@@ -16,7 +16,7 @@ export default class extends BaseSeeder {
       },
       {
         id: 2,
-        academic_session_id: 1,
+        academic_session_id: 2,
         fees_plan_id: 1,
         fees_type_id: 2,
         installment_type: 'Monthly',
@@ -25,7 +25,7 @@ export default class extends BaseSeeder {
       },
       {
         id: 3,
-        academic_session_id: 1,
+        academic_session_id: 2,
         fees_plan_id: 1,
         fees_type_id: 3,
         installment_type: 'Half Yearly',

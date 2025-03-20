@@ -20,7 +20,7 @@ export default class extends BaseSchema {
 
       table.integer('working_hours').notNullable().defaultTo(8);
       
-      table.integer('academic_sessions_id')
+      table.integer('academic_session_id')
       .unsigned()
       .notNullable()
       .references('id')

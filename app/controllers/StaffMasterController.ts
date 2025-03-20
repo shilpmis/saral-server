@@ -38,13 +38,13 @@ export default class StaffMasterController {
     async createStaffRole(ctx: HttpContext) {
 
         let school_id = ctx.auth.user!.school_id;
-        const academic_sessions_id = ctx.request.input('academic_session');
+        const academic_session_id = ctx.request.input('academic_session');
 
-        if (!academic_sessions_id) {
+        if (!academic_session_id) {
             return ctx.response.status(400).json({ message: 'Please provide academic session id.' });
         }
 
-        let academic_session = await AcademicSession.query().where('id', academic_sessions_id).andWhere('school_id', school_id).first();
+        let academic_session = await AcademicSession.query().where('id', academic_session_id).andWhere('school_id', school_id).first();
 
         if (!academic_session) {
             return ctx.response.status(404).json({ message: 'Academic session not found.' });
@@ -58,7 +58,7 @@ export default class StaffMasterController {
             ...payload, 
             school_id: school_id,
             permissions: {},
-            academic_sessions_id: academic_sessions_id
+            academic_session_id: academic_session_id
          });
         return ctx.response.json(created_class.serialize());
     }

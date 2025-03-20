@@ -20,7 +20,7 @@ export default class StaffMaster extends Base {
     declare working_hours: number
 
     @column()
-    declare academic_sessions_id: number
+    declare academic_session_id: number
 
     @column({serializeAs : null})
     declare permissions: Object

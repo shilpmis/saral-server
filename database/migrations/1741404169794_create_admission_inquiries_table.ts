@@ -12,7 +12,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('schools') // Assuming the parent table is `schools`
         .onDelete('CASCADE'); // Ensure cascading delete
-      table.integer('academic_sessions_id')
+      table.integer('academic_session_id')
         .unsigned()
         .notNullable()
         .references('id')

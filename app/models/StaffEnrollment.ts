@@ -8,7 +8,7 @@ export default class StaffEnrollment extends BaseModel {
   declare id: number
 
   @column()
-  declare academic_sessions_id: number
+  declare academic_session_id: number
 
   @column()
   declare staff_id: number

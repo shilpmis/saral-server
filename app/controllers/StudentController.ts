@@ -11,15 +11,13 @@ import ExcelJS from 'exceljs'
 import StudentEnrollments from '#models/StudentEnrollments';
 import AcademicSession from '#models/AcademicSession';
 import Schools from '#models/Schools';
-import { Console } from 'console';
-import { compose } from '@adonisjs/core/helpers';
 
 export default class StundetsController {
 
     async indexClassStudents(ctx: HttpContext) {
 
         const class_id = ctx.params.class_id;
-        const academic_sessions_id = ctx.params.academic_sessions_id;
+        const academic_session_id = ctx.params.academic_session_id;
         const page = ctx.request.input('page', 1);
         const is_meta_req = ctx.request.input('student_meta', false) === "true";
 
@@ -40,7 +38,7 @@ export default class StundetsController {
         try {
             let studentsQuery = await StudentEnrollments.query()
                 .where('class_id', class_id)
-                .andWhere('academic_sessions_id', academic_sessions_id)
+                .andWhere('academic_session_id', academic_session_id)
                 .preload('student', (studentQuery) => {
                     if (is_meta_req) {
                         studentQuery.preload('student_meta');
@@ -107,14 +105,14 @@ export default class StundetsController {
 
 
     async createSingleStudent(ctx: HttpContext) {
-        const academic_sessions_id = ctx.request.qs().academic_sessions;
-        console.log(academic_sessions_id)
+        const academic_session_id = ctx.request.qs().academic_sessions;
+        console.log(academic_session_id)
         const trx = await db.transaction()
         try {
 
             const academicSession = await AcademicSession
                 .query()
-                .where('id', academic_sessions_id)
+                .where('id', academic_session_id)
                 .andWhere('school_id', ctx.auth.user!.school_id).first()
 
             if (!academicSession) {
@@ -154,7 +152,7 @@ export default class StundetsController {
             await StudentEnrollments.create({
                 student_id: student_data.id,
                 class_id: class_id,
-                academic_sessions_id: academicSession.id,
+                academic_session_id: academicSession.id,
                 status: 'Pursuing',
                 remarks: remarks || ''
             }, { client: trx })
@@ -286,7 +284,7 @@ export default class StundetsController {
 
         const school_id = ctx.params.school_id;
         const class_id = ctx.params.class_id;
-        const academic_sessions_id = ctx.params.academic_sessions_id;
+        const academic_session_id = ctx.params.academic_session_id;
         const role_id = ctx.auth.user!.role_id;
         // Check if the user is authorized to perform this action
 
@@ -384,7 +382,7 @@ export default class StundetsController {
                         const studentEnrollment = await StudentEnrollments.create({
                             student_id: student_data.id,
                             class_id: class_id,
-                            academic_sessions_id: academic_sessions_id,
+                            academic_session_id: academic_session_id,
                             status: 'Pursuing',
                         }, { client: trx });
 
@@ -437,13 +435,13 @@ export default class StundetsController {
         const { fields } = ctx.request.only(['class_id', 'fields'])
 
         const class_id = ctx.params.class_id;
-        const academic_sessions_id = ctx.params.academic_sessions_id;
+        const academic_session_id = ctx.params.academic_session_id;
 
         if (!class_id || !fields) {
             return ctx.response.badRequest({ error: 'Class ID and fields are required' })
         }
 
-        let academic_session = await AcademicSession.query().where('id', academic_sessions_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+        let academic_session = await AcademicSession.query().where('id', academic_session_id).andWhere('school_id', ctx.auth.user!.school_id).first();
 
         if (!academic_session) {
             return ctx.response.badRequest({ error: 'Academic session not found' })
@@ -457,7 +455,7 @@ export default class StundetsController {
 
         let class_students = await StudentEnrollments.query()
             .where('class_id', class_id)
-            .andWhere('academic_sessions_id', academic_sessions_id)
+            .andWhere('academic_session_id', academic_session_id)
             .preload('student', (studentQuery) => {
                 studentQuery.preload('student_meta');
             });

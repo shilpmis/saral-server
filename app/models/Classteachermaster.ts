@@ -6,12 +6,15 @@ import { column } from '@adonisjs/lucid/orm'
 export default class ClassTeacherMaster extends Base {
 
     @column()
-    declare academic_sessions_id: number
+    declare academic_session_id: number
 
     @column()
     declare class_id: number
 
     @column()
     declare staff_id: number
+
+    @column()
+    declare status:'Active' | 'Inactive'
 
 }

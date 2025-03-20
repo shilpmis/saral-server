@@ -15,7 +15,7 @@ export default class StudentEnrollments extends Base {
     declare class_id: number
 
     @column()
-    declare academic_sessions_id: number
+    declare academic_session_id: number
 
     @column()
     declare status: 'Permoted' | 'Failed' | 'Pursuing'

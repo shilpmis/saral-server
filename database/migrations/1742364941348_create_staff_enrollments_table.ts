@@ -5,7 +5,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.enum('status' , ['Retained' , 'Transfer' , 'Resigned' , 'New-Joiner']).defaultTo('Retained');
+      table.enum('status' , ['Retained' , 'Transfer' , 'Resigned' , 'New-Joiner']).defaultTo('Retained').alter();
     })
   }
 

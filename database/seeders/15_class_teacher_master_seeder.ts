@@ -9,14 +9,14 @@ export default class extends BaseSeeder {
         id: 1,
         class_id: 1,
         staff_id: 1,
-        academic_session_id: 1, 
+        academic_session_id: 2,
         status: 'Active'
       },
       {
         id: 2,
         class_id: 2,
         staff_id: 1,
-        academic_session_id: 1, 
+        academic_session_id: 2, 
         status: 'Active'
       }
     ])

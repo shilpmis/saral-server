@@ -8,7 +8,7 @@ export default class extends BaseSeeder {
       {
         id : 1,
         class_id : 1,
-        academic_sessions_id : 1,
+        academic_session_id : 2,
         name : 'Fees Plan for Class 1',
         description : 'Fees Plan for Class 1',
         total_amount : 14000.50
@@ -16,7 +16,7 @@ export default class extends BaseSeeder {
       {
         id : 2,
         class_id : 2,
-        academic_sessions_id : 1,
+        academic_session_id : 2,
         name : 'Fees Plan for Class 2',
         description : 'Fees Plan for Class 2',
         total_amount : 0.00

@@ -16,14 +16,14 @@ export default class StaffController {
   async indexStaff(ctx: HttpContext) {
 
     let type = ctx.request.input('type', 'all');
-    let academic_sessions_id = ctx.request.input('academic_sessions');
+    let academic_session_id = ctx.request.input('academic_sessions');
     let page = ctx.request.input('page', 1);
     let school_id = ctx.auth.user!.school_id;
 
     let staff: Staff[] = [];
 
     if (type === 'teaching') {
-      if (academic_sessions_id === 0) {
+      if (academic_session_id === 0) {
         staff = await db.query()
           .from('staff as s')
           .join('staff_enrollments as se', 's.staff_id', 'se.staff_id')
@@ -39,7 +39,7 @@ export default class StaffController {
           .join('staff_enrollments as se', 's.id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
           .where('s.school_id', school_id)
-          .where('se.academic_sessions_id', academic_sessions_id)
+          .where('se.academic_session_id', academic_session_id)
           .where('sm.is_teaching_role', 1)
           .select(['s.*', 'sm.role', 'sm.working_hours'])
           .paginate(page, 10);
@@ -47,7 +47,7 @@ export default class StaffController {
 
       return ctx.response.status(200).json(staff);
     } else if (type === 'other') {
-      if (academic_sessions_id === 0) {
+      if (academic_session_id === 0) {
         staff = await db.query()
           .from('staff as s')
           .join('staff_enrollments as se', 's.staff_id', 'se.staff_id')
@@ -63,7 +63,7 @@ export default class StaffController {
           .join('staff_enrollments as se', 's.id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
           .where('s.school_id', school_id)
-          .where('se.academic_sessions_id', academic_sessions_id)
+          .where('se.academic_session_id', academic_session_id)
           .where('sm.is_teaching_role', 0)
           .select(['s.*', 'sm.role as role', 'sm.working_hours as working_hours'])
           .paginate(page, 10);
@@ -81,17 +81,17 @@ export default class StaffController {
   async createStaff(ctx: HttpContext) {
     const trx = await db.transaction()
 
-    let academic_sessions_id = ctx.request.input('academic_sessions', 0);
+    let academic_session_id = ctx.request.input('academic_sessions', 0);
     let school_id = ctx.auth.user!.school_id;
 
-    if (academic_sessions_id === 0) {
+    if (academic_session_id === 0) {
       return ctx.response.status(400).json({
         message: "Academic session is required!"
       })
     }
 
     let academic_session = await AcademicSession.query()
-      .where('id', academic_sessions_id)
+      .where('id', academic_session_id)
       .where('school_id', school_id)
       .first()
 
@@ -132,7 +132,7 @@ export default class StaffController {
 
       // Insert data into the StaffEnrollment table within the transaction
       await StaffEnrollment.create({
-        academic_sessions_id: academic_sessions_id,
+        academic_session_id: academic_session_id,
         staff_id: staff.id,
         school_id: school_id,
         status: 'Retained',
@@ -194,10 +194,10 @@ export default class StaffController {
 
     const school_id = ctx.auth.user!.school_id;
     const role_id = ctx.auth.user!.role_id;
-    const academic_sessions_id = ctx.request.input('academic_sessions', 1);
+    const academic_session_id = ctx.request.input('academic_sessions', 1);
     const staff_type = ctx.request.input('staff-type', 1);
 
-    console.log("staff_type", staff_type, academic_sessions_id)
+    console.log("staff_type", staff_type, academic_session_id)
 
     if (staff_type !== 'teaching' && staff_type !== 'non-teaching') {
       return ctx.response.status(400).json({ message: "Invalid staff type" });
@@ -274,7 +274,7 @@ export default class StaffController {
           }, { client: trx });
 
           await StaffEnrollment.create({
-            academic_sessions_id: academic_sessions_id,
+            academic_session_id: academic_session_id,
             staff_id: staff.id,
             school_id: school_id,
             status: 'Retained',
@@ -313,7 +313,7 @@ export default class StaffController {
     const { fields } = ctx.request.only(['fields']);
 
     const school_id = ctx.params.school_id;
-    const academic_sessions_id = ctx.params.academic_sessions_id;
+    const academic_session_id = ctx.params.academic_session_id;
     const staff_type = ctx.request.input('staff-type');
 
     if (!school_id || !fields || !staff_type) {
@@ -328,7 +328,7 @@ export default class StaffController {
       return ctx.response.status(403).json({ message: "You are not authorized to perform this action" });
     }
 
-    let academic_session = await AcademicSession.query().where('id', academic_sessions_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+    let academic_session = await AcademicSession.query().where('id', academic_session_id).andWhere('school_id', ctx.auth.user!.school_id).first();
 
     if (!academic_session) {
       return ctx.response.badRequest({ error: 'Academic session not found' })
@@ -349,7 +349,7 @@ export default class StaffController {
     const staffRoles = await StaffMaster.query()
       .where('school_id', school_id)
       .andWhere('is_teaching_role', staff_type === 'teaching' ? 1 : 0)
-      // .andWhere('academic_sessions_id', academic_sessions_id);
+      // .andWhere('academic_session_id', academic_session_id);
     // Merge `students` and `student_meta` data by `student_id`
 
     if (staffRoles.length === 0) {

@@ -13,7 +13,7 @@ export default class extends BaseSeeder {
         is_teaching_role : true,
         permissions : {} ,
         working_hours : 8 ,
-        academic_sessions_id  : 1
+        academic_session_id  : 1
       },
       {
         id : 2,
@@ -22,7 +22,7 @@ export default class extends BaseSeeder {
         is_teaching_role : true,
         permissions : {},
         working_hours : 8,
-        academic_sessions_id  : 1
+        academic_session_id  : 1
       },
       {
         id : 3,
@@ -31,7 +31,7 @@ export default class extends BaseSeeder {
         is_teaching_role : true,
         permissions : {},
         working_hours : 8,
-        academic_sessions_id  : 1
+        academic_session_id  : 1
       },
       {
         id : 4,
@@ -40,7 +40,7 @@ export default class extends BaseSeeder {
         is_teaching_role : false,
         permissions : {},
         working_hours : 8,
-        academic_sessions_id  : 1
+        academic_session_id  : 1
       },
       {
         id : 5,
@@ -49,7 +49,7 @@ export default class extends BaseSeeder {
         is_teaching_role : false,
         permissions : {},
         working_hours : 8,
-        academic_sessions_id  : 1
+        academic_session_id  : 1
       },
       {
         id : 6,
@@ -58,7 +58,7 @@ export default class extends BaseSeeder {
         is_teaching_role : false,
         permissions : {},
         working_hours : 8,
-        academic_sessions_id  : 1
+        academic_session_id  : 1
       },
     ]) // Creates two rows in the
   }
