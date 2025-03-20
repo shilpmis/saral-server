@@ -65,7 +65,7 @@ export default class AdmissionInquiry extends Base {
   declare quota_type: number | null;
 
   @column()
-  declare status: 'pending' | 'eligible' | 'approved' | 'ineligible';
+  declare status: 'pending' | 'eligible' | 'approved' | 'ineligible' | 'rejected' | 'interview scheduled' | 'interview completed' | 'admitted' | 'withdrawn';
 
   @column()
   declare admin_notes: string | null;

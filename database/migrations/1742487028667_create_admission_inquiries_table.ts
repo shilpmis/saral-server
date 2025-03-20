@@ -12,7 +12,10 @@ export default class extends BaseSchema {
         'approved', 
         'ineligible', 
         'rejected', 
-        'interview scheduled'
+        'interview scheduled',
+        'interview completed',
+        'admitted',
+        'withdrawn'
       ])
       .defaultTo('pending')
       .alter()

@@ -27,7 +27,7 @@ export default class InquiriesController {
    */
   async addInquiryForClass(ctx: HttpContext) {
     const payload = ctx.request.all();
-   console.log("payload",payload);
+  //  console.log("payload",payload);
     const inquiry = await AdmissionInquiry.create({
       ...payload,
       created_by: ctx.auth.user!.id,
@@ -53,7 +53,7 @@ export default class InquiriesController {
    * Update an admission inquiry
    */
   async updateInquiry(ctx: HttpContext) {
-    const payload = await ctx.request.all()
+    const payload =  ctx.request.all()
 
     const inquiry = await AdmissionInquiry.findOrFail(ctx.params.id);
     inquiry.merge(payload);

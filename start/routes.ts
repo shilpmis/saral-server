@@ -27,6 +27,7 @@ import StaffController from '#controllers/StaffController'
 import ClassSeatAvailabilitiesController from '#controllers/ClassSeatAvailabilitiesController'
 import QuotasController from '#controllers/QuotaController'
 import QuotaAllocationsController from '#controllers/QuotaAllocationController'
+import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
 
 // router.get('/', async () => {
 //   return {
@@ -153,6 +154,10 @@ router.group(() => {
   router.put('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
   router.post('/inquiry/:id/enroll-student' , [InquiriesController , 'convertInquiryToStudent'])
 
+  router.get('admission/dashboard', [AdmissionDashboardController, 'getDashboardData'])
+  router.get('admission/dashboard/detailed', [AdmissionDashboardController, 'getDetailedStatistics'])
+  router.get('admission/dashboard/trends', [AdmissionDashboardController, 'getTrendData'])
+  
   router.get('/feestype' , [FeesController , 'indexFeesTyeForSchool'])
   router.post('/feestype' , [FeesController , 'createFeesType'])
   router.put('/feestype/:id' , [FeesController , 'updateFeesType'])
