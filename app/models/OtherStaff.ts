@@ -19,61 +19,61 @@ export default class OtherStaff extends Base {
   declare first_name : string
 
   @column()
-  declare middle_name : string
+  declare middle_name : string | null
 
   @column()
   declare last_name : string
 
   @column()
-  declare first_name_in_guj : string
+  declare first_name_in_guj : string | null
 
   @column()
-  declare middle_name_in_guj : string
+  declare middle_name_in_guj : string | null
 
   @column()
-  declare last_name_in_guj : string
+  declare last_name_in_guj : string | null
 
   @column()
   declare aadhar_no : number
 
   @column()
-  declare religiion : string
+  declare religion : string | null
 
   @column()
-  declare religiion_in_guj : string
+  declare religion_in_guj : string | null
 
   @column()
-  declare caste : string
+  declare caste : string | null
 
   @column()
-  declare caste_in_guj : string
+  declare caste_in_guj : string | null
   
   @column()
   declare category : 'ST' | 'SC' | 'OBC' | 'OPEN'
 
   @column()
-  declare address : string
+  declare address : string | null
 
   @column()
-  declare district : string
+  declare district : string | null
 
   @column()
-  declare city : string
+  declare city : string | null
 
   @column()
-  declare state : string
+  declare state : string | null
 
   @column()
-  declare postal_code : number
+  declare postal_code : number | null
 
   @column()
-  declare bank_name : string
+  declare bank_name : string | null
 
   @column()
-  declare account_no : number
+  declare account_no : number | null
 
   @column()
-  declare IFSC_code : string
+  declare IFSC_code : string | null
 
   @column()
   declare gender : 'Male' | 'Female'
@@ -81,18 +81,18 @@ export default class OtherStaff extends Base {
   @column({
     serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
   })
-  declare birth_date : Date
+  declare birth_date : Date | null
 
   @column({
     serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
   })
-  declare joining_date : Date
+  declare joining_date : Date | null
 
   @column()
   declare mobile_number : number
 
   @column()
-  declare email : string
+  declare email : string | null
 
   @column()
   declare employment_status : string

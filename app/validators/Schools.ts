@@ -5,20 +5,25 @@ import vine from "@vinejs/vine";
  */
 export const CreateValidatorForSchools = vine.compile(
   vine.object({
-    // add here
     name: vine.string().trim().maxLength(50),
+    organization_id: vine.number(),
+
     email: vine.string().email().unique({ table: 'schools', column: 'email' }),
     established_year: vine.string(),
     school_type: vine.enum(['Public', 'Private', 'Charter']),
-    username: vine.string().trim().unique({ table: 'schools', column: 'username' }).maxLength(10),
-    contact_number: vine.number().min(10),
-    address: vine.string().maxLength(500),
-    subscription_type: vine.enum(['FREE', 'PREMIUM']),
+    branch_code: vine.string().trim().maxLength(10).optional(),  // Auto-generated but can be manually passed
+    contact_number: vine.number().min(1000000000).max(999999999999).unique({ table: 'schools', column: 'contact_number' }),
+    address: vine.string().maxLength(500).optional(),
+    district: vine.string().trim().maxLength(100),
+    city: vine.string().trim().maxLength(100),
+    state: vine.string().trim().maxLength(100),
+    pincode: vine.number().min(100000).max(999999),
+    school_logo: vine.string().optional(),
     status: vine.enum(['ACTIVE', 'INACTIVE']),
-    subscription_start_date: vine.date(),
-    subscription_end_date: vine.date(),
+    is_email_verified: vine.boolean(),
   })
-)
+);
+
 
 
 /**
