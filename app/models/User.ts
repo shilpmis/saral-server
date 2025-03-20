@@ -5,6 +5,7 @@ import hash from '@adonisjs/core/services/hash'
 import Schools from './Schools.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
 import Teacher from './Teacher.js'
+import Staff from './Staff.js'
 
 export default class User extends Base {
  
@@ -42,11 +43,11 @@ export default class User extends Base {
   })
   declare school : HasOne<typeof Schools>
 
-  @hasOne(() => Teacher , {
-    localKey : 'teacher_id',
-    foreignKey : 'id'
-  })
-  declare teacher : HasOne<typeof Teacher>
+  // @hasOne(() => Staff , {
+  //   localKey : 'teacher_id',
+  //   foreignKey : 'id'
+  // })
+  // declare teacher : HasOne<typeof Teacher>
 
   @beforeSave()
   static async hashPassword(user: User) {

@@ -1,3 +1,4 @@
+import Organization from '#models/organization';
 import Schools from '#models/Schools';
 import User from '#models/User';
 import { CreateValidatorForSchools } from '#validators/Schools';
@@ -22,10 +23,28 @@ export default class AuthController {
     
     let trx = await db.transaction();
 
-    console.log("CHECK THIS  I am here !")
-
     try {
-      const payload = await CreateValidatorForSchools.validate(ctx.request.all());
+      const payload = await CreateValidatorForSchools.validate(ctx.request.all());  // Ensure organization_id exists in request payload
+      if (!payload.organization_id) {
+        throw new Error("Organization ID is required")
+      }
+
+      const organization = await Organization.find(payload.organization_id)
+      if (!organization) {
+        return ctx.response.notFound({ message: 'Organization not found' })
+      }
+      
+      // Generate Branch Code: First letter of each word in the school name + established year
+      const schoolInitials = payload.name
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase())
+      .join("");
+
+      const branchCode = `${schoolInitials}${payload.established_year}`;
+
+      // Assign branch_code to payload
+      payload.branch_code = branchCode;
+
       const school = await Schools.create(payload, { client: trx });
 
       /**
@@ -33,7 +52,7 @@ export default class AuthController {
       */
       const admin_user = await User.create({
         school_id: school.id,
-        saral_email: `admin@${school.username}.saral`,
+        saral_email: `admin@${school.name.toLowerCase().split(" ").join("")}.saral`,
         password: '12345678',
         role_id: 1,
         name: 'Admin',
@@ -61,7 +80,9 @@ export default class AuthController {
     if (email) {
       try {
         let userQuery = User.query()
-          .preload('school')
+          .preload('school' , (query) => {
+            query.preload('academicSessions');
+          })
           .where('saral_email', email)
 
         let user = await userQuery.first()
@@ -90,7 +111,9 @@ export default class AuthController {
     } else {
       // let auth = await ctx.auth.use('api').authenticate();
       let userQuery = User.query()
-        .preload('school')
+      .preload('school' , (query) => {
+        query.preload('academicSessions');
+      })
         .where('id', ctx.auth.user.id)
 
       let user = await userQuery.first()

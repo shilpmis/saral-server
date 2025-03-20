@@ -16,10 +16,13 @@ export default class Classes extends Base {
     declare division: "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J";
 
     @column()
-    declare aliases: string
+    declare aliases: string | null
 
     @column()
     declare is_assigned: boolean
+
+    @column()
+    declare academic_session_id: number
 
     @hasOne(() => FeesPlan, {
         foreignKey: 'class_id',

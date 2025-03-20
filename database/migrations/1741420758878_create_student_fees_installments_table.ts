@@ -17,7 +17,7 @@ export default class extends BaseSchema {
       table.enum('status', ['Pending', 'Partially Paid', 'Paid', 'Overdue', 'Failed']).notNullable()
       table.integer('recieved_by').unsigned().references('id').inTable('users').onDelete('CASCADE')
 
-      table.unique(['student_fees_master_id', 'installment_id']);
+      table.unique(['student_fees_master_id', 'installment_id'] , 'student_fees_installments_unique');
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

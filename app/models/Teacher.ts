@@ -36,10 +36,10 @@ export default class Teacher extends Base {
   declare aadhar_no: number
 
   @column()
-  declare religiion: string | null
+  declare religion: string | null
 
   @column()
-  declare religiion_in_guj: string | null
+  declare religion_in_guj: string | null
 
   @column()
   declare caste: string | null
@@ -103,7 +103,7 @@ export default class Teacher extends Base {
   declare class_id: number | null
 
   @column()
-  declare employment_status: 'Permanent' | 'Trial_period' | 'Resigned' | 'Contact_base' | 'Notice_Period'
+  declare employment_status: 'Permanent' | 'Trial_Period' | 'Resigned' | 'Contract_Based' | 'Notice_Period'
 
   @hasOne(() => StaffMaster, {
     localKey: 'staff_role_id',

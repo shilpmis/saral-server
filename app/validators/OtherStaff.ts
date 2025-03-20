@@ -20,8 +20,8 @@ export const CreateValidatorForOtherStaff = vine.compile(
       aadhar_no: vine.number()
         .unique({ table: 'other_staff', column: 'aadhar_no' }),
 
-      religiion: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
-      religiion_in_guj: vine.string().trim().optional().nullable().optional(),
+      religion: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      religion_in_guj: vine.string().trim().optional().nullable().optional(),
   
       caste: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
       caste_in_guj: vine.string().trim().optional().nullable().optional(),
@@ -51,7 +51,7 @@ export const CreateValidatorForOtherStaff = vine.compile(
       email: vine.string().email().nullable().optional(),
       joining_date: vine.date().nullable().optional(),
 
-      employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']),
+      employment_status: vine.enum(['Permanent', 'Trial_Period', 'Resigned', 'Contract_Based', 'Notice_Period']),
 
     })
   )
@@ -73,8 +73,8 @@ export const CreateValidatorForBulkUpload= vine.compile(
       aadhar_no: vine.number()
         .unique({ table: 'other_staff', column: 'aadhar_no' }),
 
-      religiion: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
-      religiion_in_guj: vine.string().trim().optional().nullable().optional(),
+      religion: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      religion_in_guj: vine.string().trim().optional().nullable().optional(),
   
       caste: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
       caste_in_guj: vine.string().trim().optional().nullable().optional(),
@@ -104,7 +104,7 @@ export const CreateValidatorForBulkUpload= vine.compile(
       email: vine.string().email().nullable().optional(),
       joining_date: vine.date().nullable().optional(),
 
-      employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']),
+      employment_status: vine.enum(['Permanent', 'Trial_Period', 'Resigned', 'Contract_Based', 'Notice_Period']),
 
     })
 )
@@ -129,7 +129,7 @@ export const UpdateValidatorForOtherStaff = vine.compile(
     email: vine.string().email().optional(),
 
     joining_date: vine.date().optional(),
-    employment_status: vine.enum(['Permanent', 'Trial_period', 'Resigned', 'Contact_base', 'Notice_Period']).optional(),
+    employment_status: vine.enum(['Permanent', 'Trial_Period', 'Resigned', 'Contract_Based', 'Notice_Period']).optional(),
 
   })
 )

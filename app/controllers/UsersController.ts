@@ -6,6 +6,7 @@ import Teacher from '#models/Teacher';
 import Schools from '#models/Schools';
 import Classes from '#models/Classes';
 import db from '@adonisjs/lucid/services/db';
+import Staff from '#models/Staff';
 
 
 export default class UsersController {
@@ -58,7 +59,7 @@ export default class UsersController {
           school_id: school_id,
           is_active: true,
           password: "12345678",
-          saral_email: `${user_type}@${school?.username}.saral`
+          saral_email: `${user_type}@${school?.branch_code}.saral`
         });
         return ctx.response.json(user.serialize());
       } else {
@@ -82,10 +83,11 @@ export default class UsersController {
     const payload = await CreateValidatorForOnBoardTeacherAsUser.validate(ctx.request.all());
 
     const teacher = await
-      Teacher
+      Staff
         .query()
         .preload('school')
-        .where('id', payload.teacher_id)
+        .where('id', payload.staff_id)
+        .andWhere('is_teching_staff', true)
         .andWhere('school_id', ctx.auth.user?.school_id).first()
 
     if (!teacher) {
@@ -98,14 +100,14 @@ export default class UsersController {
     try {
 
       const user = await User.create({
-        teacher_id: payload.teacher_id,
+        teacher_id: payload.staff_id,
         school_id: ctx.auth.user?.school_id,
         is_active: true,
         password: "12345678",
         role_id: 6,
         is_teacher: true,
         name: teacher.first_name + " " + teacher.last_name,
-        saral_email: `${teacher.first_name.toLowerCase()}-${teacher.last_name.toLowerCase()}@${teacher.school.username}.saral`
+        saral_email: `${teacher.first_name.toLowerCase()}-${teacher.last_name.toLowerCase()}@${teacher.school.branch_code}.saral`
       }, { client: trx });
 
       if (payload.class_id) {
@@ -124,7 +126,7 @@ export default class UsersController {
         clas.useTransaction(trx); // 👈 Use transaction first
         await clas.merge({ is_assigned: true }).save();
 
-        teacher.useTransaction(trx); // 👈 Use transaction first
+        staff.useTransaction(trx); // 👈 Use transaction first
         await teacher.merge({ class_id: payload.class_id }).save();
       }
 

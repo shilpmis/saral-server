@@ -15,7 +15,7 @@ export default class extends BaseSchema {
 
       table.date('birth_date').nullable().alter({alterNullable : true});
 
-
+      table.string('father_name', 100).nullable().alter({alterNullable : true});
       table.string('father_name_in_guj', 100).nullable().alter({alterNullable : true});
       table.string('mother_name', 100).nullable().alter({alterNullable : true});
       table.string('mother_name_in_guj', 100).nullable().alter({alterNullable : true});

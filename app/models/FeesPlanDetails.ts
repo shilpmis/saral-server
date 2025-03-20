@@ -10,7 +10,7 @@ export default class FeesPlanDetails extends Base {
     public static table = 'fees_plan_details'
 
     @column()
-    declare academic_year_id: number
+    declare academic_session_id: number
 
     @column()
     declare fees_plan_id: number

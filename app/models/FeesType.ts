@@ -9,7 +9,7 @@ export default class FeesType extends Base {
   declare school_id: number
   
   @column()
-  declare academic_year_id: number
+  declare academic_sessions_id: number
   
   @column()
   declare name: string

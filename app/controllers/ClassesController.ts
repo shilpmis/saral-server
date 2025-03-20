@@ -122,7 +122,8 @@ export default class ClassesController {
     /**
      * TODO : Check for unique alise names of class , for perticular school 
      */
-    let school_id = ctx.auth.user?.school_id
+    let school_id = ctx.auth.user?.school_id;
+    // const academic_session_id = ctx.auth.user?.academic_session_id;
     if (ctx.auth.user?.role_id !== 1) {
       return ctx.response.status(403).json({ message: 'You are not allocated to manage this functions.' });
     }

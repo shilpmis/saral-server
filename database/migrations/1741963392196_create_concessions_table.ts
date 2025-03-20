@@ -5,7 +5,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-        table.enum('category' , ['Family', 'Sports' , 'Staff' , 'Education' , 'Financial', 'Other']).notNullable();
+        table.enum('category' , ['family', 'sports' , 'staff' , 'education' , 'financial', 'other']).notNullable();
     })
   }
 

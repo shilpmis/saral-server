@@ -6,7 +6,12 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.integer('academic_year_id').unsigned().references('id').inTable('academic_years').onDelete('CASCADE')
+      table.integer('academic_session_id')
+        .unsigned()
+        .notNullable()
+        .references('id')
+        .inTable('academic_sessions')
+        .onDelete('CASCADE');
       table.integer('fees_plan_id').unsigned().references('id').inTable('fees_plans').onDelete('CASCADE')
       table.integer('fees_type_id').unsigned().references('id').inTable('fees_types').onDelete('CASCADE')
       table.enum('installment_type', ['Admission', 'Monthly', 'Quarterly', 'Half Yearly', 'Yearly']).notNullable()

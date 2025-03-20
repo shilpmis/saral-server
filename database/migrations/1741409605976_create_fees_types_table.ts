@@ -7,7 +7,12 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.integer('school_id').unsigned().references('id').inTable('schools').onDelete('CASCADE')
-      table.integer('academic_year_id').unsigned().references('id').inTable('academic_years').onDelete('CASCADE')
+      table.integer('academic_sessions_id')
+        .unsigned()
+        .notNullable()
+        .references('id')
+        .inTable('academic_sessions')
+        .onDelete('CASCADE');
       table.string('name', 100).notNullable()
       table.string('description', 255).nullable()
       table.boolean('is_concession_applicable').defaultTo(false);

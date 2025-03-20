@@ -37,10 +37,10 @@ export default class OtherStaff extends Base {
   declare aadhar_no : number
 
   @column()
-  declare religiion : string | null
+  declare religion : string | null
 
   @column()
-  declare religiion_in_guj : string | null
+  declare religion_in_guj : string | null
 
   @column()
   declare caste : string | null

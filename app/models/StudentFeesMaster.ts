@@ -11,7 +11,7 @@ export default class StudentFeesMaster extends Base {
     declare student_id: number
 
     @column()
-    declare academic_year_id: number
+    declare academic_sessions_id: number
 
     @column()
     declare fees_plan_id: number

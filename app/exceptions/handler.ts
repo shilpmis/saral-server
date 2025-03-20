@@ -13,13 +13,9 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * response to the client
    */
   async handle(error: any, ctx: HttpContext) {
-    // if (error.messages) {
-    // console.log("error===>", error.messages)
       return ctx.response.status(error.status).json({
         errors: error
       })
-    // }
-    // return super.handle(error, ctx)
   }
 
   /**

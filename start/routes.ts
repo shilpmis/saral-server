@@ -22,6 +22,9 @@ import AttendanceController from '#controllers/AttendancesController'
 import InquiriesController from '#controllers/InquiriesController'
 import FeesController from '#controllers/FeesController'
 import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
+import OrganizationController from '#controllers/OrganizationController'
+import AcademicSessionsController from '#controllers/AcademicSessionController'
+import StaffController from '#controllers/StaffController'
 
 // router.get('/', async () => {
 //   return {
@@ -33,6 +36,12 @@ router.group(() => {
 
   router.post('/signup', [AuthController, 'createSchool'])
   router.post('/login', [AuthController, 'login'])
+  router.get('/organizations', [OrganizationController, 'getAllOrganization']);
+  router.post('/onboard-organization', [OrganizationController, 'onboardOrganization']);
+  router.get('/organization/:id', [OrganizationController, 'getOrganizationById']);
+  router.put('/organization/:id', [OrganizationController, 'updateOrganizationById']);
+
+
 
 }).prefix('/api/v1/')
 
@@ -44,6 +53,10 @@ router.group(() => {
   router.get('/stats', [SchoolsController, 'fetchSchoolDataForDashBoard'])
   router.get('/school/:school_id', [SchoolsController, 'index'])
   router.put('/school/:school_id', [SchoolsController, 'update'])
+
+  router.post('/academic-session', [AcademicSessionsController, 'createAcademicSessionForSchool'])
+  router.put('/academic-session/:school_id', [AcademicSessionsController, 'updateAcademicSessionForSchool'])
+  router.get('/academic-sessions/:school_id', [AcademicSessionsController, 'getAllAcademicSessionInSchool'])
 
   router.get('/users', [UsersController, 'indexSchoolUsers'])
   router.post('/user', [UsersController, 'createUser'])
@@ -57,20 +70,21 @@ router.group(() => {
   router.post('/class/division', [ClassesController, 'createDivision']);
   router.put('/class/:class_id', [ClassesController, 'updateClass']);
 
-  router.get('students/:class_id', [StundetsController, 'indexClassStudents']);
-  router.get('student/:school_id/:student_id', [StundetsController, 'fetchStudent']);
+  router.get('students/:academic_sessions_id/:class_id', [StundetsController, 'indexClassStudents']);
+  router.get('student/:student_id', [StundetsController, 'fetchStudent']);
   router.post('student', [StundetsController, 'createSingleStudent']);
   router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents']);
   router.put('student/:student_id', [StundetsController, 'updateStudents']);
-  router.post('students/bulk-upload/:school_id/', [StundetsController, 'bulkUploadStudents']);
-  router.post('students/export/:class_id/', [StundetsController, 'exportToExcel']);
+  router.post('students/bulk-upload/:school_id/:academic_sessions_id/:class_id', [StundetsController, 'bulkUploadStudents']);
+  router.post('students/export/:academic_sessions_id/:class_id', [StundetsController, 'exportToExcel']);
+  
+  router.get('/staff-role/:school_id', [StaffMasterController, 'indexStaffMasterForSchool']);
+  router.post('/staff-role', [StaffMasterController, 'createStaffRole']);
+  router.put('/staff-role/:id', [StaffMasterController, 'updateStaffRole']);
+  router.delete('/staff-role/:id', [StaffMasterController, 'deleteStaffRole']);
+  
 
-  router.get('/staff/:school_id', [StaffMasterController, 'indexStaffMasterForSchool']);
-  router.post('/staff', [StaffMasterController, 'createStaffRole']);
-  router.put('/staff/:id', [StaffMasterController, 'updateStaffRole']);
-  router.delete('/staff/:id', [StaffMasterController, 'deleteStaffRole']);
-
-  /**
+ /**
    * need think of for adding school_id in teachers creation
    */
   router.get('teachers/:school_id', [TeachersController, 'indexTeachersForSchool'])
@@ -84,6 +98,14 @@ router.group(() => {
   router.post('other-staff/:school_id', [OtherStaffsController, 'createOtherStaff'])
   router.put('other-staff/:school_id/:other_staff_id', [OtherStaffsController, 'updateOtherStaff'])
   router.post('other-staff/bulk-upload/:school_id/', [OtherStaffsController, 'bulkUploadOtherStaff'])
+  
+  router.get('staff', [StaffController, 'indexStaff'])
+  // router.get('staff/activeuser', [StaffController, 'indexTeacherActiveAsUser'])
+  router.post('staff', [StaffController, 'createStaff'])
+  router.put('staff/:staff_id', [StaffController, 'updateStaff'])
+  router.post('staff/bulk-upload', [StaffController, 'bulkUploadStaff'])
+  router.post('staff/export/:school_id/:academic_sessions_id/', [StaffController, 'exportToExcel']);
+
 
   router.get('leave-type', [LeavesController, 'indexLeaveTypesForSchool'])
   router.post('leave-type', [LeavesController, 'createLeaveTypeForSchool'])

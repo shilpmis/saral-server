@@ -11,7 +11,7 @@ export default class ConcessionFeesPlanMaster extends Base {
     public static table = 'concession_fees_paln_master'
 
     @column()
-    declare academic_year_id : number
+    declare academic_sessions_id : number
 
     @column()
     declare concession_id : number
