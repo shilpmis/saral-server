@@ -21,10 +21,12 @@ import LeavesController from '#controllers/LeavesController'
 import AttendanceController from '#controllers/AttendancesController'
 import InquiriesController from '#controllers/InquiriesController'
 import FeesController from '#controllers/FeesController'
-import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
 import OrganizationController from '#controllers/OrganizationController'
 import AcademicSessionsController from '#controllers/AcademicSessionController'
 import StaffController from '#controllers/StaffController'
+import ClassSeatAvailabilitiesController from '#controllers/ClassSeatAvailabilitiesController'
+import QuotasController from '#controllers/QuotaController'
+import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 
 // router.get('/', async () => {
 //   return {
@@ -70,8 +72,28 @@ router.group(() => {
   router.post('/class/division', [ClassesController, 'createDivision']);
   router.put('/class/:class_id', [ClassesController, 'updateClass']);
 
+
+  // routes for the class seat availability
+  router.post('/classes/seat-availability', [ClassSeatAvailabilitiesController,'addSeatAvailability']);
+  router.get('/classes/seat-availability/all', [ClassSeatAvailabilitiesController,'getAllClassesSeatAvailability']);
+  router.get('/classes/:class_id/seat-availability', [ClassSeatAvailabilitiesController,'getSeatAvailability']);
+  // router.put('/classes/:class_id/update-seat-availability', [ClassSeatAvailabilitiesController,'updateSeatAvailability']);
+
+  // routes for the quota 
+  router.post('/quota', [QuotasController,'createQuotaForSeats']);
+  router.get('/quota/all', [QuotasController,'listAllQuotas']);
+  router.put('/quota/:id', [QuotasController,'updateQuota']);
+  router.delete('/quota/:id', [QuotasController,'delete']); 
+
+  // routes for the quota allocation
+  router.post('/quota-allocation/', [QuotaAllocationsController,'allocateQuotaToClass']);
+  router.get('/quota-allocation/all', [QuotaAllocationsController,'listAllQuotaAllocation']);
+  router.put('/quota-allocation/:id', [QuotaAllocationsController,'updateFilledSeats']);
+
   router.get('students/:academic_session_id/:class_id', [StundetsController, 'indexClassStudents']);
   router.get('student/:student_id', [StundetsController, 'fetchStudent']);
+  router.get('students/:class_id', [StundetsController, 'indexClassStudents']);
+  router.get('student/:school_id/:student_id', [StundetsController, 'fetchStudent']);
   router.post('student', [StundetsController, 'createSingleStudent']);
   router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents']);
   router.put('student/:student_id', [StundetsController, 'updateStudents']);
@@ -125,9 +147,11 @@ router.group(() => {
   router.get('attendance/:class_id/:unix_date', [AttendanceController, 'getAttendanceDetails'])
   router.post('attendance', [AttendanceController, 'markAttendance'])
 
-  router.get('/inquiries' , [InquiriesController , 'indexInquiries'])
-  router.post('/inquiry' , [InquiriesController , 'addInquiry'])
-  router.get('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
+  router.get('/inquiries' , [InquiriesController , 'listAllInquiries'])
+  router.post('/inquiry' , [InquiriesController , 'addInquiryForClass'])
+  router.get('/inquiry/:id' , [InquiriesController , 'getInquiryById'])
+  router.put('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
+  router.post('/inquiry/:id/enroll-student' , [InquiriesController , 'convertInquiryToStudent'])
 
   router.get('/feestype' , [FeesController , 'indexFeesTyeForSchool'])
   router.post('/feestype' , [FeesController , 'createFeesType'])

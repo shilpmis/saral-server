@@ -1,8 +1,10 @@
 //import { DateTime } from 'luxon'
 import Base from '#models/base'
-import { column, hasOne } from '@adonisjs/lucid/orm'
+import { column, hasMany, hasOne } from '@adonisjs/lucid/orm'
 import FeesPlan from './FeesPlan.js';
 import type { HasOne } from '@adonisjs/lucid/types/relations';
+import ClassSeatAvailability from './ClassSeatAvailability.js';
+import * as relations from '@adonisjs/lucid/types/relations';
 
 export default class Classes extends Base {
 
@@ -30,4 +32,6 @@ export default class Classes extends Base {
     })
     declare fees_plan: HasOne<typeof FeesPlan>
 
+    @hasMany(() => ClassSeatAvailability, { foreignKey: 'class_id' })
+    declare seat_availability: relations.HasMany<typeof ClassSeatAvailability>;
 }
