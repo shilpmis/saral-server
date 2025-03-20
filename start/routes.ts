@@ -154,9 +154,9 @@ router.group(() => {
   router.put('/inquiry/:id' , [InquiriesController , 'updateInquiry'])
   router.post('/inquiry/:id/enroll-student' , [InquiriesController , 'convertInquiryToStudent'])
 
-  router.get('admission/dashboard', [AdmissionDashboardController, 'getDashboardData'])
-  router.get('admission/dashboard/detailed', [AdmissionDashboardController, 'getDetailedStatistics'])
-  router.get('admission/dashboard/trends', [AdmissionDashboardController, 'getTrendData'])
+  router.get('admissions/dashboard', [AdmissionDashboardController, 'getDashboardData'])
+  router.get('admissions/dashboard/detailed', [AdmissionDashboardController, 'getDetailedStatistics'])
+  router.get('admissions/dashboard/trends', [AdmissionDashboardController, 'getTrendData'])
   
   router.get('/feestype' , [FeesController , 'indexFeesTyeForSchool'])
   router.post('/feestype' , [FeesController , 'createFeesType'])
