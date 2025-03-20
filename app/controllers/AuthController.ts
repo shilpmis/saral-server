@@ -52,7 +52,7 @@ export default class AuthController {
       */
       const admin_user = await User.create({
         school_id: school.id,
-        saral_email: `admin@${school.name.toLowerCase().split(" ").join("")}.saral`,
+        saral_email: `admin@${payload.branch_code}.saral`,
         password: '12345678',
         role_id: 1,
         name: 'Admin',

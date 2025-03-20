@@ -10,7 +10,10 @@ export default class ClassesController {
   async indexClassesForSchool(ctx: HttpContext) {
     // let school_id = ctx.auth.user?.school_id;
     if (ctx.params.school_id) {
-      let classes = await Classes.query().where('school_id', ctx.params.school_id);
+      let classes = await Classes.query()
+      .where('school_id', ctx.params.school_id)
+      // .andWhere('academic_session_id', 
+        // ctx.params.academic_session_id);
 
       if (ctx.request.qs().without_fees_plan === "true") {
         try {

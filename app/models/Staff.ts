@@ -7,15 +7,14 @@ import type { HasOne } from '@adonisjs/lucid/types/relations'
 import StaffMaster from './StaffMaster.js'
 
 export default class Staff extends Base {
+  @column()
+  declare employee_code: string
 
   @column()
   declare staff_role_id: number
 
   @column()
   declare school_id: number
-
-  @column()
-  declare employee_code: string
 
   @column()
   declare first_name: string

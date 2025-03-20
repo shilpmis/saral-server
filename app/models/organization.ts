@@ -14,11 +14,13 @@ export default class Organization extends Base {
   @column()
   declare subscription_type: 'FREE' | 'PREMIUM'
 
+
   @column({
     serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
     serializeAs: null
   })
   declare subscription_start_date: Date
+
 
   @column({
     serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),

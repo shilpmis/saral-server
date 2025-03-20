@@ -20,9 +20,9 @@ export default class extends BaseSchema {
       table.string('middle_name', 100).notNullable();
       table.string('last_name', 100).notNullable();
 
-      table.string('first_name_in_guj', 100).notNullable();
-      table.string('middle_name_in_guj', 100).notNullable();
-      table.string('last_name_in_guj', 100).notNullable();
+      table.string('first_name_in_guj', 100).nullable();
+      table.string('middle_name_in_guj', 100).nullable();
+      table.string('last_name_in_guj', 100).nullable();
 
       table.enum('gender', ['Male', 'Female']).notNullable();
       
@@ -39,13 +39,14 @@ export default class extends BaseSchema {
         .notNullable()
 
       table.string('father_name', 100).notNullable();
-      table.string('father_name_in_guj', 100).notNullable();
-      table.string('mother_name', 100).notNullable();
+      table.string('father_name_in_guj', 100).nullable();
+      table.string('mother_name', 100).nullable();
       table.string('mother_name_in_guj', 100).notNullable();
 
       table.integer('roll_number').nullable().defaultTo(null);
 
       table.bigInteger('aadhar_no').unsigned().notNullable().unique();
+      table.text('profile_photo').nullable()
       table.boolean('is_active').notNullable().defaultTo(true);
 
       table.timestamp('created_at')

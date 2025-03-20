@@ -138,6 +138,7 @@ export default class StundetsController {
             // Remove class_id from payload.students_data
             const { class_id, remarks, ...studentDataWithoutClassId } = payload.students_data
 
+
             // Create student within the transaction
             let student_data = await Students.create({
                 ...studentDataWithoutClassId,
@@ -148,12 +149,14 @@ export default class StundetsController {
             // Create student meta data within the transaction
             let student_meta_data_payload = await StudentMeta.create({ ...payload.student_meta_data, student_id: student_data.id }, { client: trx })
 
+            const isOldStudent = await StudentEnrollments.query().where('student_id', student_data.id).andWhere('status', '!=', 'Failed').first()
+
             // Add a row in the student_enrollments table within the transaction
             await StudentEnrollments.create({
                 student_id: student_data.id,
                 class_id: class_id,
                 academic_session_id: academicSession.id,
-                status: 'Pursuing',
+                status: isOldStudent ? 'Permoted' : 'Pursuing',
                 remarks: remarks || ''
             }, { client: trx })
 

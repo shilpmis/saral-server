@@ -1,4 +1,4 @@
-import Organization from '#models/Organization'
+import Organization from '#models/organization'
 import type { HttpContext } from '@adonisjs/core/http'
 
 export default class OrganizationController {
@@ -6,15 +6,17 @@ export default class OrganizationController {
   public async onboardOrganization(ctx: HttpContext) {
     try {
       const data = ctx.request.only([
-        'name', 'email', 'username', 'contact_number', 'subscription_type',
+        'name', 'email', 'contact_number', 'subscription_type',
         'subscription_start_date', 'subscription_end_date', 'is_email_verified',
         'status', 'organization_logo', 'established_year', 'address', 'head_name',
         'head_contact_number', 'district', 'city', 'state', 'pincode'
       ])
-      const organization = await Organization.create(data)
-      return ctx.response.created(organization)
+      const organization = await Organization.create(data);
+      return ctx.response.status(201).json(organization)
     } catch (error) {
-      throw error      
+      console.log(error)
+      return ctx.response.status(500).json(error)
+
     }
   }
 
