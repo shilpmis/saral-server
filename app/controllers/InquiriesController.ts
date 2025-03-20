@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http';
-import { CreateValidatorForInquiries, UpdateValidatorForInquiries } from '#validators/Inquiries';
 import AdmissionInquiry from '#models/Inquiries';
 import Students from '#models/Students';
 import StudentEnrollments from '#models/StudentEnrollments';
@@ -130,7 +129,7 @@ export default class InquiriesController {
       await StudentEnrollments.create({
         student_id: student.id,
         class_id: inquiry.class_applying,
-        academic_id: inquiry.academic_id,
+        academic_session_id: inquiry.academic_id,
         quota_id: quotaId ?? undefined,
         status: 'Admitted',
         remarks: 'Converted from Inquiry',
@@ -160,7 +159,9 @@ export default class InquiriesController {
    */
   private async generateAdmissionNumber(): Promise<string> {
     const latestStudent = await Students.query().orderBy('id', 'desc').first();
-    const lastAdmissionNumber = latestStudent ? parseInt(latestStudent.admission_number) : 1000;
+    const lastAdmissionNumber = latestStudent && latestStudent.admission_number 
+      ? parseInt(latestStudent.admission_number) 
+      : 1000;
     return String(lastAdmissionNumber + 1);
   }
 
