@@ -52,7 +52,7 @@ export default class AuthController {
       */
       const admin_user = await User.create({
         school_id: school.id,
-        saral_email: `admin@${school.name.toLowerCase().split(" ").join("")}.saral`,
+        saral_email: `admin@${payload.branch_code}.saral`,
         password: '12345678',
         role_id: 1,
         name: 'Admin',
@@ -87,9 +87,9 @@ export default class AuthController {
 
         let user = await userQuery.first()
 
-        if (user && user.teacher_id) {
-          await user.load('teacher')
-        }
+        // if (user && user.teacher_id) {
+        //   await user.load('teacher')
+        // }
         if (user && await hash.verify(user.password, password)) {
           const token = await User.accessTokens.create(user, ['*'], {
             expiresIn: '7 days' // expires in 30 days
@@ -118,9 +118,9 @@ export default class AuthController {
 
       let user = await userQuery.first()
 
-      if (user && user.teacher_id) {
-        await user.load('teacher')
-      }
+      // if (user && user.teacher_id) {
+      //   await user.load('teacher')
+      // }
       if (user) {
 
         await User.accessTokens.create(user, ['*'], {

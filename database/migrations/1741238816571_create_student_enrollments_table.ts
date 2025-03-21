@@ -27,10 +27,18 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('students')
         .onDelete('CASCADE');
+      
+      table.integer('quota_id')
+      .unsigned()
+      .references('id')
+      .inTable('quotas')
+      .onDelete('CASCADE');
 
-      table.enum('status' , ['Permoted' , 'Failed' , 'Pursuing']).defaultTo('Pursuing')
+      table.enum('status' , ['Admitted','Permoted' , 'Failed' , 'Pursuing']).defaultTo('Pursuing')
 
       table.string('remarks', 255).nullable();
+
+      table.enum('type', ['New Admission', 'Existing Student']).notNullable();
       
       table.timestamp('created_at')
       table.timestamp('updated_at')

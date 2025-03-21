@@ -1,13 +1,12 @@
 import StaffMaster from '#models/StaffMaster';
 import Teacher from '#models/Teacher'
-import { CreateValidatorForBulkUpload, CreateValidatorForSingleTeacher, CreateValidatorForTeachers, UpdateValidatorForTeachers } from '#validators/Teachers';
+import { CreateValidatorForBulkUpload, CreateValidatorForTeachers } from '#validators/Teachers';
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db';
 import { parseAndReturnJSON } from '../../utility/parseCsv.js';
 import app from '@adonisjs/core/services/app';
 import path from 'node:path';
 import User from '#models/User';
-import Staff from '#models/Staff';
 export default class TeachersController {
 
     async indexTeachersForSchool(ctx: HttpContext) {
@@ -122,7 +121,7 @@ export default class TeachersController {
         }
     }
 
-    async updateTeacher(ctx: HttpContext) {
+    // async updateTeacher(ctx: HttpContext) {
 
         // let school_id = ctx.auth.user!.school_id;
         // let role_id = ctx.auth.user!.role_id;
@@ -159,7 +158,7 @@ export default class TeachersController {
         //     await trx.rollback()
         //     return ctx.response.status(403).json({ message: "You are not authorized to create a teacher" });
         // }
-    }
+    // }
 
     async bulkUploadTeachers(ctx: HttpContext) {
         const school_id = ctx.params.school_id;

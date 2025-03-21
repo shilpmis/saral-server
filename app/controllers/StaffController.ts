@@ -349,7 +349,7 @@ export default class StaffController {
     const staffRoles = await StaffMaster.query()
       .where('school_id', school_id)
       .andWhere('is_teaching_role', staff_type === 'teaching' ? 1 : 0)
-      // .andWhere('academic_session_id', academic_session_id);
+      .andWhere('academic_session_id', academic_session_id);
     // Merge `students` and `student_meta` data by `student_id`
 
     if (staffRoles.length === 0) {

@@ -13,7 +13,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('organizations')
         .onDelete('RESTRICT')
-      table.string('email').notNullable().defaultTo(null);
+      table.string('email').unique().notNullable();
       table.string('branch_code').notNullable().unique();
       table.bigInteger('contact_number').unique().notNullable();
       table.boolean('is_email_verified').notNullable().defaultTo(false);

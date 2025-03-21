@@ -24,29 +24,3 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-
-
-/**
- * 
- * 
- * Requirment for Leave 
- * 
- *   Teacher 
- * 
- *    Apply for leave , can view his/her leave status , 
- * 
- *   Clerck 
- *    
- *    Can view and manage leave status of staff , Apply for leave on behalf of employee . 
- * 
- *    Modify leave status , delete leave status ,
- * 
- *   Admin 
- * 
- *     Fetch leave status for indivisual 
- *     Create ploicies for leave 
- *     Fetch Leave application 
- *     Reject and accept leaves 
- *     filter leave :  by staff , by date , by status etc 
- *  
- */

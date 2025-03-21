@@ -5,7 +5,6 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-
       table.increments('id')
       table.integer('school_id').unsigned().references('id').inTable('schools').onUpdate('CASCADE').onDelete('CASCADE');
       table.enum('class', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).notNullable();

@@ -1,9 +1,9 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { belongsTo, column, hasOne } from '@adonisjs/lucid/orm'
+import { belongsTo, column } from '@adonisjs/lucid/orm'
 import Concessions from './Concessions.js'
-import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 export default class ConcessionStudentMaster extends Base {
 

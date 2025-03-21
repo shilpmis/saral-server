@@ -4,8 +4,6 @@ import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import hash from '@adonisjs/core/services/hash'
 import Schools from './Schools.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
-import Teacher from './Teacher.js'
-import Staff from './Staff.js'
 
 export default class User extends Base {
  

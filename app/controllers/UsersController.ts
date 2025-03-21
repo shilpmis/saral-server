@@ -14,20 +14,19 @@ export default class UsersController {
 
   async indexSchoolUsers(ctx: HttpContext) {
 
-    const user_type = ctx.request.input("type");
     const page = ctx.request.input("page", 1);
 
-    if (user_type === 'teacher') {
-      const users = await Users
-        .query()
-        .preload('teacher', (query) => {
-          query.select('id', 'first_name', 'last_name', 'middle_name', 'class_id'); // Only fetching required staff fields
-        })
-        .where('role_id', 6)
-        .andWhere('school_id', ctx.auth.user!.school_id)
-        .paginate(page, 6);
-      return ctx.response.json(users.serialize());
-    }
+    // if (user_type === 'teacher') {
+    //   const users = await Users
+    //     .query()
+    //     .preload('teacher', (query) => {
+    //       query.select('id', 'first_name', 'last_name', 'middle_name', 'class_id'); // Only fetching required staff fields
+    //     })
+    //     .where('role_id', 6)
+    //     .andWhere('school_id', ctx.auth.user!.school_id)
+    //     .paginate(page, 6);
+    //   return ctx.response.json(users.serialize());
+    // }
     const users = await Users
       .query()
       .where('school_id', ctx.auth.user!.school_id)
@@ -126,8 +125,8 @@ export default class UsersController {
         clas.useTransaction(trx); // 👈 Use transaction first
         await clas.merge({ is_assigned: true }).save();
 
-        staff.useTransaction(trx); // 👈 Use transaction first
-        await teacher.merge({ class_id: payload.class_id }).save();
+        // staff.useTransaction(trx); // 👈 Use transaction first
+        // await teacher.merge({ class_id: payload.class_id }).save();
       }
 
       await trx.commit();

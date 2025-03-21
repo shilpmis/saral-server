@@ -21,10 +21,13 @@ import LeavesController from '#controllers/LeavesController'
 import AttendanceController from '#controllers/AttendancesController'
 import InquiriesController from '#controllers/InquiriesController'
 import FeesController from '#controllers/FeesController'
-import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
 import OrganizationController from '#controllers/OrganizationController'
 import AcademicSessionsController from '#controllers/AcademicSessionController'
 import StaffController from '#controllers/StaffController'
+import ClassSeatAvailabilitiesController from '#controllers/ClassSeatAvailabilitiesController'
+import QuotasController from '#controllers/QuotaController'
+import QuotaAllocationsController from '#controllers/QuotaAllocationController'
+import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
 
 // router.get('/', async () => {
 //   return {
@@ -74,11 +77,30 @@ router
     router.post('/class/division', [ClassesController, 'createDivision'])
     router.put('/class/:class_id', [ClassesController, 'updateClass'])
 
+    // router.get('students/:academic_session_id/:class_id', [
+    //   StundetsController,
+    //   'indexClassStudents',
+    // ])
+    // router.get('student/:student_id', [StundetsController, 'fetchStudent'])
+    // router.post('student', [StundetsController, 'createSingleStudent'])
+    // router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents'])
+    // router.put('student/:student_id', [StundetsController, 'updateStudents'])
+    // router.post('students/bulk-upload/:school_id/:academic_session_id/:class_id', [
+    //   StundetsController,
+    //   'bulkUploadStudents',
+    // ])
+    // router.post('students/export/:academic_session_id/:class_id', [
+    //   StundetsController,
+    //   'exportToExcel',
+    // ])
+
     router.get('students/:academic_session_id/:class_id', [
       StundetsController,
       'indexClassStudents',
     ])
     router.get('student/:student_id', [StundetsController, 'fetchStudent'])
+    router.get('students/:class_id', [StundetsController, 'indexClassStudents'])
+    router.get('student/:school_id/:student_id', [StundetsController, 'fetchStudent'])
     router.post('student', [StundetsController, 'createSingleStudent'])
     router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents'])
     router.put('student/:student_id', [StundetsController, 'updateStudents'])
@@ -95,30 +117,6 @@ router
     router.post('/staff-role', [StaffMasterController, 'createStaffRole'])
     router.put('/staff-role/:id', [StaffMasterController, 'updateStaffRole'])
     router.delete('/staff-role/:id', [StaffMasterController, 'deleteStaffRole'])
-
-    /**
-     * need think of for adding school_id in teachers creation
-     */
-    router.get('teachers/:school_id', [TeachersController, 'indexTeachersForSchool'])
-    router.get('teachers/activeuser/:school_id', [TeachersController, 'indexTeacherActiveAsUser'])
-    router.get('teachers/non-activeuser/:school_id', [
-      TeachersController,
-      'indexTeacherNotActiveAsUser',
-    ])
-    router.post('teachers/:school_id', [TeachersController, 'createTeacher'])
-    router.put('teacher/:school_id/:teacher_id', [TeachersController, 'updateTeacher'])
-    router.post('teachers/bulk-upload/:school_id/', [TeachersController, 'bulkUploadTeachers'])
-
-    router.get('other-staff/:school_id', [OtherStaffsController, 'indexOtherStaffForSchool'])
-    router.post('other-staff/:school_id', [OtherStaffsController, 'createOtherStaff'])
-    router.put('other-staff/:school_id/:other_staff_id', [
-      OtherStaffsController,
-      'updateOtherStaff',
-    ])
-    router.post('other-staff/bulk-upload/:school_id/', [
-      OtherStaffsController,
-      'bulkUploadOtherStaff',
-    ])
 
     router.get('staff', [StaffController, 'indexStaff'])
     // router.get('staff/activeuser', [StaffController, 'indexTeacherActiveAsUser'])
@@ -148,12 +146,36 @@ router
       'approveTeachersLeaveApplication',
     ])
 
+    // routes for the class seat availability
+    router.post('/classes/seat-availability', [
+      ClassSeatAvailabilitiesController,
+      'addSeatAvailability',
+    ])
+    router.get('/classes/seat-availability/all', [
+      ClassSeatAvailabilitiesController,
+      'getAllClassesSeatAvailability',
+    ])
+    router.get('/classes/:class_id/seat-availability', [
+      ClassSeatAvailabilitiesController,
+      'getSeatAvailability',
+    ])
+    // router.put('/classes/:class_id/update-seat-availability', [ClassSeatAvailabilitiesController,'updateSeatAvailability']);
+
+    // routes for the quota
+    router.post('/quota', [QuotasController, 'createQuotaForSeats'])
+    router.get('/quota/all', [QuotasController, 'listAllQuotas'])
+    router.put('/quota/:id', [QuotasController, 'updateQuota'])
+    router.delete('/quota/:id', [QuotasController, 'delete'])
+
+    // routes for the quota allocation
+    router.post('/quota-allocation/', [QuotaAllocationsController, 'allocateQuotaToClass'])
+    router.get('/quota-allocation/all', [QuotaAllocationsController, 'listAllQuotaAllocation'])
+    router.put('/quota-allocation/:id', [QuotaAllocationsController, 'updateFilledSeats'])
+
     router.get('attendance/:class_id/:unix_date', [AttendanceController, 'getAttendanceDetails'])
     router.post('attendance', [AttendanceController, 'markAttendance'])
 
-    router.get('/inquiries', [InquiriesController, 'indexInquiries'])
-    router.post('/inquiry', [InquiriesController, 'addInquiry'])
-    router.get('/inquiry/:id', [InquiriesController, 'updateInquiry'])
+    /**Fees */
 
     router.get('/feestype', [FeesController, 'indexFeesTyeForSchool'])
     router.post('/feestype', [FeesController, 'createFeesType'])
@@ -172,12 +194,26 @@ router
     router.post('/fees/pay/installments/:student_id', [FeesController, 'payMultipleInstallments'])
     router.put('/transaction/:transaction_id', [FeesController, 'updateFeesStatus'])
 
+    /**concessions */
     router.get('/concessions', [FeesController, 'indexConcessionType'])
     router.get('/concession/:concession_id', [FeesController, 'fetchDetailConcessionType'])
     router.post('/concession', [FeesController, 'createConcession'])
     router.put('/concession/:concession_id', [FeesController, 'updateConcession'])
     router.post('/concession/apply/plan', [FeesController, 'applyConcessionToPlan'])
     router.post('/concession/apply/student', [FeesController, 'applyConcessionToStudent'])
+
+    router.get('/inquiries', [InquiriesController, 'listAllInquiries'])
+    router.post('/inquiry', [InquiriesController, 'addInquiryForClass'])
+    router.get('/inquiry/:id', [InquiriesController, 'getInquiryById'])
+    router.put('/inquiry/:id', [InquiriesController, 'updateInquiry'])
+    router.post('/inquiry/:id/enroll-student', [InquiriesController, 'convertInquiryToStudent'])
+
+    router.get('admissions/dashboard', [AdmissionDashboardController, 'getDashboardData'])
+    router.get('admissions/dashboard/detailed', [
+      AdmissionDashboardController,
+      'getDetailedStatistics',
+    ])
+    router.get('admissions/dashboard/trends', [AdmissionDashboardController, 'getTrendData'])
   })
   .prefix('/api/v1/')
   .use(middleware.auth())

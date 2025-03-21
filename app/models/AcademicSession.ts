@@ -1,6 +1,5 @@
 import Base from '#models/base'
 import { column, hasOne, manyToMany } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
 import Schools from '#models/Schools'
 import * as relations from '@adonisjs/lucid/types/relations'
 import Students from './Students.js'
