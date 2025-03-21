@@ -70,7 +70,7 @@ export default class FeesController {
 
     let payload = await CreateValidatorForFeesType.validate(ctx.request.body())
 
-    let academic_session_id = payload.academic_session
+    let academic_session_id = payload.academic_session_id
 
     let academic_years = await AcademicSession.query()
       .where('id', academic_session_id)
@@ -232,8 +232,8 @@ export default class FeesController {
     resObj.fees_plan = plan
 
     let fees_types = await FeesPlanDetails.query()
-      .where('academic_session_id', plan.academic_session_id)
-      .andWhere('fees_plan_id', plan_id)
+      // .where('academic_session_id', plan.academic_session_id)
+      .where('fees_plan_id', plan_id)
 
     for (let i = 0; i < fees_types.length; i++) {
       let installment_breakDowns: InstallmentBreakDowns[] =
@@ -394,7 +394,6 @@ export default class FeesController {
               total_amount: detail.total_amount,
               total_installment: detail.total_installment,
               installment_type: detail.installment_type,
-              academic_session_id: plan.academic_session_id,
               fees_plan_id: plan.id,
               status: 'Active',
             },
@@ -595,61 +594,61 @@ export default class FeesController {
     res.fees_plan = fees_Plan
     res.fees_details = fees_details
 
-    let concession = student.provided_concession
-    let paid_amount = res.paid_fees.reduce(
-      (acc: number, fees: StudentFeesInstallments) => acc + fees.paid_amount,
-      0
-    )
+    // let concession = student.provided_concession
+    // let paid_amount = res.paid_fees.reduce(
+    //   (acc: number, fees: StudentFeesInstallments) => acc + fees.paid_amount,
+    //   0
+    // )
     /**
      * Consession management for student.
      */
-    let totoal_discount = 0
-    if (concession.length > 0) {
-      let total_consession_amount = concession.reduce(
-        (acc: number, cons: ConcessionStudentMaster) => {
-          if (cons.amount) {
-            return acc + cons.amount
-          }
-          return acc
-        },
-        0
-      )
-      let total_consession_percentage = concession.reduce(
-        (acc: number, cons: ConcessionStudentMaster) => {
-          if (cons.percentage) {
-            return acc + (cons.percentage * fees_Plan.total_amount) / 100
-          }
-          return acc
-        },
-        0
-      )
-      totoal_discount = total_consession_amount + total_consession_percentage
-    }
+    // let totoal_discount = 0
+    // if (concession.length > 0) {
+    //   let total_consession_amount = concession.reduce(
+    //     (acc: number, cons: ConcessionStudentMaster) => {
+    //       if (cons.amount) {
+    //         return acc + cons.amount
+    //       }
+    //       return acc
+    //     },
+    //     0
+    //   )
+    //   let total_consession_percentage = concession.reduce(
+    //     (acc: number, cons: ConcessionStudentMaster) => {
+    //       if (cons.percentage) {
+    //         return acc + (cons.percentage * fees_Plan.total_amount) / 100
+    //       }
+    //       return acc
+    //     },
+    //     0
+    //   )
+    //   totoal_discount = total_consession_amount + total_consession_percentage
+    // }
 
-    if (paid_amount > res.fees_plan.total_amount - totoal_discount) {
-      let refundable_discount_amount = paid_amount - totoal_discount
+    // if (paid_amount > res.fees_plan.total_amount - totoal_discount) {
+    //   // let refundable_discount_amount = paid_amount - totoal_discount
 
-      let stundentFeesInstallMent = await StudentFeesInstallments.query().where(
-        'student_fees_master_id',
-        student.fees_status.id
-      )
+    //   let stundentFeesInstallMent = await StudentFeesInstallments.query().where(
+    //     'student_fees_master_id',
+    //     student.fees_status.id
+    //   )
 
-      let all_installment = fees_details
-        .map((detail: FeesPlanDetails) => detail.installments_breakdown)
-        .map((installments: InstallmentBreakDowns[]) => installments)
-        .flat()
+    //   let all_installment = fees_details
+    //     .map((detail: FeesPlanDetails) => detail.installments_breakdown)
+    //     .map((installments: InstallmentBreakDowns[]) => installments)
+    //     .flat()
 
-      let unpaid_installments =
-        stundentFeesInstallMent.length > 0
-          ? all_installment.filter((installment: InstallmentBreakDowns) => {
-              return !stundentFeesInstallMent
-                .map((installment: StudentFeesInstallments) => installment.installment_id)
-                .includes(installment.id)
-            })
-          : []
-    } else if (paid_amount < totoal_discount) {
-    } else {
-    }
+    //   let unpaid_installments =
+    //     stundentFeesInstallMent.length > 0
+    //       ? all_installment.filter((installment: InstallmentBreakDowns) => {
+    //           return !stundentFeesInstallMent
+    //             .map((installment: StudentFeesInstallments) => installment.installment_id)
+    //             .includes(installment.id)
+    //         })
+    //       : []
+    // } else if (paid_amount < totoal_discount) {
+    // } else {
+    // }
 
     return ctx.response.json({ student: student_obj, fees_plan: res })
   }
@@ -1038,7 +1037,8 @@ export default class FeesController {
   async createConcession(ctx: HttpContext) {
     const payload = await CreateValidationForConcessionType.validate(ctx.request.body())
 
-    let academic_session_id = payload.academic_session
+    let academic_session_id = payload.academic_session_id
+
     let academic_session = await AcademicSession.query()
       .where('id', academic_session_id)
       .andWhere('is_active', 1)
@@ -1053,7 +1053,6 @@ export default class FeesController {
     if (ctx.auth.user!.role_id == 1 || ctx.auth.user!.role_id == 2) {
       let studentFeesMaster = await Concessions.create({
         ...payload,
-        academic_session_id: academic_session_id,
         school_id: ctx.auth.user!.school_id,
       })
       return ctx.response.status(201).json(studentFeesMaster)
