@@ -8,7 +8,7 @@ export const CreateValidatorForFeesType = vine.compile(
     // add here
     name: vine.string().trim().minLength(2).maxLength(50),
     description: vine.string().trim().minLength(2).maxLength(50),
-    academic_session: vine.number(),
+    academic_session_id: vine.number(),
   })
 )
 
@@ -166,9 +166,10 @@ export const CreateValidationForConcessionType = vine.compile(
   vine.object({
     name: vine.string().trim().minLength(2).maxLength(50),
     description: vine.string().trim().minLength(2).maxLength(200),
-    applicable_to: vine.enum(['fees_types', 'plan', 'students']),
-    category: vine.enum(['Family', 'Sports', 'Staff', 'Education', 'Financial', 'Other']),
-    academic_session: vine.number(),
+    applicable_to: vine.enum(['plan', 'students']),
+    concessions_to: vine.enum(['plan', 'fees_type']),
+    category: vine.enum(['family', 'sports', 'staff', 'education', 'financial', 'other']),
+    academic_session_id: vine.number(),
   })
 )
 
