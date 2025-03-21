@@ -87,9 +87,9 @@ export default class AuthController {
 
         let user = await userQuery.first()
 
-        if (user && user.teacher_id) {
-          await user.load('teacher')
-        }
+        // if (user && user.teacher_id) {
+        //   await user.load('teacher')
+        // }
         if (user && await hash.verify(user.password, password)) {
           const token = await User.accessTokens.create(user, ['*'], {
             expiresIn: '7 days' // expires in 30 days
@@ -118,9 +118,9 @@ export default class AuthController {
 
       let user = await userQuery.first()
 
-      if (user && user.teacher_id) {
-        await user.load('teacher')
-      }
+      // if (user && user.teacher_id) {
+      //   await user.load('teacher')
+      // }
       if (user) {
 
         await User.accessTokens.create(user, ['*'], {

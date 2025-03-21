@@ -6,7 +6,6 @@ export default class AdmissionDashboardController {
   public async getDashboardData({ response, auth }: HttpContext) {
     try {
       // Get the authenticated user's school_id (assuming the user is authenticated)
-      const userId = auth.user?.id
       const schoolId = auth.user?.school_id
 
       // Base query to filter by school if needed

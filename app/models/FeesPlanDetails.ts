@@ -3,7 +3,7 @@
 import Base from '#models/base'
 import { column, hasMany } from '@adonisjs/lucid/orm'
 import InstallmentBreakDowns from './InstallmentBreakDowns.js'
-import type { HasMany, HasOne } from '@adonisjs/lucid/types/relations'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 
 export default class FeesPlanDetails extends Base {
 

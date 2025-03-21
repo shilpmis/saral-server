@@ -105,7 +105,7 @@ export default class StundetsController {
 
 
     async createSingleStudent(ctx: HttpContext) {
-        const academic_session_id = ctx.request.qs().academic_sessions;
+        const academic_session_id = ctx.request.qs().academic_session;
         console.log(academic_session_id)
         const trx = await db.transaction()
         try {

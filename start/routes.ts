@@ -114,7 +114,7 @@ router.group(() => {
   router.get('teachers/activeuser/:school_id', [TeachersController, 'indexTeacherActiveAsUser'])
   router.get('teachers/non-activeuser/:school_id', [TeachersController, 'indexTeacherNotActiveAsUser'])
   router.post('teachers/:school_id', [TeachersController, 'createTeacher'])
-  router.put('teacher/:school_id/:teacher_id', [TeachersController, 'updateTeacher']);
+  // router.put('teacher/:school_id/:teacher_id', [TeachersController, 'updateTeacher']);
   router.post('teachers/bulk-upload/:school_id/', [TeachersController, 'bulkUploadTeachers'])
   
   router.get('other-staff/:school_id', [OtherStaffsController, 'indexOtherStaffForSchool'])

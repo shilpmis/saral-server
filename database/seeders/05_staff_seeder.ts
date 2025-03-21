@@ -38,7 +38,7 @@ export default class extends BaseSeeder {
         account_no: 567890123456,
         IFSC_code: "BARB0AHMEDB",
         is_teching_staff : true,
-        employee_code : 22
+        employee_code : "22"
       },
       {
         id : 2,
@@ -73,7 +73,7 @@ export default class extends BaseSeeder {
         account_no: 678901234567,
         IFSC_code: "HDFC0001234",
         is_teching_staff : true,
-        employee_code : 24
+        employee_code : "24"
       },
       {
         id : 3,
@@ -108,7 +108,7 @@ export default class extends BaseSeeder {
         account_no: 789012345678,
         IFSC_code: "ICIC0007890",
         is_teching_staff : true,
-        employee_code : 232
+        employee_code : "23"
       },
       {
         id : 4,
@@ -143,7 +143,7 @@ export default class extends BaseSeeder {
         account_no: 890123456789,
         IFSC_code: "UTIB0008901",
         is_teching_staff : true,
-        employee_code : 2341
+        employee_code : "2341"
       },
       {
         id : 5,
@@ -176,7 +176,7 @@ export default class extends BaseSeeder {
         account_no: 1234567890,
         IFSC_code: "SBIN0001234", 
         is_teching_staff : false,
-        employee_code : 342
+        employee_code : "342"
       },
       {
         id : 6,
@@ -210,8 +210,8 @@ export default class extends BaseSeeder {
         IFSC_code: "HDFC0002345",
         is_teching_staff : false,
         qualification : null,
-        employee_code : 1
-      },
+        employee_code : "1556"
+ },
       {
         id : 7,
         school_id : 1,
@@ -244,8 +244,8 @@ export default class extends BaseSeeder {
         IFSC_code: "ICIC0003456",
         is_teching_staff : false,
         qualification : null,
-        employee_code : 2
-      },
+        employee_code : "245efdj"    
+        },
       {
         id : 8,
         school_id : 1,
@@ -278,8 +278,8 @@ export default class extends BaseSeeder {
         IFSC_code: "UTIB0004567",
         is_teching_staff : false,
         qualification : null,
-        employee_code : 3
-      }
+        employee_code : "3"  
+          }
     ])
   }
 }
