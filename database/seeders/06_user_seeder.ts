@@ -15,18 +15,17 @@ export default class extends BaseSeeder {
         password: "12345678",
         is_active : true,
         is_teacher : false,
-        teacher_id : null
+        staff_id : null
       },
       {
         id: 2,
         school_id: 1,
-        saral_email: 'principal@melzo.saral',
+        saral_email: 'meetpatel@melzo.saral',
         name: "Meet Mehta",
-        role_id: 2,
+        role_id: 6,
         password: "12345678",
         is_active : true,
-        is_teacher : false,
-        teacher_id : null
+        staff_id : 2
       },
       {
         id: 3,
@@ -36,7 +35,7 @@ export default class extends BaseSeeder {
         role_id: 6,
         password: "12345678",
         is_teacher : true,
-        teacher_id : 1,
+        staff_id : 1,
         is_active : true,
       },
     ])

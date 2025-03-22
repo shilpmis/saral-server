@@ -4,6 +4,7 @@ import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import hash from '@adonisjs/core/services/hash'
 import Schools from './Schools.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
+import Staff from './Staff.js'
 
 export default class User extends Base {
  
@@ -30,7 +31,7 @@ export default class User extends Base {
   declare is_teacher : boolean
   
   @column()
-  declare teacher_id : number | null
+  declare staff_id : number | null
   
   @column()
   declare is_active : boolean
@@ -41,11 +42,11 @@ export default class User extends Base {
   })
   declare school : HasOne<typeof Schools>
 
-  // @hasOne(() => Staff , {
-  //   localKey : 'teacher_id',
-  //   foreignKey : 'id'
-  // })
-  // declare teacher : HasOne<typeof Teacher>
+  @hasOne(() => Staff , {
+    localKey : 'staff_id',
+    foreignKey : 'id'
+  })
+  declare staff : HasOne<typeof Staff>
 
   @beforeSave()
   static async hashPassword(user: User) {

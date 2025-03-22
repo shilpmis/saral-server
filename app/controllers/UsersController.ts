@@ -2,7 +2,6 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { CreateValidatorForOnBoardTeacherAsUser, CreateValidatorForUsers, UpdateValidatorForOnBoardTeacherAsUser, UpdateValidatorForUsers } from '#validators/Users'
 import Users from '#models/User'
 import User from '#models/User';
-import Teacher from '#models/Teacher';
 import Schools from '#models/Schools';
 import Classes from '#models/Classes';
 import db from '@adonisjs/lucid/services/db';
@@ -99,7 +98,7 @@ export default class UsersController {
     try {
 
       const user = await User.create({
-        teacher_id: payload.staff_id,
+        staff_id: payload.staff_id,
         school_id: ctx.auth.user?.school_id,
         is_active: true,
         password: "12345678",
@@ -169,7 +168,7 @@ export default class UsersController {
       const payload = await UpdateValidatorForOnBoardTeacherAsUser.validate(ctx.request.all());
   
       // ✅ If class_id is provided & user has a teacher_id, update teacher's class
-      if (payload.class_id && user.teacher_id) {
+      if (payload.class_id && user.staff_id) {
         // Fetch Class
         const clas = await Classes.query()
           .where('id', payload.class_id)
@@ -180,20 +179,20 @@ export default class UsersController {
           return ctx.response.status(404).json({ message: "Class not found" });
         }
   
-        // Fetch Teacher
-        const teacher = await Teacher.query()
+        // Fetch staff as a teacher
+        const staff = await Staff.query()
           .preload('school')
-          .where('id', user.teacher_id)
+          .where('id', user.staff_id)
           .andWhere('school_id', ctx.auth.user!.school_id)
           .first()
   
-        if (!teacher) {
-          return ctx.response.status(404).json({ message: "Teacher not found" });
+        if (!staff) {
+          return ctx.response.status(404).json({ message: "Staff not found" });
         }
   
         // ✅ Update Teacher's Class
-        teacher.useTransaction(trx);
-        await teacher.merge({ class_id: payload.class_id }).save();
+        staff.useTransaction(trx);
+        await staff.merge({ class_id: payload.class_id }).save();
       }
   
       // ✅ Update User Status
