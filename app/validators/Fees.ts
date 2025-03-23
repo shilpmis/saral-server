@@ -125,6 +125,7 @@ export const CreateValidatorForconcessions = vine.compile(
 
 export const CreateValidationForPayFees = vine.compile(
   vine.object({
+    fee_plan_details_id: vine.number(),
     installment_id: vine.number(),
     paid_amount: vine.string(),
     discounted_amount: vine.string(),
@@ -139,20 +140,26 @@ export const CreateValidationForPayFees = vine.compile(
 )
 
 export const CreateValidationForMultipleInstallments = vine.compile(
-  vine
-    .array(
-      vine.object({
-        installment_id: vine.number(),
-        // fees_plan_details_id: vine.number(),
-        paid_amount: vine.string(),
-        payment_mode: vine.enum(['Cash', 'Online', 'Bank Transfer']),
-        transaction_reference: vine.string().nullable(),
-        payment_date: vine.date(),
-        remarks: vine.string().nullable(),
-        status: vine.enum(['Pending', 'Partially Paid', 'Paid', 'Overdue', 'Failed']),
-      })
-    )
-    .minLength(1)
+  vine.object({
+    student_id: vine.number(),
+    installlments: vine
+      .array(
+        vine.object({
+          fee_plan_details_id: vine.number(),
+          installment_id: vine.number(),
+          paid_amount: vine.number(),
+          discounted_amount: vine.number(),
+          paid_as_refund: vine.boolean(),
+          refunded_amount: vine.number(),
+          payment_mode: vine.enum(['Cash', 'Online', 'Bank Transfer']),
+          transaction_reference: vine.string().nullable(),
+          payment_date: vine.date(),
+          remarks: vine.string().nullable(),
+          // status: vine.enum(['Pending', 'Partially Paid', 'Paid', 'Overdue', 'Failed']),
+        })
+      )
+      .minLength(1),
+  })
 )
 
 export const UpdateValidationForInstallment = vine.compile(
@@ -177,8 +184,8 @@ export const UpdateValidationForConcessionType = vine.compile(
   vine.object({
     name: vine.string().trim().minLength(2).maxLength(50).optional(),
     description: vine.string().trim().minLength(2).maxLength(200).optional(),
-    applicable_to: vine.enum(['fees_types', 'plan', 'students']).optional(),
-    category: vine.enum(['Family', 'Sports', 'Staff', 'Education', 'Financial', 'Other']),
+    // applicable_to: vine.enum(['fees_types', 'plan', 'students']).optional(),
+    category: vine.enum(['family', 'sports', 'staff', 'education', 'financial', 'other']),
   })
 )
 
@@ -186,7 +193,7 @@ export const CreateValidationForApplyConcessionToPlan = vine.compile(
   vine.object({
     concession_id: vine.number(),
     fees_plan_id: vine.number(),
-    fees_type_id: vine.number().nullable(),
+    fees_type_ids: vine.array(vine.number()).nullable(),
     deduction_type: vine.enum(['percentage', 'fixed_amount']),
     amount: vine.number().max(1000000).min(100).nullable(),
     percentage: vine.number().max(100).min(1).nullable(),
@@ -206,14 +213,10 @@ export const CreateValidationForApplyConcessionToStudent = vine.compile(
   vine.object({
     concession_id: vine.number(),
     student_id: vine.number(),
+    fees_plan_id: vine.number(),
+    fees_type_ids: vine.array(vine.number()).nullable(),
     deduction_type: vine.enum(['percentage', 'fixed_amount']),
     amount: vine.number().max(1000000).min(100).nullable(),
     percentage: vine.number().max(100).min(1).nullable(),
-    /**
-     *
-     * fees_plan_id will be the paln which assign to student through plan allocated to class
-     * */
-    // fees_plan_id: vine.number(),
-    // fees_type_id: vine.number().nullable(),
   })
 )

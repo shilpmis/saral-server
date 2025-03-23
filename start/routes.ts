@@ -186,10 +186,10 @@ router
     router.get('/fees/status/class/:class_id', [FeesController, 'fetchFeesStatusForClass'])
     router.get('/fees/status/student/:student_id', [
       FeesController,
-      'fetchFeesStatusForSingleStundent',
+      'fetchFeesStatusForSingleStudent',
     ])
-    router.post('/fees/pay/:student_id', [FeesController, 'payFees'])
-    router.post('/fees/pay/installments/:student_id', [FeesController, 'payMultipleInstallments'])
+    // router.post('/fees/pay/:student_id', [FeesController, 'payFees'])
+    router.post('/fees/pay/installments', [FeesController, 'payMultipleInstallments'])
     router.put('/transaction/:transaction_id', [FeesController, 'updateFeesStatus'])
 
     /**concessions */

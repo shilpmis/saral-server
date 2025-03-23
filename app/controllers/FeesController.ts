@@ -7,6 +7,7 @@ import FeesPlan from '#models/FeesPlan'
 import FeesPlanDetails from '#models/FeesPlanDetails'
 import FeesType from '#models/FeesType'
 import InstallmentBreakDowns from '#models/InstallmentBreakDowns'
+import StudentEnrollments from '#models/StudentEnrollments'
 import StudentFeesInstallments from '#models/StudentFeesInstallments'
 import StudentFeesMaster from '#models/StudentFeesMaster'
 import Students from '#models/Students'
@@ -310,7 +311,7 @@ export default class FeesController {
             total_amount: payload.plan_details[i].total_amount,
             total_installment: payload.plan_details[i].total_installment,
             installment_type: payload.plan_details[i].installment_type,
-            academic_session_id: academic_session_id,
+            // academic_session_id: academic_session_id,
             fees_plan_id: fees_type.id,
             status: 'Active',
           },
@@ -339,6 +340,7 @@ export default class FeesController {
       return ctx.response.status(201).json(resp)
     } catch (error) {
       await trx.rollback()
+      console.log(error)
       return ctx.response.status(500).json({
         message: 'Internal Server Error',
         errors: error,
@@ -421,7 +423,6 @@ export default class FeesController {
           .useTransaction(trx)
           .save()
       }
-      console.log('paylaod', plan)
 
       await trx.commit()
       return ctx.response.status(200).json(plan)
@@ -434,7 +435,6 @@ export default class FeesController {
     }
   }
 
-  /** */
   async fetchFeesStatusForClass(ctx: HttpContext) {
     let class_id = ctx.params.class_id
     if (!class_id) {
@@ -444,10 +444,11 @@ export default class FeesController {
     }
 
     let academic_session_id = ctx.request.input('academic_session')
+
     let academic_year = await AcademicSession.query()
       .where('id', academic_session_id)
       .andWhere('is_active', 1)
-      .andWhere('school_id', ctx.auth.user!.id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
     if (!academic_year) {
@@ -484,11 +485,22 @@ export default class FeesController {
       })
     }
 
+    let student_enrollments = await StudentEnrollments.query()
+      .where('class_id', class_id)
+      .andWhere('academic_session_id', academic_session_id)
+
+    if (student_enrollments.length === 0) {
+      return ctx.response.status(404).json({
+        message: 'No student found in this class for this academic session !',
+      })
+    }
+
     let students = await Students.query()
       .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
       .preload('fees_status')
-      .where('class_id', class_id)
-      .andWhere('school_id', ctx.auth.user!.school_id)
+      .whereIn('id', [
+        ...student_enrollments.map((student: StudentEnrollments) => student.student_id),
+      ])
       .paginate(ctx.request.input('page', 1), 10)
 
     let { data, meta } = students.toJSON()
@@ -517,20 +529,40 @@ export default class FeesController {
 
     return ctx.response.json({ data: res, meta })
   }
-  /** */
-  async fetchFeesStatusForSingleStundent(ctx: HttpContext) {
-    let student_id = ctx.params.student_id
 
+  async fetchFeesStatusForSingleStudent(ctx: HttpContext) {
+    let student_id = ctx.params.student_id
     if (!student_id) {
       return ctx.response.status(400).json({
         message: 'Please provide student_id',
       })
     }
 
+    let academicSession = await AcademicSession.query()
+      .where('is_active', 1)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+    if (!academicSession) {
+      return ctx.response.status(404).json({
+        message: 'No active academic year found for this school',
+      })
+    }
+
     let student = await Students.query()
-      .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number', 'class_id')
+      .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
       .preload('fees_status')
-      .preload('provided_concession')
+      .preload('provided_concession', (query) => {
+        query.preload('concession')
+      })
+      .preload('academic_class', (query) => {
+        query.preload('class', (query) => {
+          query
+            .select('id', 'class', 'division', 'aliases')
+            .where('school_id', ctx.auth.user!.school_id)
+        })
+        query.where('academic_session_id', academicSession.id)
+      })
       .where('id', student_id)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
@@ -541,287 +573,422 @@ export default class FeesController {
       })
     }
 
-    type res_type = {
-      fees_plan: FeesPlan
-      fees_details: FeesPlanDetails[]
-      paid_fees: StudentFeesInstallments[]
-    }
+    let feesPlan = await FeesPlan.query()
+      .preload('concession_for_plan', (query) => {
+        query.preload('concession')
+      })
+      .where('class_id', student.academic_class[0].class_id)
+      .andWhere('academic_session_id', academicSession.id)
+      .first()
 
-    let res: res_type = {
-      fees_details: [],
-      fees_plan: {} as FeesPlan,
-      paid_fees: [],
-    }
-
-    let fees_Plan = await FeesPlan.query().where('class_id', student.class_id).first()
-
-    if (!fees_Plan) {
+    if (!feesPlan) {
       return ctx.response.status(404).json({
         message: 'No fees plan found for this Student',
       })
     }
 
-    /**
-     * Fetched payed fees for student
-     */
+    let feesDetails = await FeesPlanDetails.query()
+      .preload('installments_breakdown')
+      .where('fees_plan_id', feesPlan.id)
 
-    let student_obj: any = { ...student.serialize() }
+    type ResType = {
+      fees_plan: FeesPlan
+      fees_details: FeesPlanDetails[]
+      paid_fees: StudentFeesInstallments[]
+      wallet: {
+        total_concession_for_student: number
+        total_concession_for_plan: number
+      }
+    }
+
+    let res: ResType = {
+      fees_details: [],
+      fees_plan: {} as FeesPlan,
+      paid_fees: [],
+      wallet: {
+        total_concession_for_student: 0,
+        total_concession_for_plan: 0,
+      },
+    }
+
+    let totalConcessionAmountForStudent = student.provided_concession.reduce(
+      (acc: number, cons: ConcessionStudentMaster) => {
+        if (cons.amount) {
+          return acc + Number(cons.amount)
+        }
+        return acc
+      },
+      0
+    )
+
+    let totalConcessionPercentageForStudent = student.provided_concession.reduce(
+      (acc: number, cons: ConcessionStudentMaster) => {
+        if (cons.percentage) {
+          if (cons.concession.concessions_to === 'plan') {
+            return acc + (Number(cons.percentage) * Number(feesPlan.total_amount)) / 100
+          } else {
+            const matchingDetail = feesDetails.find(
+              (detail) => detail.fees_type_id === cons.fees_type_id
+            )
+            if (matchingDetail) {
+              return acc + (Number(cons.percentage) * Number(matchingDetail.total_amount)) / 100
+            }
+            return acc
+          }
+        }
+        return acc
+      },
+      0
+    )
+
+    let totalConcessionAmountForPlan = feesPlan.concession_for_plan.reduce(
+      (acc: number, cons: ConcessionFeesPlanMaster) => {
+        if (cons.amount) {
+          return acc + Number(cons.amount)
+        }
+        return acc
+      },
+      0
+    )
+
+    let totalConcessionPercentageForPlan = feesPlan.concession_for_plan.reduce(
+      (acc: number, cons: ConcessionFeesPlanMaster) => {
+        if (cons.percentage) {
+          if (cons.concession.concessions_to === 'plan') {
+            return acc + (Number(cons.percentage) * Number(feesPlan.total_amount)) / 100
+          } else {
+            const matchingDetail = feesDetails.find(
+              (detail) => detail.fees_type_id === cons.fees_type_id
+            )
+            if (matchingDetail) {
+              return acc + (Number(cons.percentage) * Number(matchingDetail.total_amount)) / 100
+            }
+            return acc
+          }
+        }
+        return acc
+      },
+      0
+    )
+
+    let totalConcessionForStudent =
+      Number(totalConcessionAmountForStudent) + Number(totalConcessionPercentageForStudent)
+
+    let totalConcessionForPlan =
+      Number(totalConcessionAmountForPlan) + Number(totalConcessionPercentageForPlan)
+
+    res.wallet.total_concession_for_student = totalConcessionForStudent
+    res.wallet.total_concession_for_plan = totalConcessionForPlan
+
+    let studentObj: any = { ...student.serialize() }
 
     if (!student.fees_status) {
-      student_obj.fees_status = {
+      studentObj.fees_status = {
         student_id: student.id,
-        academic_session_id: 1,
-        fees_plan_id: fees_Plan.id,
+        academic_session_id: academicSession.id,
+        fees_plan_id: feesPlan.id,
         discounted_amount: 0,
         paid_amount: 0,
-        total_amount: fees_Plan.total_amount,
-        due_amount: fees_Plan.total_amount,
+        total_amount: feesPlan.total_amount,
+        due_amount: feesPlan.total_amount,
         status: 'Pending',
       }
     } else {
-      // let stundet_fees = await StudentFeesMaster.query().where('id', student.fees_status.id).first();
-      let paid_fees = await StudentFeesInstallments.query().where(
+      let paidFees = await StudentFeesInstallments.query().where(
         'student_fees_master_id',
         student.fees_status.id
       )
-      res.paid_fees = paid_fees
+      res.paid_fees = paidFees
     }
 
-    let fees_details = await FeesPlanDetails.query()
-      .preload('installments_breakdown')
-      .where('fees_plan_id', fees_Plan.id)
+    res.fees_plan = feesPlan
+    res.fees_details = feesDetails
 
-    res.fees_plan = fees_Plan
-    res.fees_details = fees_details
+    // let usedConcession =
+    //   res.paid_fees.length === 0
+    //     ? 0
+    //     : res.paid_fees.reduce((acc: number, installment: StudentFeesInstallments) => {
+    //         return (
+    //           acc + Number(installment.discounted_amount) + Number(installment.refunded_amount || 0)
+    //         )
+    //       }, 0)
 
-    // let concession = student.provided_concession
-    // let paid_amount = res.paid_fees.reduce(
-    //   (acc: number, fees: StudentFeesInstallments) => acc + fees.paid_amount,
-    //   0
-    // )
-    /**
-     * Consession management for student.
-     */
-    // let totoal_discount = 0
-    // if (concession.length > 0) {
-    //   let total_consession_amount = concession.reduce(
-    //     (acc: number, cons: ConcessionStudentMaster) => {
-    //       if (cons.amount) {
-    //         return acc + cons.amount
+    // // Adjust remaining unpaid installments with applied concessions
+    // let remainingConcession = totalConcessionForStudent + totalConcessionForPlan - usedConcession
+    // let remainingDueAmount = Number(studentObj.fees_status.due_amount)
+
+    // for (let detail of res.fees_details) {
+    //   for (let installment of detail.installments_breakdown) {
+    //     if (installment.status === 'Active' && remainingDueAmount > 0) {
+    //       let installmentAmount = Number(installment.installment_amount)
+    //       let adjustedAmount = installmentAmount
+
+    //       if (remainingConcession > 0) {
+    //         if (remainingConcession >= installmentAmount) {
+    //           adjustedAmount = 0
+    //           remainingConcession -= installmentAmount
+    //         } else {
+    //           adjustedAmount -= remainingConcession
+    //           remainingConcession = 0
+    //         }
     //       }
-    //       return acc
-    //     },
-    //     0
-    //   )
-    //   let total_consession_percentage = concession.reduce(
-    //     (acc: number, cons: ConcessionStudentMaster) => {
-    //       if (cons.percentage) {
-    //         return acc + (cons.percentage * fees_Plan.total_amount) / 100
+
+    //       if (remainingDueAmount >= adjustedAmount) {
+    //         remainingDueAmount -= adjustedAmount
+    //       } else {
+    //         adjustedAmount = remainingDueAmount
+    //         remainingDueAmount = 0
     //       }
-    //       return acc
-    //     },
-    //     0
-    //   )
-    //   totoal_discount = total_consession_amount + total_consession_percentage
+
+    //       installment.installment_amount = Number(adjustedAmount.toFixed(2))
+    //     }
+    //   }
     // }
 
-    // if (paid_amount > res.fees_plan.total_amount - totoal_discount) {
-    //   // let refundable_discount_amount = paid_amount - totoal_discount
-
-    //   let stundentFeesInstallMent = await StudentFeesInstallments.query().where(
-    //     'student_fees_master_id',
-    //     student.fees_status.id
-    //   )
-
-    //   let all_installment = fees_details
-    //     .map((detail: FeesPlanDetails) => detail.installments_breakdown)
-    //     .map((installments: InstallmentBreakDowns[]) => installments)
-    //     .flat()
-
-    //   let unpaid_installments =
-    //     stundentFeesInstallMent.length > 0
-    //       ? all_installment.filter((installment: InstallmentBreakDowns) => {
-    //           return !stundentFeesInstallMent
-    //             .map((installment: StudentFeesInstallments) => installment.installment_id)
-    //             .includes(installment.id)
-    //         })
-    //       : []
-    // } else if (paid_amount < totoal_discount) {
-    // } else {
-    // }
-
-    return ctx.response.json({ student: student_obj, fees_plan: res })
+    return ctx.response.json({ student: studentObj, detail: res })
   }
 
   /** */
-  async payFees(ctx: HttpContext) {
-    let student_id = ctx.params.student_id
+  // async payFees(ctx: HttpContext) {
 
-    if (!student_id) {
-      return ctx.response.status(400).json({
-        message: 'Please provide student_id',
-      })
-    }
+  //   let student_id = ctx.params.student_id
+  //   if (!student_id) {
+  //     return ctx.response.status(400).json({
+  //       message: 'Please provide student_id',
+  //     })
+  //   }
 
-    let student = await Students.query()
-      .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number', 'class_id')
-      .preload('fees_status')
-      .where('id', student_id)
-      .andWhere('school_id', ctx.auth.user!.school_id)
-      .first()
+  //   let academicSession = await AcademicSession.query()
+  //     .where('is_active', 1)
+  //     .andWhere('school_id', ctx.auth.user!.school_id)
+  //     .first()
 
-    if (!student) {
-      return ctx.response.status(404).json({
-        message: 'Student not found',
-      })
-    }
+  //   if (!academicSession) {
+  //     return ctx.response.status(404).json({
+  //       message: 'No active academic year found for this school',
+  //     })
+  //   }
 
-    const payload = await CreateValidationForPayFees.validate(ctx.request.body())
+  //   let student = await Students.query()
+  //     .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
+  //     .preload('fees_status')
+  //     .preload('paid_fees')
+  //     .preload('provided_concession')
+  //     .preload('academic_class', (query) => {
+  //       query.preload('class', (query) => {
+  //         query
+  //           .select('id', 'class', 'division', 'aliases')
+  //           .where('school_id', ctx.auth.user!.school_id)
+  //       })
+  //       query.where('academic_session_id', academicSession.id)
+  //     })
+  //     .where('id', student_id)
+  //     .andWhere('school_id', ctx.auth.user!.school_id)
+  //     .first();
 
-    let fees_plan = await FeesPlan.query().where('class_id', student.class_id).first()
+  //   if (!student) {
+  //     return ctx.response.status(404).json({
+  //       message: 'Student not found',
+  //     })
+  //   }
 
-    if (!fees_plan) {
-      return ctx.response.status(404).json({
-        message: 'No fees plan found for this student',
-      })
-    }
+  //   const payload = await CreateValidationForPayFees.validate(ctx.request.body())
 
-    /**
-     * TODO : Need to add more security checks
-     */
-    let fees_installment = await InstallmentBreakDowns.query()
-      .andWhere('id', payload.installment_id)
-      .first()
+  //   let feesPlan = await FeesPlan.query().where('class_id', student.academic_class[0].id).first();
 
-    if (!fees_installment) {
-      return ctx.response.status(404).json({
-        message: 'No installment found for this student',
-      })
-    }
+  //   if (!feesPlan) {
+  //     return ctx.response.status(404).json({
+  //       message: 'No fees plan found for this student',
+  //     })
+  //   }
 
-    if (fees_installment.installment_amount.toString() !== payload.paid_amount) {
-      return ctx.response.status(400).json({
-        message: 'Paid amount is not equal to installment amount',
-      })
-    }
+  //   let feesDetails = await FeesPlanDetails.query()
+  //   .preload('installments_breakdown')
+  //   .where('fees_plan_id', feesPlan.id)
 
-    let trx = await db.transaction()
+  //   /**
+  //    * TODO : Need to add more security checks
+  //    */
+  //   let fees_installment = await InstallmentBreakDowns.query()
+  //     .where('id', payload.installment_id)
+  //     .where('fee_plan_details_id', payload.fee_plan_details_id)
+  //     .first()
 
-    let concession = await ConcessionStudentMaster.query().where('student_id', student_id)
+  //   if (!fees_installment) {
+  //     return ctx.response.status(404).json({
+  //       message: 'No installment found for this student',
+  //     })
+  //   }
 
-    let totoal_discount = 0
-    if (concession.length > 0) {
-      let total_consession_amount = concession.reduce(
-        (acc: number, cons: ConcessionStudentMaster) => {
-          if (cons.amount) {
-            return acc + cons.amount
-          }
-          return acc
-        },
-        0
-      )
-      let total_consession_percentage = concession.reduce(
-        (acc: number, cons: ConcessionStudentMaster) => {
-          if (cons.percentage) {
-            return acc + (cons.percentage * fees_plan.total_amount) / 100
-          }
-          return acc
-        },
-        0
-      )
-      totoal_discount = total_consession_amount + total_consession_percentage
-    }
+  //   // if (fees_installment.installment_amount.toString() !== payload.paid_amount) {
+  //   //   return ctx.response.status(400).json({
+  //   //     message: 'Paid amount is not equal to installment amount',
+  //   //   })
+  //   // }
 
-    let studentFeesMaster: StudentFeesMaster | null = null
+  //   let totalConcessionAmountForStudent = student.provided_concession.reduce(
+  //     (acc: number, cons: ConcessionStudentMaster) => {
+  //       if (cons.amount) {
+  //         return acc + Number(cons.amount)
+  //       }
+  //       return acc
+  //     },
+  //     0
+  //   )
 
-    try {
-      if (!student.fees_status) {
-        studentFeesMaster = await StudentFeesMaster.create(
-          {
-            student_id: student_id,
-            fees_plan_id: fees_plan.id,
-            academic_session_id: 1,
-            paid_amount: Number(payload.paid_amount),
-            total_amount: fees_plan.total_amount,
-            discounted_amount: totoal_discount,
-            total_refund_amount: 0,
-            refunded_amount: 0,
-            due_amount: fees_plan.total_amount - Number(payload.paid_amount),
-            status:
-              fees_plan.total_amount - Number(payload.paid_amount) === 0
-                ? 'Paid'
-                : 'Partially Paid',
-          },
-          { client: trx }
-        )
-        student.fees_status = studentFeesMaster as HasOne<typeof StudentFeesMaster>
-      } else {
-        studentFeesMaster = await StudentFeesMaster.query().where('student_id', student.id).first()
-        if (!studentFeesMaster) {
-          await trx.rollback()
-          return ctx.response.status(404).json({
-            message: 'No fees master found for this student',
-          })
-        }
+  //   let totalConcessionPercentageForStudent = student.provided_concession.reduce(
+  //     (acc: number, cons: ConcessionStudentMaster) => {
+  //       if (cons.percentage) {
+  //         if (cons.concession.concessions_to === 'plan') {
+  //           return acc + (Number(cons.percentage) * Number(feesPlan.total_amount)) / 100
+  //         } else {
+  //           const matchingDetail = feesDetails.find(
+  //             (detail) => detail.fees_type_id === cons.fees_type_id
+  //           )
+  //           if (matchingDetail) {
+  //             return acc + (Number(cons.percentage) * Number(matchingDetail.total_amount)) / 100
+  //           }
+  //           return acc
+  //         }
+  //       }
+  //       return acc
+  //     },
+  //     0
+  //   )
 
-        await studentFeesMaster
-          .merge({
-            paid_amount: Number(student.fees_status!.paid_amount) + Number(payload.paid_amount),
-            due_amount: Number(student.fees_status!.due_amount) - Number(payload.paid_amount),
-            discounted_amount: totoal_discount,
-            total_refund_amount:
-              studentFeesMaster.total_refund_amount +
-              (payload.paid_as_refund ? Number(payload.refunded_amount) : 0),
-            status:
-              student.fees_status!.due_amount - Number(payload.paid_amount) === 0
-                ? 'Paid'
-                : 'Partially Paid',
-          })
-          .useTransaction(trx)
-          .save()
-      }
+  //   let totalConcessionAmountForPlan = feesPlan.concession_for_plan.reduce(
+  //     (acc: number, cons: ConcessionFeesPlanMaster) => {
+  //       if (cons.amount) {
+  //         return acc + Number(cons.amount)
+  //       }
+  //       return acc
+  //     },
+  //     0
+  //   )
 
-      if (
-        studentFeesMaster.total_amount - totoal_discount <
-        studentFeesMaster.paid_amount + Number(payload.paid_amount)
-      ) {
-        await trx.rollback()
-        return ctx.response.status(400).json({
-          message:
-            'Total paid amount is greater than total amount (after apply concession) , Need to pay this fees as a refund amount for student !',
-        })
-      }
+  //   let totalConcessionPercentageForPlan = feesPlan.concession_for_plan.reduce(
+  //     (acc: number, cons: ConcessionFeesPlanMaster) => {
+  //       if (cons.percentage) {
+  //         if (cons.concession.concessions_to === 'plan') {
+  //           return acc + (Number(cons.percentage) * Number(feesPlan.total_amount)) / 100
+  //         } else {
+  //           const matchingDetail = feesDetails.find(
+  //             (detail) => detail.fees_type_id === cons.fees_type_id
+  //           )
+  //           if (matchingDetail) {
+  //             return acc + (Number(cons.percentage) * Number(matchingDetail.total_amount)) / 100
+  //           }
+  //           return acc
+  //         }
+  //       }
+  //       return acc
+  //     },
+  //     0
+  //   )
 
-      let StundedFeesMaster = await StudentFeesInstallments.create(
-        {
-          student_fees_master_id: student.fees_status.id,
-          installment_id: fees_installment.id,
-          paid_amount: Number(payload.paid_amount),
-          remaining_amount: fees_installment.installment_amount - Number(payload.paid_amount),
-          payment_mode: payload.payment_mode,
-          transaction_reference: payload.transaction_reference,
-          payment_date: payload.payment_date,
-          remarks: payload.remarks,
-          paid_as_refund: payload.paid_as_refund,
-          refunded_amount: payload.paid_as_refund ? Number(payload.refunded_amount) : 0,
-          status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid',
-        },
-        { client: trx }
-      )
+  //   let usedCon
 
-      await trx.commit()
-      return ctx.response.json(StundedFeesMaster)
-    } catch (error) {
-      await trx.rollback()
-      return ctx.response.status(500).json({
-        message: 'Internal Server Error',
-        error: error,
-      })
-    }
-  }
+  //   let totalConcessionForStudent =
+  //     Number(totalConcessionAmountForStudent) + Number(totalConcessionPercentageForStudent)
+
+  //   let totalConcessionForPlan =
+  //     Number(totalConcessionAmountForPlan) + Number(totalConcessionPercentageForPlan)
+
+  //   let trx = await db.transaction()
+
+  //   let studentFeesMaster: StudentFeesMaster | null = null
+
+  //   try {
+  //     if (!student.fees_status) {
+  //       studentFeesMaster = await StudentFeesMaster.create(
+  //         {
+  //           student_id: student_id,
+  //           fees_plan_id: feesPlan.id,
+  //           academic_session_id: 1,
+  //           paid_amount: Number(payload.paid_amount),
+  //           total_amount: feesPlan.total_amount,
+  //           discounted_amount: Number(payload.discounted_amount),
+  //           total_refund_amount: 0,
+  //           refunded_amount: Number(payload.discounted_amount),
+  //           due_amount: feesPlan.total_amount - Number(payload.paid_amount),
+  //           status:
+  //             feesPlan.total_amount - Number(payload.paid_amount) === 0
+  //               ? 'Paid'
+  //               : 'Partially Paid',
+  //         },
+  //         { client: trx }
+  //       )
+  //       student.fees_status = studentFeesMaster as HasOne<typeof StudentFeesMaster>
+  //     } else {
+  //       studentFeesMaster = await StudentFeesMaster.query().where('student_id', student.id).first()
+  //       if (!studentFeesMaster) {
+  //         await trx.rollback()
+  //         return ctx.response.status(404).json({
+  //           message: 'No fees master found for this student',
+  //         })
+  //       }
+
+  //       await studentFeesMaster
+  //         .merge({
+  //           paid_amount: Number(student.fees_status!.paid_amount) + Number(payload.paid_amount),
+  //           due_amount: Number(student.fees_status!.due_amount) -
+  //             (Number(payload.paid_amount) + Number(payload.discounted_amount) + Number(payload.refunded_amount)),
+  //           discounted_amount: studentFeesMaster.discounted_amount + Number(payload.discounted_amount),
+  //           total_refund_amount:
+  //             studentFeesMaster.total_refund_amount +
+  //             (payload.paid_as_refund ? Number(payload.refunded_amount) : 0),
+  //           status:
+  //             student.fees_status!.due_amount - Number(payload.paid_amount) === 0
+  //               ? 'Paid'
+  //               : 'Partially Paid',
+  //         })
+  //         .useTransaction(trx)
+  //         .save()
+  //     }
+
+  //     if (
+  //       studentFeesMaster.due_amount < studentFeesMaster.paid_amount + Number(payload.paid_amount)
+  //     ) {
+  //       await trx.rollback()
+  //       return ctx.response.status(400).json({
+  //         message:
+  //           'Total paid amount is greater than total amount (after apply concession) \
+  //           , Need to pay this fees as a refund amount for student !',
+  //       })
+  //     }
+
+  //     let StundedFeesMaster = await StudentFeesInstallments.create(
+  //       {
+  //         student_fees_master_id: student.fees_status.id,
+  //         installment_id: fees_installment.id,
+  //         paid_amount: Number(payload.paid_amount),
+  //         remaining_amount: fees_installment.installment_amount - Number(payload.paid_amount),
+  //         payment_mode: payload.payment_mode,
+  //         transaction_reference: payload.transaction_reference,
+  //         payment_date: payload.payment_date,
+  //         remarks: payload.remarks,
+  //         paid_as_refund: payload.paid_as_refund,
+  //         refunded_amount: payload.paid_as_refund ? Number(payload.refunded_amount) : 0,
+  //         status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid',
+  //       },
+  //       { client: trx }
+  //     )
+
+  //     await trx.commit()
+  //     return ctx.response.json(StundedFeesMaster)
+  //   } catch (error) {
+  //     await trx.rollback()
+  //     return ctx.response.status(500).json({
+  //       message: 'Internal Server Error',
+  //       error: error,
+  //     })
+  //   }
+  // }
 
   async payMultipleInstallments(ctx: HttpContext) {
-    let student_id = ctx.params.student_id
+    const payload = await CreateValidationForMultipleInstallments.validate(ctx.request.body())
+
+    let student_id = payload.student_id
 
     if (!student_id) {
       return ctx.response.status(400).json({
@@ -829,9 +996,31 @@ export default class FeesController {
       })
     }
 
+    let academicSession = await AcademicSession.query()
+      .where('is_active', 1)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+    if (!academicSession) {
+      return ctx.response.status(404).json({
+        message: 'No active academic year found for this school',
+      })
+    }
+
     let student = await Students.query()
-      .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number', 'class_id')
+      .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
       .preload('fees_status')
+      .preload('provided_concession', (query) => {
+        query.preload('concession')
+      })
+      .preload('academic_class', (query) => {
+        query.preload('class', (query) => {
+          query
+            .select('id', 'class', 'division', 'aliases')
+            .where('school_id', ctx.auth.user!.school_id)
+        })
+        query.where('academic_session_id', academicSession.id)
+      })
       .where('id', student_id)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
@@ -842,9 +1031,12 @@ export default class FeesController {
       })
     }
 
-    const payload = await CreateValidationForMultipleInstallments.validate(ctx.request.body())
+    console.log('Check this academicSession', academicSession, student.academic_class[0].id)
 
-    let fees_plan = await FeesPlan.query().where('class_id', student.class_id).first()
+    let fees_plan = await FeesPlan.query()
+      .where('class_id', student.academic_class[0].class_id)
+      .andWhere('academic_session_id', academicSession.id)
+      .first()
 
     if (!fees_plan) {
       return ctx.response.status(404).json({
@@ -855,8 +1047,13 @@ export default class FeesController {
     let trx = await db.transaction()
 
     try {
-      let total_payed_amount = payload.reduce(
+      let total_payed_amount = payload.installlments.reduce(
         (acc: number, installment: any) => acc + Number(installment.paid_amount),
+        0
+      )
+
+      let totoal_discount = payload.installlments.reduce(
+        (acc: number, installment: any) => acc + Number(installment.discounted_amount),
         0
       )
 
@@ -865,8 +1062,8 @@ export default class FeesController {
           {
             student_id: student_id,
             fees_plan_id: fees_plan.id,
-            academic_session_id: 1,
-            discounted_amount: 0,
+            academic_session_id: academicSession.id,
+            discounted_amount: totoal_discount,
             paid_amount: Number(total_payed_amount),
             total_amount: fees_plan.total_amount,
             due_amount: fees_plan.total_amount - Number(total_payed_amount),
@@ -899,10 +1096,10 @@ export default class FeesController {
           .save()
       }
 
-      for (let installment of payload) {
-        console.log(installment)
+      for (let installment of payload.installlments) {
         let fees_installment = await InstallmentBreakDowns.query()
           .andWhere('id', installment.installment_id)
+          .where('fee_plan_details_id', installment.fee_plan_details_id)
           .first()
 
         if (!fees_installment) {
@@ -912,7 +1109,10 @@ export default class FeesController {
           })
         }
 
-        if (fees_installment.installment_amount.toString() !== installment.paid_amount) {
+        if (
+          Number(fees_installment.installment_amount) !==
+          Number(installment.paid_amount) + Number(installment.discounted_amount)
+        ) {
           await trx.rollback()
           return ctx.response.status(400).json({
             message: `Paid amount for installment number ${installment.installment_id} is not equal to installment amount`,
@@ -974,8 +1174,6 @@ export default class FeesController {
     }
   }
 
-  // Concession
-
   async indexConcessionType(ctx: HttpContext) {
     let academic_session_id = ctx.request.input('academic_session')
     let academic_session = await AcademicSession.query()
@@ -1006,7 +1204,11 @@ export default class FeesController {
 
   async fetchDetailConcessionType(ctx: HttpContext) {
     let concession_id = ctx.params.concession_id
-    let concession = await Concessions.query().where('id', concession_id).first()
+    let academic_session_id = ctx.request.input('academic_session')
+    let concession = await Concessions.query()
+      .where('id', concession_id)
+      .andWhere('academic_session_id', academic_session_id)
+      .first()
     if (!concession) {
       return ctx.response.status(404).json({
         message: 'Concession not found',
@@ -1018,17 +1220,40 @@ export default class FeesController {
 
     type res = {
       concession: Concessions
-      applied_plans: ConcessionFeesPlanMaster[] | null
+      concession_holder_plans: ConcessionFeesPlanMaster[] | null
+      concession_holder_students: ConcessionStudentMaster[] | null
     }
-
-    let applied_plan = await ConcessionFeesPlanMaster.query()
-      .preload('fees_plan')
-      .where('concession_id', concession_id)
-    // .andWhere('academic_session_id', );
 
     let response_obj: res = {
       concession: concession,
-      applied_plans: applied_plan,
+      concession_holder_plans: null,
+      concession_holder_students: null,
+    }
+
+    if (concession.applicable_to === 'plan') {
+      let plans = await ConcessionFeesPlanMaster.query()
+        .preload('fees_plan')
+        .preload('fees_type')
+        .where('concession_id', concession_id)
+
+      response_obj.concession_holder_plans = plans
+    }
+    if (concession.applicable_to === 'students') {
+      let students = await ConcessionStudentMaster.query()
+        .preload('student', (query) => {
+          query.preload('academic_class', (query) => {
+            query.preload('class', (query) => {
+              query
+                .select('id', 'class', 'division', 'aliases')
+                .where('school_id', ctx.auth.user!.school_id)
+            })
+          })
+          query.select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
+        })
+        .preload('fees_plan')
+        .where('concession_id', concession_id)
+
+      response_obj.concession_holder_students = students
     }
 
     return ctx.response.json(response_obj)
@@ -1073,6 +1298,24 @@ export default class FeesController {
           message: 'Concession not found',
         })
       }
+
+      let academic_session_id = await AcademicSession.query()
+        .where('id', concession.academic_session_id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+
+      if (!academic_session_id) {
+        return ctx.response.status(404).json({
+          message: 'No active academic year found for this school',
+        })
+      }
+
+      if (!academic_session_id.is_active) {
+        return ctx.response.status(400).json({
+          message: 'Academic session is not active',
+        })
+      }
+
       await concession.merge(payload).save()
       return ctx.response.status(201).json(concession)
     } else {
@@ -1085,38 +1328,47 @@ export default class FeesController {
   async applyConcessionToPlan(ctx: HttpContext) {
     if (ctx.auth.user!.role_id == 1 || ctx.auth.user!.role_id == 2) {
       const payload = await CreateValidationForApplyConcessionToPlan.validate(ctx.request.body())
-      let studentFeesMaster = await ConcessionFeesPlanMaster.create({
-        ...payload,
-        academic_session_id: 1,
-      })
-      return ctx.response.status(201).json(studentFeesMaster)
-    } else {
-      return ctx.response.status(401).json({
-        message: 'You are not authorized to perform this action !',
-      })
-    }
-  }
 
-  async applyConcessionToStudent(ctx: HttpContext) {
-    if (ctx.auth.user!.role_id == 1 || ctx.auth.user!.role_id == 2) {
-      const payload = await CreateValidationForApplyConcessionToStudent.validate(ctx.request.body())
+      let fees_plan = await FeesPlan.query().where('id', payload.fees_plan_id).first()
 
-      let student = await Students.query()
-        .where('id', payload.student_id)
-        .andWhere('school_id', ctx.auth.user!.school_id)
-        .first()
-
-      if (!student) {
+      if (!fees_plan) {
         return ctx.response.status(404).json({
-          message: 'Student not found',
+          message: 'Fees Plan not found',
         })
       }
 
-      let class_id = student.class_id
-      let fees_plan = await FeesPlan.query().where('class_id', class_id).first()
-      if (!fees_plan) {
+      let acadamic_session = await AcademicSession.query()
+        .where('id', fees_plan.academic_session_id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+
+      if (!acadamic_session) {
         return ctx.response.status(404).json({
-          message: 'No fees plan found for this student',
+          message: 'Academic session not found',
+        })
+      }
+
+      if (!acadamic_session.is_active) {
+        return ctx.response.status(400).json({
+          message: 'Academic session is not active',
+        })
+      }
+
+      let concssion = await Concessions.query()
+        .where('id', payload.concession_id)
+        .andWhere('academic_session_id', acadamic_session.id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+
+      if (!concssion) {
+        return ctx.response.status(404).json({
+          message: 'Concession not found',
+        })
+      }
+
+      if (concssion.applicable_to !== 'plan') {
+        return ctx.response.status(400).json({
+          message: 'Concession is not applicable to plan',
         })
       }
 
@@ -1150,35 +1402,230 @@ export default class FeesController {
         })
       }
 
-      let consession = await Concessions.query()
-        .where('id', payload.concession_id)
+      let trx = await db.transaction()
+      let { fees_type_ids, ...payload_without_fees_type } = payload
+
+      try {
+        if (concssion.concessions_to === 'plan') {
+          if (payload.fees_type_ids) {
+            return ctx.response.status(400).json({
+              message: 'fees_ids field should be null for this concession',
+            })
+          }
+          await ConcessionFeesPlanMaster.create(
+            {
+              ...payload_without_fees_type,
+              fees_type_id: null,
+              academic_session_id: acadamic_session.id,
+            },
+            { client: trx }
+          )
+        } else {
+          if (!fees_type_ids) {
+            return ctx.response.status(400).json({
+              message: 'fees_ids field is required for this concession',
+            })
+          }
+          if (fees_type_ids.length === 0) {
+            return ctx.response.status(400).json({
+              message: 'fees_ids field is required for this concession',
+            })
+          }
+
+          for (let i = 0; i < fees_type_ids.length; i++) {
+            let fees_type = await FeesType.query()
+              .where('id', fees_type_ids[i])
+              .andWhere('academic_session_id', acadamic_session.id)
+              .andWhere('school_id', ctx.auth.user!.school_id)
+              .first()
+
+            if (!fees_type) {
+              return ctx.response.status(404).json({
+                message: `${fees_type_ids[i]} - fees type not found`,
+              })
+            }
+
+            await ConcessionFeesPlanMaster.create(
+              {
+                ...payload_without_fees_type,
+                fees_type_id: fees_type.id,
+                academic_session_id: acadamic_session.id,
+              },
+              { client: trx }
+            )
+          }
+        }
+        await trx.commit()
+        return ctx.response.status(201).json({
+          message: 'Concession applied to plan successfully',
+        })
+      } catch (error) {
+        await trx.rollback()
+        return ctx.response.status(500).json({
+          message: 'Internal Server Error',
+          error: error,
+        })
+      }
+    } else {
+      return ctx.response.status(401).json({
+        message: 'You are not authorized to perform this action !',
+      })
+    }
+  }
+
+  async applyConcessionToStudent(ctx: HttpContext) {
+    if (ctx.auth.user!.role_id == 1 || ctx.auth.user!.role_id == 2) {
+      const payload = await CreateValidationForApplyConcessionToStudent.validate(ctx.request.body())
+
+      let fees_plan = await FeesPlan.query().where('id', payload.fees_plan_id).first()
+
+      if (!fees_plan) {
+        return ctx.response.status(404).json({
+          message: 'Fees Plan not found',
+        })
+      }
+
+      let acadamic_session = await AcademicSession.query()
+        .where('id', fees_plan.academic_session_id)
         .andWhere('school_id', ctx.auth.user!.school_id)
         .first()
 
-      if (!consession) {
+      if (!acadamic_session) {
+        return ctx.response.status(404).json({
+          message: 'Academic session not found',
+        })
+      }
+
+      if (!acadamic_session.is_active) {
+        return ctx.response.status(400).json({
+          message: 'Academic session is not active',
+        })
+      }
+
+      let studentEnrollment = await StudentEnrollments.query()
+        .where('id', payload.student_id)
+        .where('academic_session_id', acadamic_session.id)
+        .first()
+
+      if (!studentEnrollment) {
+        return ctx.response.status(404).json({
+          message: 'Student not found for this academic session',
+        })
+      }
+
+      let concssion = await Concessions.query()
+        .where('id', payload.concession_id)
+        .andWhere('academic_session_id', acadamic_session.id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+
+      if (!concssion) {
         return ctx.response.status(404).json({
           message: 'Concession not found',
         })
       }
 
-      let consessionForStundent = await ConcessionStudentMaster.query()
-        .where('student_id', student.id)
-        .andWhere('concession_id', consession.id)
-        .first()
-
-      if (consessionForStundent) {
+      if (concssion.applicable_to !== 'students') {
         return ctx.response.status(400).json({
-          message: 'Concession already applied to this student',
+          message: 'Concession is not applicable to Student',
+        })
+      }
+      if (payload.deduction_type === 'fixed_amount' && !payload.amount) {
+        return ctx.response.status(400).json({
+          message: 'Amount is required for fixed amount deduction',
         })
       }
 
-      let studentFeesMaster = await ConcessionStudentMaster.create({
-        ...payload,
-        academic_session_id: 1,
-        fees_plan_id: 1,
-        fees_type_id: 1,
-      })
-      return ctx.response.status(201).json(studentFeesMaster)
+      if (payload.deduction_type === 'fixed_amount' && payload.percentage) {
+        return ctx.response.status(400).json({
+          message: 'Percentage should be null fixed amount deduction',
+        })
+      }
+
+      if (payload.deduction_type === 'percentage' && !payload.percentage) {
+        return ctx.response.status(400).json({
+          message: 'Percentage is required for percentage deduction',
+        })
+      }
+
+      if (payload.deduction_type === 'percentage' && payload.amount) {
+        return ctx.response.status(400).json({
+          message: 'Amount should be null for percentage deduction',
+        })
+      }
+
+      if (payload.amount && payload.amount > fees_plan.total_amount) {
+        return ctx.response.status(400).json({
+          message: 'Concession amount cannot be greater than total fees amount',
+        })
+      }
+
+      let { fees_type_ids, ...payload_without_fees_type } = payload
+
+      let trx = await db.transaction()
+
+      try {
+        if (concssion.concessions_to === 'plan') {
+          if (payload.fees_type_ids) {
+            return ctx.response.status(400).json({
+              message: 'fees_ids field should be null for this concession',
+            })
+          }
+          await ConcessionStudentMaster.create(
+            {
+              ...payload_without_fees_type,
+              fees_type_id: null,
+              academic_session_id: acadamic_session.id,
+            },
+            { client: trx }
+          )
+        } else {
+          if (!fees_type_ids) {
+            return ctx.response.status(400).json({
+              message: 'fees_ids field is required for this concession',
+            })
+          }
+          if (fees_type_ids.length === 0) {
+            return ctx.response.status(400).json({
+              message: 'fees_ids field is required for this concession',
+            })
+          }
+
+          for (let i = 0; i < fees_type_ids.length; i++) {
+            let fees_type = await FeesType.query()
+              .where('id', fees_type_ids[i])
+              .andWhere('academic_session_id', acadamic_session.id)
+              .andWhere('school_id', ctx.auth.user!.school_id)
+              .first()
+
+            if (!fees_type) {
+              return ctx.response.status(404).json({
+                message: `${fees_type_ids[i]} - fees type not found`,
+              })
+            }
+
+            await ConcessionStudentMaster.create(
+              {
+                ...payload_without_fees_type,
+                fees_type_id: fees_type.id,
+                academic_session_id: acadamic_session.id,
+              },
+              { client: trx }
+            )
+          }
+        }
+        await trx.commit()
+        return ctx.response.status(201).json({
+          message: 'Concession applied to plan successfully',
+        })
+      } catch (error) {
+        console.log('error', error)
+        await trx.rollback()
+        return ctx.response.status(500).json({
+          message: 'Internal Server Error',
+          error: error,
+        })
+      }
     } else {
       return ctx.response.status(401).json({
         message: 'You are not authorized to perform this action !',

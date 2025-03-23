@@ -6,89 +6,99 @@ import StudentMeta from './StudentMeta.js'
 import type { HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import StudentFeesMaster from './StudentFeesMaster.js'
 import ConcessionStudentMaster from './ConcessionStudentMaster.js'
+import StudentEnrollments from './StudentEnrollments.js'
+import StudentFeesInstallments from './StudentFeesInstallments.js'
 
 export default class Students extends Base {
+  @column()
+  declare school_id: number
 
-    @column()
-    declare school_id : number
+  @column()
+  declare enrollment_code: string
 
-    // @column()
-    // declare class_id : number   // link table will be used to fetch the student's class
+  @column()
+  declare admission_number: string | null
 
-    @column()
-    declare enrollment_code : string
+  @column()
+  declare first_name: string
 
-    @column()
-    declare admission_number : string | null
+  @column()
+  declare middle_name: string | null
 
-    @column()
-    declare first_name : string
+  @column()
+  declare last_name: string
 
-    @column()
-    declare middle_name : string | null
+  @column()
+  declare first_name_in_guj: string | null
 
-    @column()
-    declare last_name : string
+  @column()
+  declare middle_name_in_guj: string | null
 
-    @column()
-    declare first_name_in_guj : string | null
+  @column()
+  declare last_name_in_guj: string | null
 
-    @column()
-    declare middle_name_in_guj : string | null
+  @column()
+  declare gender: 'Male' | 'Female'
 
-    @column()
-    declare last_name_in_guj : string | null
+  @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
+  declare birth_date: Date | null
 
-    @column()
-    declare gender : 'Male' | 'Female' 
+  @column()
+  declare gr_no: number
 
-    @column({
-      serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-    })
-    declare birth_date : Date | null
+  @column()
+  declare primary_mobile: number
 
-    @column()
-    declare gr_no : number 
+  @column()
+  declare father_name: string | null
 
-    @column()
-    declare primary_mobile : number
+  @column()
+  declare father_name_in_guj: string | null
 
-    @column()
-    declare father_name : string | null 
+  @column()
+  declare mother_name: string | null
 
-    @column()
-    declare father_name_in_guj : string | null
+  @column()
+  declare mother_name_in_guj: string | null
 
-    @column()
-    declare mother_name : string | null
+  @column()
+  declare roll_number: number | null
 
-    @column()
-    declare mother_name_in_guj : string | null
+  @column()
+  declare aadhar_no: number | null
 
-    @column()
-    declare roll_number : number | null
+  @column()
+  declare is_active: boolean
 
-    @column()
-    declare aadhar_no : number | null
+  @hasOne(() => StudentMeta, {
+    foreignKey: 'student_id',
+    localKey: 'id',
+  })
+  declare student_meta: HasOne<typeof StudentMeta>
 
-    @column()
-    declare is_active : boolean
+  @hasOne(() => StudentFeesMaster, {
+    foreignKey: 'student_id',
+    localKey: 'id',
+  })
+  declare fees_status: HasOne<typeof StudentFeesMaster>
 
-    @hasOne(()=> StudentMeta , {
-        foreignKey : 'student_id',
-        localKey : 'id',       
-    })
-    declare student_meta : HasOne<typeof StudentMeta>
+  @hasMany(() => ConcessionStudentMaster, {
+    foreignKey: 'student_id',
+    localKey: 'id',
+  })
+  declare provided_concession: HasMany<typeof ConcessionStudentMaster>
 
-    @hasOne(()=> StudentFeesMaster , {
-        foreignKey : 'student_id',
-        localKey : 'id',       
-    })
-    declare fees_status : HasOne<typeof StudentFeesMaster>
+  @hasMany(() => StudentFeesInstallments, {
+    foreignKey: 'student_id',
+    localKey: 'id',
+  })
+  declare paid_fees: HasMany<typeof StudentFeesInstallments>
 
-    @hasMany(()=> ConcessionStudentMaster , {
-        foreignKey : 'student_id',
-        localKey : 'id',
-    })
-    declare provided_concession : HasMany<typeof ConcessionStudentMaster>    
+  @hasMany(() => StudentEnrollments, {
+    foreignKey: 'student_id',
+    localKey: 'id',
+  })
+  declare academic_class: HasMany<typeof StudentEnrollments>
 }
