@@ -1,4 +1,5 @@
 import vine from '@vinejs/vine'
+import { stat } from 'fs'
 
 /**
  * Validates the post's creation action
@@ -184,7 +185,7 @@ export const UpdateValidationForConcessionType = vine.compile(
   vine.object({
     name: vine.string().trim().minLength(2).maxLength(50).optional(),
     description: vine.string().trim().minLength(2).maxLength(200).optional(),
-    // applicable_to: vine.enum(['fees_types', 'plan', 'students']).optional(),
+    status: vine.enum(['Active', 'Inactive']).optional(),
     category: vine.enum(['family', 'sports', 'staff', 'education', 'financial', 'other']),
   })
 )
@@ -200,9 +201,10 @@ export const CreateValidationForApplyConcessionToPlan = vine.compile(
   })
 )
 
-export const UpdateValidationForApplyConcessionToPlan = vine.compile(
+export const UpdateValidationForAppliedConcessionToPlan = vine.compile(
   vine.object({
-    applicable_to: vine.enum(['percentage', 'fixed_amount']).optional(),
+    // fees_type_ids: vine.array(vine.number()).nullable().optional(),
+    deduction_type: vine.enum(['percentage', 'fixed_amount']).optional(),
     amount: vine.number().max(1000000).min(100).nullable().optional(),
     percentage: vine.number().max(100).min(1).nullable().optional(),
     status: vine.enum(['Active', 'Inactive']).optional(),
@@ -218,5 +220,14 @@ export const CreateValidationForApplyConcessionToStudent = vine.compile(
     deduction_type: vine.enum(['percentage', 'fixed_amount']),
     amount: vine.number().max(1000000).min(100).nullable(),
     percentage: vine.number().max(100).min(1).nullable(),
+  })
+)
+
+export const UpdateValidationForAppliedConcessionToStudent = vine.compile(
+  vine.object({
+    deduction_type: vine.enum(['percentage', 'fixed_amount']).optional(),
+    amount: vine.number().max(1000000).min(100).nullable().optional(),
+    percentage: vine.number().max(100).min(1).nullable().optional(),
+    status: vine.enum(['Active', 'Inactive']).optional(),
   })
 )
