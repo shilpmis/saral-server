@@ -198,7 +198,15 @@ router
     router.post('/concession', [FeesController, 'createConcession'])
     router.put('/concession/:concession_id', [FeesController, 'updateConcession'])
     router.post('/concession/apply/plan', [FeesController, 'applyConcessionToPlan'])
+    router.put('/concession/paln/:concession_id/:plan_id', [
+      FeesController,
+      'updateAppliedConcessionToPlan',
+    ])
     router.post('/concession/apply/student', [FeesController, 'applyConcessionToStudent'])
+    router.put('/concession/student/:concession_id/:plan_id/:student_id', [
+      FeesController,
+      'updateConcessionAppliedToStudent',
+    ])
 
     router.get('/inquiries', [InquiriesController, 'listAllInquiries'])
     router.post('/inquiry', [InquiriesController, 'addInquiryForClass'])

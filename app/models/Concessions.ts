@@ -26,6 +26,9 @@ export default class Concessions extends Base {
   declare concessions_to: 'fees_type' | 'plan'
 
   @column()
+  declare status: 'Active' | 'Inactive'
+
+  @column()
   declare category: 'family' | 'sports' | 'staff' | 'education' | 'financial' | 'other'
 
   @hasMany(() => ConcessionFeesPlanMaster, {
