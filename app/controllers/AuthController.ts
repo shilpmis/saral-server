@@ -1,4 +1,3 @@
-import Organization from '#models/organization';
 import Schools from '#models/Schools';
 import User from '#models/User';
 import { CreateValidatorForSchools } from '#validators/Schools';
@@ -6,6 +5,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import hash from '@adonisjs/core/services/hash';
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon';
+import Organization from '#models/organization';
 
 
 

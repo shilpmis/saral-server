@@ -1,6 +1,7 @@
-import { BaseModel, column } from "@adonisjs/lucid/orm";
+import { column } from "@adonisjs/lucid/orm";
+import Base from "./base.js";
 
-export default class Quota extends BaseModel {
+export default class Quota extends Base {
   @column({ isPrimary: true })
   declare id: number;
 
