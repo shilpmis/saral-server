@@ -1,3 +1,4 @@
+import AcademicSession from '#models/AcademicSession';
 import Classes from '#models/Classes';
 import ClassSeatAvailability from '#models/ClassSeatAvailability';
 import QuotaAllocation from '#models/QuotaAllocation';
@@ -60,16 +61,28 @@ export default class ClassSeatAvailabilitiesController {
   /**
    * Get all classes seat availability
    */
-  public async getAllClassesSeatAvailability({ response }: HttpContext) {
-    const classSeatAvailabilities = await ClassSeatAvailability.query()
-      .preload('class')
-      .preload('quota_allocation');
+  public async getAllClassesSeatAvailability(ctx: HttpContext) {
 
-      if (!classSeatAvailabilities.length) {
-      return response.notFound({ error: 'No seat availability data found' });
+    let academic_session_id = await AcademicSession.query()
+    .where('is_active', true)
+    .andWhere('school_id', ctx.auth.user!.school_id) 
+    .first();
+
+    if(!academic_session_id) {
+      return ctx.response.notFound({ error: 'No active academic session found' });
     }
 
-    return response.ok(classSeatAvailabilities);
+    const classSeatAvailabilities = await ClassSeatAvailability.query()
+      .preload('class')
+      .preload('quota_allocation')
+      .where('academic_session_id', academic_session_id?.id)
+      ;
+
+      if (!classSeatAvailabilities.length) {
+      return ctx.response.notFound({ error: 'No seat availability data found' });
+    }
+
+    return ctx.response.ok(classSeatAvailabilities);
   }
 
   /**

@@ -1,4 +1,4 @@
-import Organization from '#models/organization'
+import Organization from '#models/Organization'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 
 export default class extends BaseSeeder {

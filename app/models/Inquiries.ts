@@ -17,11 +17,19 @@ export default class AdmissionInquiry extends Base {
   @column()
   declare academic_session_id: number;
 
+  // New name fields
   @column()
-  declare student_name: string;
+  declare first_name: string;
 
   @column()
-  declare dob: Date;
+  declare middle_name: string | null;
+
+  @column()
+  declare last_name: string;
+
+  // Renamed from dob
+  @column()
+  declare birth_date: Date;
 
   @column()
   declare gender: 'male' | 'female' | 'other';
@@ -29,11 +37,13 @@ export default class AdmissionInquiry extends Base {
   @column()
   declare class_applying: number;
 
+  // Renamed from parent_name
   @column()
-  declare parent_name: string;
+  declare father_name: string;
 
+  // Renamed from parent_contact
   @column()
-  declare parent_contact: string;
+  declare primary_mobile: string;
 
   @column()
   declare parent_email: string | null;

@@ -1,8 +1,9 @@
-import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
+import {  belongsTo, column } from '@adonisjs/lucid/orm'
 import Staff from './Staff.js'
 import * as relations from '@adonisjs/lucid/types/relations'
+import Base from './base.js'
 
-export default class StaffEnrollment extends BaseModel {
+export default class StaffEnrollment extends Base {
   @column({ isPrimary: true })
   declare id: number
 

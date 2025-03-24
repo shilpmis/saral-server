@@ -1,4 +1,4 @@
-import Organization from '#models/organization'
+import Organization from '#models/organization';
 import type { HttpContext } from '@adonisjs/core/http'
 
 export default class OrganizationController {
