@@ -93,7 +93,10 @@ export default class AcademicSessionsController {
 
   public async getAllAcademicSessionInSchool(ctx: HttpContext) {
     try {
-      const sessions = await AcademicSession.query().preload('school')
+      const sessions = await AcademicSession.query()
+      .preload('school')
+      .where('school_id', ctx.params.school_id)
+      .orderBy('start_date', 'desc')
   
       if (sessions.length === 0) {
         return ctx.response.notFound({ message: 'No academic sessions found' })

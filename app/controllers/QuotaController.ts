@@ -8,8 +8,8 @@ export default class QuotasController {
     return ctx.response.created(quota);
   }
 
-  public async listAllQuotas() {
-    return await Quota.all();
+  public async listAllQuotas(ctx : HttpContext) {
+    return await Quota.query().where('school_id', ctx.auth.user!.school_id);
   }
 
   public async delete({ params, response }: HttpContext) {
