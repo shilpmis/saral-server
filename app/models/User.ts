@@ -4,48 +4,47 @@ import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import hash from '@adonisjs/core/services/hash'
 import Schools from './Schools.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
+import Staff from './Staff.js'
 
 export default class User extends Base {
- 
   @column()
-  declare school_id : number
-  
+  declare school_id: number
+
   @column()
-  declare name : string
-  
+  declare name: string
+
   // @column()
   // declare username : string
-  
-  @column()
-  declare saral_email : string
-  
-  @column({serializeAs : null })
-  declare password : string
-  
-  @column()
-  declare role_id : number
-  
-  @column()
 
-  declare is_teacher : boolean
-  
   @column()
-  declare teacher_id : number | null
-  
+  declare saral_email: string
+
+  @column({ serializeAs: null })
+  declare password: string
+
   @column()
-  declare is_active : boolean
-  
-  @hasOne(() => Schools , {
-    localKey : 'school_id',
-    foreignKey : 'id'
+  declare role_id: number
+
+  @column()
+  declare is_teacher: boolean
+
+  @column()
+  declare staff_id: number | null
+
+  @column()
+  declare is_active: boolean
+
+  @hasOne(() => Schools, {
+    localKey: 'school_id',
+    foreignKey: 'id',
   })
-  declare school : HasOne<typeof Schools>
+  declare school: HasOne<typeof Schools>
 
-  // @hasOne(() => Staff , {
-  //   localKey : 'teacher_id',
-  //   foreignKey : 'id'
-  // })
-  // declare teacher : HasOne<typeof Teacher>
+  @hasOne(() => Staff, {
+    localKey: 'staff_id',
+    foreignKey: 'id',
+  })
+  declare staff: HasOne<typeof Staff>
 
   @beforeSave()
   static async hashPassword(user: User) {
@@ -53,7 +52,6 @@ export default class User extends Base {
       user.password = await hash.make(user.password)
     }
   }
-  
-  static accessTokens = DbAccessTokensProvider.forModel(User);
-  
+
+  static accessTokens = DbAccessTokensProvider.forModel(User)
 }

@@ -27,12 +27,6 @@ import QuotasController from '#controllers/QuotaController'
 import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
 
-// router.get('/', async () => {
-//   return {
-//     hello: 'Hello world',
-//   }
-// })
-
 router
   .group(() => {
     router.post('/signup', [AuthController, 'createSchool'])
@@ -65,32 +59,15 @@ router
 
     router.get('/users', [UsersController, 'indexSchoolUsers'])
     router.post('/user', [UsersController, 'createUser'])
-    router.put('/user/:user_id', [UsersController, 'update'])
-    router.post('/user/onboard/teacher', [UsersController, 'onBoardTeacherAsUser'])
-    router.put('/user/onboard/teacher/:user_id', [UsersController, 'UpdateOnBoardedTeacher'])
+    router.put('/user/:user_id', [UsersController, 'updateUser'])
+    router.post('/user/onboard/staff', [UsersController, 'onBoardStaffAsUser'])
+    router.put('/user/onboard/staff/:user_id', [UsersController, 'UpdateOnBoardedStaff'])
 
     router.get('/classes/:school_id', [ClassesController, 'indexClassesForSchool'])
     router.post('/class/base', [ClassesController, 'createClass'])
     router.post('/classes', [ClassesController, 'createMultipleClasses'])
     router.post('/class/division', [ClassesController, 'createDivision'])
     router.put('/class/:class_id', [ClassesController, 'updateClass'])
-
-    // router.get('students/:academic_session_id/:class_id', [
-    //   StundetsController,
-    //   'indexClassStudents',
-    // ])
-    // router.get('student/:student_id', [StundetsController, 'fetchStudent'])
-    // router.post('student', [StundetsController, 'createSingleStudent'])
-    // router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents'])
-    // router.put('student/:student_id', [StundetsController, 'updateStudents'])
-    // router.post('students/bulk-upload/:school_id/:academic_session_id/:class_id', [
-    //   StundetsController,
-    //   'bulkUploadStudents',
-    // ])
-    // router.post('students/export/:academic_session_id/:class_id', [
-    //   StundetsController,
-    //   'exportToExcel',
-    // ])
 
     router.get('students/:academic_session_id/:class_id', [
       StundetsController,

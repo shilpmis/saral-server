@@ -1,4 +1,4 @@
-import vine from "@vinejs/vine";
+import vine from '@vinejs/vine'
 
 /**
  * Validates the post's creation action
@@ -13,15 +13,16 @@ export const CreateValidatorForUsers = vine.compile(
 export const CreateValidatorForOnBoardTeacherAsUser = vine.compile(
   vine.object({
     staff_id: vine.number(),
-    class_id: vine.number().optional(),
-    is_active: vine.boolean()
+    assign_classes: vine.array(vine.number().min(1)).optional(),
+    is_active: vine.boolean(),
   })
 )
 
 export const UpdateValidatorForOnBoardTeacherAsUser = vine.compile(
   vine.object({
     is_active: vine.boolean().optional(),
-    class_id: vine.number().optional(),
+    assign_classes: vine.array(vine.number().min(1)).optional(),
+    unassign_classes: vine.array(vine.number().min(1)).optional(),
   })
 )
 
