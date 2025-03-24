@@ -26,18 +26,26 @@ export default class InquiriesController {
    * Add a new admission inquiry
    */
   async addInquiryForClass(ctx: HttpContext) {
-    const payload = ctx.request.all();
-  //  console.log("payload",payload);
-    const inquiry = await AdmissionInquiry.create({
-      ...payload,
-      created_by: ctx.auth.user!.id,
-      school_id: ctx.auth.user!.school_id,
-    });
-
-    return ctx.response.status(201).json({
-      message: 'Admission inquiry added successfully',
-      inquiry,
-    });
+    try {
+      const payload = ctx.request.all();
+      //  console.log("payload",payload);
+        const inquiry = await AdmissionInquiry.create({
+          ...payload,
+          created_by: ctx.auth.user!.id,
+          school_id: ctx.auth.user!.school_id,
+        });
+    
+        return ctx.response.status(201).json({
+          message: 'Admission inquiry added successfully',
+          inquiry,
+        });
+    } catch (error) {
+      return ctx.response.status(400).json({
+        message: 'Error adding inquiry',
+        error: error.message,
+      });
+      
+    }
   }
 
   /**
@@ -100,14 +108,14 @@ export default class InquiriesController {
         school_id: inquiry.school_id,
         enrollment_code: enrollmentCode,
         admission_number: admissionNumber,
-        first_name: inquiry.student_name,
+        first_name: inquiry.first_name,
         middle_name: '', // Can be updated later
         last_name: '', // Can be updated later
         gender: inquiry.gender === 'male' ? 'Male' : 'Female',
-        birth_date: inquiry.dob,
+        birth_date: inquiry.birth_date,
         gr_no: await this.generateGrNo(),
-        primary_mobile: Number(inquiry.parent_contact),
-        father_name: inquiry.parent_name,
+        primary_mobile: Number(inquiry.primary_mobile),
+        father_name: inquiry.father_name,
         mother_name: '', // Can be updated later
         roll_number: await this.generateRollNumber(inquiry.class_applying),
         aadhar_no: undefined, // Can be updated later
