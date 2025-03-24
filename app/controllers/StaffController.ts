@@ -1,40 +1,41 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Staff from '#models/Staff'
 import { CreateValidatorForStaff, UpdateValidatorForStaff } from '#validators/Staff'
-import StaffMaster from '#models/StaffMaster';
-import db from '@adonisjs/lucid/services/db';
-import StaffEnrollment from '#models/StaffEnrollment';
-import AcademicSession from '#models/AcademicSession';
-import path from 'node:path';
-import app from '@adonisjs/core/services/app';
-import { parseAndReturnJSON } from '../../utility/parseCsv.js';
+import StaffMaster from '#models/StaffMaster'
+import db from '@adonisjs/lucid/services/db'
+import StaffEnrollment from '#models/StaffEnrollment'
+import AcademicSession from '#models/AcademicSession'
+import path from 'node:path'
+import app from '@adonisjs/core/services/app'
+import { parseAndReturnJSON } from '../../utility/parseCsv.js'
 import ExcelJS from 'exceljs'
-
+import User from '#models/User'
 
 export default class StaffController {
-
   async indexStaff(ctx: HttpContext) {
+    let type = ctx.request.input('type', 'all')
+    let academic_session_id = ctx.request.input('academic_sessions', 0)
+    let page = ctx.request.input('page', 1)
+    let school_id = ctx.auth.user!.school_id
 
-    let type = ctx.request.input('type', 'all');
-    let academic_session_id = ctx.request.input('academic_sessions');
-    let page = ctx.request.input('page', 1);
-    let school_id = ctx.auth.user!.school_id;
+    console.log('type', type)
 
-    let staff: Staff[] = [];
+    let staff: Staff[] = []
 
     if (type === 'teaching') {
       if (academic_session_id === 0) {
-        staff = await db.query()
+        staff = await db
+          .query()
           .from('staff as s')
           .join('staff_enrollments as se', 's.staff_id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
           .where('s.school_id', school_id)
           .where('sm.is_teaching', 1)
           .select(['s.*', 'sm.role', 'sm.working_hours'])
-          .paginate(page, 10);
-
+          .paginate(page, 10)
       } else {
-        staff = await db.query()
+        staff = await db
+          .query()
           .from('staff as s')
           .join('staff_enrollments as se', 's.id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
@@ -42,23 +43,24 @@ export default class StaffController {
           .where('se.academic_session_id', academic_session_id)
           .where('sm.is_teaching_role', 1)
           .select(['s.*', 'sm.role', 'sm.working_hours'])
-          .paginate(page, 10);
+          .paginate(page, 10)
       }
 
-      return ctx.response.status(200).json(staff);
+      return ctx.response.status(200).json(staff)
     } else if (type === 'other') {
       if (academic_session_id === 0) {
-        staff = await db.query()
+        staff = await db
+          .query()
           .from('staff as s')
           .join('staff_enrollments as se', 's.staff_id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
           .where('s.school_id', school_id)
           .where('sm.is_teaching', 0)
           .select(['s.*', 'sm.role', 'sm.working_hours'])
-          .paginate(page, 10);
-
+          .paginate(page, 10)
       } else {
-        staff = await db.query()
+        staff = await db
+          .query()
           .from('staff as s')
           .join('staff_enrollments as se', 's.id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
@@ -66,27 +68,46 @@ export default class StaffController {
           .where('se.academic_session_id', academic_session_id)
           .where('sm.is_teaching_role', 0)
           .select(['s.*', 'sm.role as role', 'sm.working_hours as working_hours'])
-          .paginate(page, 10);
+          .paginate(page, 10)
       }
+      return ctx.response.status(200).json(staff)
+    } else if (type === 'non-activeuser') {
+      let onBoardedUser = await User.query()
+        .where('school_id', school_id)
+        .andWhere('role_id', 6)
+        .andWhereNotNull('staff_id')
 
-      return ctx.response.status(200).json(staff);
-    } else {
+      staff = await Staff.query()
+        .select([
+          'staff.id',
+          'staff.first_name',
+          'staff.middle_name',
+          'staff.last_name',
+          'staff.staff_role_id',
+          'sm.role as role',
+        ])
+        .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
+        .where('sm.is_teaching_role', 1)
+        .whereNotIn('staff.id', [...onBoardedUser.map((user) => Number(user.staff_id))])
+        .where('staff.is_active', true)
+        .where('staff.school_id', school_id)
+        .paginate(page, 10)
 
+      return ctx.response.status(200).json(staff)
     }
 
-    return ctx.response.status(200).json([]);
-
+    return ctx.response.status(200).json(staff)
   }
 
   async createStaff(ctx: HttpContext) {
     const trx = await db.transaction()
 
-    let academic_session_id = ctx.request.input('academic_sessions', 0);
-    let school_id = ctx.auth.user!.school_id;
+    let academic_session_id = ctx.request.input('academic_sessions', 0)
+    let school_id = ctx.auth.user!.school_id
 
     if (academic_session_id === 0) {
       return ctx.response.status(400).json({
-        message: "Academic session is required!"
+        message: 'Academic session is required!',
       })
     }
 
@@ -97,7 +118,7 @@ export default class StaffController {
 
     if (!academic_session) {
       return ctx.response.status(404).json({
-        message: "Academic session not found!"
+        message: 'Academic session not found!',
       })
     }
 
@@ -109,35 +130,41 @@ export default class StaffController {
       const role = await StaffMaster.findBy('id', payload.staff_role_id)
       if (!role) {
         return ctx.response.status(404).json({
-          message: "This role is not available for your school! Please add a valid role."
+          message: 'This role is not available for your school! Please add a valid role.',
         })
       }
 
       if (role.school_id != ctx.auth.user?.school_id) {
         return ctx.response.status(401).json({
-          message: "You are not authorized to perform this action!"
+          message: 'You are not authorized to perform this action!',
         })
       }
 
       const { remarks, ...staffPayload } = payload
 
       // Create staff within the transaction
-      const staff = await Staff.create({
-        ...staffPayload,
-        school_id: school_id,
-        is_teching_staff: role.is_teaching_role,
-        is_active: staffPayload.employment_status === 'Resigned' ? false : true,
-        employee_code: 'EMP' + Math.floor(1000 + Math.random() * 9000)
-      }, { client: trx })
+      const staff = await Staff.create(
+        {
+          ...staffPayload,
+          school_id: school_id,
+          is_teching_staff: role.is_teaching_role,
+          is_active: staffPayload.employment_status === 'Resigned' ? false : true,
+          employee_code: 'EMP' + Math.floor(1000 + Math.random() * 9000),
+        },
+        { client: trx }
+      )
 
       // Insert data into the StaffEnrollment table within the transaction
-      await StaffEnrollment.create({
-        academic_session_id: academic_session_id,
-        staff_id: staff.id,
-        school_id: school_id,
-        status: 'Retained',
-        remarks: remarks || ''
-      }, { client: trx })
+      await StaffEnrollment.create(
+        {
+          academic_session_id: academic_session_id,
+          staff_id: staff.id,
+          school_id: school_id,
+          status: 'Retained',
+          remarks: remarks || '',
+        },
+        { client: trx }
+      )
 
       // Commit the transaction
       await trx.commit()
@@ -145,24 +172,25 @@ export default class StaffController {
       return ctx.response.status(201).json(staff.serialize())
     } catch (error) {
       // Rollback the transaction in case of error
-      console.log("error while creating staff", error)
+      console.log('error while creating staff', error)
       await trx.rollback()
-      return ctx.response.status(500).json({ message: 'Error creating staff', error: error.message })
+      return ctx.response
+        .status(500)
+        .json({ message: 'Error creating staff', error: error.message })
     }
   }
 
   async updateStaff(ctx: HttpContext) {
+    let role_id = ctx.auth.user!.role_id
+    let school_id = ctx.auth.user!.school_id
+    let staff_id = ctx.params.staff_id
 
-    let role_id = ctx.auth.user!.role_id;
-    let school_id = ctx.auth.user!.school_id;
-    let staff_id = ctx.params.staff_id;
+    const trx = await db.transaction()
 
-    const trx = await db.transaction();
+    if (role_id == 1 || role_id == 2 || role_id == 4) {
+      let payload = await UpdateValidatorForStaff.validate(ctx.request.body())
 
-    if ((role_id == 1 || role_id == 2 || role_id == 4)) {
-      let payload = await UpdateValidatorForStaff.validate(ctx.request.body());
-
-      let staff = await Staff.query().where('id', staff_id).andWhere('school_id', school_id).first();
+      let staff = await Staff.query().where('id', staff_id).andWhere('school_id', school_id).first()
 
       if (staff) {
         // if (payload.staff_role_id && payload.staff_role_id !== staff.staff_role_id) {
@@ -176,35 +204,38 @@ export default class StaffController {
         //       json({ message: "This role is not available for your school !" });
         //   }
         // }
-        (await staff.merge(payload).save()).useTransaction(trx);
+        ;(await staff.merge(payload).save()).useTransaction(trx)
 
         await trx.commit()
-        return ctx.response.status(200).json(staff);
+        return ctx.response.status(200).json(staff)
       } else {
         await trx.rollback()
-        return ctx.response.status(404).json({ message: "Teacher not found" });
+        return ctx.response.status(404).json({ message: 'Teacher not found' })
       }
     } else {
       await trx.rollback()
-      return ctx.response.status(403).json({ message: "You are not authorized to create a teacher" });
+      return ctx.response
+        .status(403)
+        .json({ message: 'You are not authorized to create a teacher' })
     }
   }
 
   async bulkUploadStaff(ctx: HttpContext) {
+    const school_id = ctx.auth.user!.school_id
+    const role_id = ctx.auth.user!.role_id
+    const academic_session_id = ctx.request.input('academic_sessions', 1)
+    const staff_type = ctx.request.input('staff-type', 1)
 
-    const school_id = ctx.auth.user!.school_id;
-    const role_id = ctx.auth.user!.role_id;
-    const academic_session_id = ctx.request.input('academic_sessions', 1);
-    const staff_type = ctx.request.input('staff-type', 1);
-
-    console.log("staff_type", staff_type, academic_session_id)
+    console.log('staff_type', staff_type, academic_session_id)
 
     if (staff_type !== 'teaching' && staff_type !== 'non-teaching') {
-      return ctx.response.status(400).json({ message: "Invalid staff type" });
+      return ctx.response.status(400).json({ message: 'Invalid staff type' })
     }
 
     if (school_id !== ctx.auth.user!.school_id && (role_id === 3 || role_id === 5)) {
-      return ctx.response.status(403).json({ message: "You are not authorized to create teachers." });
+      return ctx.response
+        .status(403)
+        .json({ message: 'You are not authorized to create teachers.' })
     }
 
     try {
@@ -212,35 +243,34 @@ export default class StaffController {
       const csvFile = ctx.request.file('file', {
         extnames: ['csv'],
         size: '2mb',
-      });
+      })
 
       if (!csvFile) {
-        return ctx.response.badRequest({ message: 'CSV file is required.' });
+        return ctx.response.badRequest({ message: 'CSV file is required.' })
       }
 
       // Move file to temp storage
-      const uploadDir = path.join(app.tmpPath(), 'uploads');
-      await csvFile.move(uploadDir);
+      const uploadDir = path.join(app.tmpPath(), 'uploads')
+      await csvFile.move(uploadDir)
 
       if (!csvFile.isValid) {
-        return ctx.response.badRequest({ message: csvFile.errors });
+        return ctx.response.badRequest({ message: csvFile.errors })
       }
 
       // Construct file path
-      const filePath = path.join(uploadDir, csvFile.clientName);
+      const filePath = path.join(uploadDir, csvFile.clientName)
 
       // Parse CSV file into JSON
-      const jsonData = await parseAndReturnJSON(filePath);
+      const jsonData = await parseAndReturnJSON(filePath)
 
       if (!jsonData.length) {
-        return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' });
+        return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' })
       }
 
       // Start a database transaction
-      const trx = await db.transaction();
+      const trx = await db.transaction()
       let staff_aaray = []
       try {
-
         for (const data of jsonData) {
           // Validate each object separately
 
@@ -249,13 +279,13 @@ export default class StaffController {
             .where('school_id', school_id)
             .andWhere('role', data.role.trim())
             .andWhere('is_teaching_role', staff_type === 'teaching' ? true : false)
-            .first();
+            .first()
 
           if (!role) {
-            await trx.rollback();
+            await trx.rollback()
             return ctx.response.status(404).json({
               message: `Role ${data.role} is not available for your school.`,
-            });
+            })
           }
 
           const validatedStaff = await CreateValidatorForStaff.validate({
@@ -263,58 +293,62 @@ export default class StaffController {
             middle_name: data.middle_name ? data.middle_name : null,
             staff_role_id: role.id,
             mobile_number: data.phone_number,
-          });
+          })
           // validatedData.push({ ...validatedTeacher, staff_role_id: role.id });
-          const staff = await Staff.create({
-            ...validatedStaff,
-            is_teching_staff: role.is_teaching_role,
-            staff_role_id: role.id,
-            school_id: school_id,
-            employee_code: 'EMP' + Math.floor(1000 + Math.random() * 9000)
-          }, { client: trx });
+          const staff = await Staff.create(
+            {
+              ...validatedStaff,
+              is_teching_staff: role.is_teaching_role,
+              staff_role_id: role.id,
+              school_id: school_id,
+              employee_code: 'EMP' + Math.floor(1000 + Math.random() * 9000),
+            },
+            { client: trx }
+          )
 
-          await StaffEnrollment.create({
-            academic_session_id: academic_session_id,
-            staff_id: staff.id,
-            school_id: school_id,
-            status: 'Retained',
-            remarks: ''
-          }, { client: trx })
+          await StaffEnrollment.create(
+            {
+              academic_session_id: academic_session_id,
+              staff_id: staff.id,
+              school_id: school_id,
+              status: 'Retained',
+              remarks: '',
+            },
+            { client: trx }
+          )
 
           staff_aaray.push(staff)
-
         }
 
-        await trx.commit();
+        await trx.commit()
 
         return ctx.response.status(201).json({
           message: 'Bulk upload successful',
           totalInserted: staff_aaray.length,
           data: staff_aaray,
-        });
+        })
       } catch (validationError) {
-        console.log("validationError", validationError);
-        await trx.rollback();
+        console.log('validationError', validationError)
+        await trx.rollback()
         return ctx.response.status(400).json({
           message: 'Validation failed',
           errors: validationError.messages,
-        });
+        })
       }
     } catch (error) {
       return ctx.response.internalServerError({
         message: 'An error occurred while processing the bulk upload.',
         error: error.message,
-      });
+      })
     }
   }
 
   public async exportToExcel(ctx: HttpContext) {
+    const { fields } = ctx.request.only(['fields'])
 
-    const { fields } = ctx.request.only(['fields']);
-
-    const school_id = ctx.params.school_id;
-    const academic_session_id = ctx.params.academic_session_id;
-    const staff_type = ctx.request.input('staff-type');
+    const school_id = ctx.params.school_id
+    const academic_session_id = ctx.params.academic_session_id
+    const staff_type = ctx.request.input('staff-type')
 
     if (!school_id || !fields || !staff_type) {
       return ctx.response.badRequest({ error: 'School ID , Staff type and fields are required' })
@@ -325,16 +359,22 @@ export default class StaffController {
     }
     console.log(school_id, ctx.auth.user!.school_id)
     if (school_id != ctx.auth.user!.school_id) {
-      return ctx.response.status(403).json({ message: "You are not authorized to perform this action" });
+      return ctx.response
+        .status(403)
+        .json({ message: 'You are not authorized to perform this action' })
     }
 
-    let academic_session = await AcademicSession.query().where('id', academic_session_id).andWhere('school_id', ctx.auth.user!.school_id).first();
+    let academic_session = await AcademicSession.query()
+      .where('id', academic_session_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
 
     if (!academic_session) {
       return ctx.response.badRequest({ error: 'Academic session not found' })
     }
 
-    let staff = await db.query()
+    let staff = await db
+      .query()
       .from('staff as s')
       .join('staff_enrollments as se', 's.id', 'se.staff_id')
       .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
@@ -349,14 +389,14 @@ export default class StaffController {
     const staffRoles = await StaffMaster.query()
       .where('school_id', school_id)
       .andWhere('is_teaching_role', staff_type === 'teaching' ? 1 : 0)
-      .andWhere('academic_session_id', academic_session_id);
+      .andWhere('academic_session_id', academic_session_id)
     // Merge `students` and `student_meta` data by `student_id`
 
     if (staffRoles.length === 0) {
       return ctx.response.badRequest({ error: 'No Staff Role found !' })
     }
 
-    const mergedData = staff;
+    const mergedData = staff
 
     // Create Excel Workbook
     const workbook = new ExcelJS.Workbook()
@@ -366,14 +406,14 @@ export default class StaffController {
     const headers = [, ...fields]
     worksheet.addRow(headers)
 
-    console.log("staffRoles" , staffRoles);
+    console.log('staffRoles', staffRoles)
     // Add Data
     mergedData.forEach((data: any) => {
       const rowValues = headers.map((header: string) => {
         if (header === 'staff_role') {
-          const role = staffRoles.find((role) => role.id === data.staff_role_id);
-          console.log("data.staff_role_id " , data.staff_role_id)
-          return role ? role.role : '';
+          const role = staffRoles.find((role) => role.id === data.staff_role_id)
+          console.log('data.staff_role_id ', data.staff_role_id)
+          return role ? role.role : ''
         }
         return (data as Record<string, any>)[header] || ''
       })
@@ -384,15 +424,18 @@ export default class StaffController {
     const buffer = await workbook.xlsx.writeBuffer()
 
     // Generate unique value for the file name
-    const uniqueValue = new Date().getTime();
+    const uniqueValue = new Date().getTime()
 
     // Send Excel File as Response
-    ctx.response.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    ctx.response.header('Content-Disposition', `attachment; filename="staff_${academic_session.session_name}_data_${uniqueValue}.xlsx"`)
+    ctx.response.header(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    ctx.response.header(
+      'Content-Disposition',
+      `attachment; filename="staff_${academic_session.session_name}_data_${uniqueValue}.xlsx"`
+    )
 
     return ctx.response.send(buffer)
   }
 }
-
-
-
