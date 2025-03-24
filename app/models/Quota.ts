@@ -9,6 +9,12 @@ export default class Quota extends Base {
   declare name: string;
 
   @column()
+  declare school_id: number;
+
+  @column()
+  declare academic_session_id : number
+
+  @column()
   declare description?: string;
 
   @column()
