@@ -502,16 +502,16 @@ export default class FeesController {
       })
     }
 
-    let fees_paln_for_clas = await FeesPlan.query()
+    let fees_plan_for_clas = await FeesPlan.query()
       .where('class_id', class_id)
       .andWhere('academic_session_id', academic_session_id)
       .andWhere('status', 'Active')
       .first()
 
-    if (!fees_paln_for_clas) {
+    if (!fees_plan_for_clas) {
       return ctx.response.status(404).json({
         message:
-          'No fees plan found for this class in which student belongs ! Or may be paln for this class is been deactivated !',
+          'No fees plan found for this class in which student belongs ! Or may be plan for this class is been deactivated !',
       })
     }
 
@@ -554,11 +554,11 @@ export default class FeesController {
           student.fees_status = {
             student_id: students[i].id,
             academic_session_id: academic_session_id,
-            fees_plan_id: fees_paln_for_clas.id,
+            fees_plan_id: fees_plan_for_clas.id,
             discounted_amount: 0,
             paid_amount: 0,
-            total_amount: fees_paln_for_clas.total_amount,
-            due_amount: fees_paln_for_clas.total_amount,
+            total_amount: fees_plan_for_clas.total_amount,
+            due_amount: fees_plan_for_clas.total_amount,
             status: 'Pending',
           }
           students[i] = student as Students
@@ -589,11 +589,11 @@ export default class FeesController {
         student.fees_status = {
           student_id: students[i].id,
           academic_session_id: academic_session_id,
-          fees_plan_id: fees_paln_for_clas.id,
+          fees_plan_id: fees_plan_for_clas.id,
           discounted_amount: 0,
           paid_amount: 0,
-          total_amount: fees_paln_for_clas.total_amount,
-          due_amount: fees_paln_for_clas.total_amount,
+          total_amount: fees_plan_for_clas.total_amount,
+          due_amount: fees_plan_for_clas.total_amount,
           status: 'Pending',
         }
         students[i] = student as Students

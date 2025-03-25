@@ -171,7 +171,7 @@ router
     router.post('/concession', [FeesController, 'createConcession'])
     router.put('/concession/:concession_id', [FeesController, 'updateConcession'])
     router.post('/concession/apply/plan', [FeesController, 'applyConcessionToPlan'])
-    router.put('/concession/paln/:concession_id/:plan_id', [
+    router.put('/concession/plan/:concession_id/:plan_id', [
       FeesController,
       'updateAppliedConcessionToPlan',
     ])

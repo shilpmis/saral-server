@@ -6,9 +6,28 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.integer('fees_plan_id').unsigned().references('id').inTable('fees_plans').onDelete('CASCADE')
-      table.integer('fees_type_id').unsigned().references('id').inTable('fees_types').onDelete('CASCADE')
-      table.enum('installment_type', ['Admission', 'Monthly', 'Quarterly', 'Half Yearly', 'Yearly']).notNullable()
+      // table
+      //   .integer('academic_session_id')
+      //   .unsigned()
+      //   .notNullable()
+      //   .references('id')
+      //   .inTable('academic_sessions')
+      //   .onDelete('CASCADE')
+      table
+        .integer('fees_plan_id')
+        .unsigned()
+        .references('id')
+        .inTable('fees_plans')
+        .onDelete('CASCADE')
+      table
+        .integer('fees_type_id')
+        .unsigned()
+        .references('id')
+        .inTable('fees_types')
+        .onDelete('CASCADE')
+      table
+        .enum('installment_type', ['Admission', 'Monthly', 'Quarterly', 'Half Yearly', 'Yearly'])
+        .notNullable()
       table.integer('total_installment').notNullable()
       table.decimal('total_amount', 10, 2).notNullable()
       table.enum('status', ['Active', 'Inactive']).notNullable()
@@ -16,7 +35,7 @@ export default class extends BaseSchema {
       table.timestamp('created_at')
       table.timestamp('updated_at')
 
-      table.unique(['fees_plan_id' , 'fees_type_id']);
+      table.unique(['fees_plan_id', 'fees_type_id'])
     })
   }
 

@@ -1,7 +1,7 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'concession_fees_paln_master'
+  protected tableName = 'concession_fees_plan_master'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
@@ -41,7 +41,7 @@ export default class extends BaseSchema {
 
       table.index(
         ['concession_id', 'fees_plan_id', 'fees_type_id'],
-        'concession_fees_paln_master_unique'
+        'concession_fees_plan_master_unique'
       )
     })
   }

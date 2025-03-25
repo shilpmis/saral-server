@@ -8,7 +8,7 @@ import FeesPlan from './FeesPlan.js'
 import FeesType from './FeesType.js'
 
 export default class ConcessionFeesPlanMaster extends Base {
-  public static table = 'concession_fees_paln_master'
+  public static table = 'concession_fees_plan_master'
 
   @column()
   declare academic_session_id: number
