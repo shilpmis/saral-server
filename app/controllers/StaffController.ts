@@ -15,7 +15,7 @@ export default class StaffController {
   async indexStaff(ctx: HttpContext) {
     let type = ctx.request.input('type', 'all')
     let academic_session_id = ctx.request.input('academic_sessions', 0)
-    let page = ctx.request.input('page', 1)
+    let page = ctx.request.input('page', 'all')
     let school_id = ctx.auth.user!.school_id
 
     console.log('type', type)
@@ -79,11 +79,12 @@ export default class StaffController {
 
       staff = await Staff.query()
         .select([
-          'staff.id',
-          'staff.first_name',
-          'staff.middle_name',
-          'staff.last_name',
-          'staff.staff_role_id',
+          'staff.*',
+          // 'staff.id',
+          // 'staff.first_name',
+          // 'staff.middle_name',
+          // 'staff.last_name',
+          // 'staff.staff_role_id',
           'sm.role as role',
         ])
         .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
@@ -91,7 +92,7 @@ export default class StaffController {
         .whereNotIn('staff.id', [...onBoardedUser.map((user) => Number(user.staff_id))])
         .where('staff.is_active', true)
         .where('staff.school_id', school_id)
-        .paginate(page, 10)
+      // .paginate(page, 10)
 
       return ctx.response.status(200).json(staff)
     }

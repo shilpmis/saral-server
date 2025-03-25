@@ -1850,7 +1850,7 @@ export default class FeesController {
         .preload('concession')
         .where('student_id', student_id)
         .andWhere('concession_id', concession_id)
-        .andWhere('paln_id', plan_id)
+        .andWhere('fees_plan_id', plan_id)
         .first()
 
       if (!concession_applied_to_student) {

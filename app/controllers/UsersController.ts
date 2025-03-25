@@ -219,9 +219,10 @@ export default class UsersController {
       }
 
       const user = await User.query()
+        .preload('staff')
         .where('id', user_id)
         .andWhere('school_id', ctx.auth.user!.school_id)
-        .preload('staff')
+        .andWhereNotNull('staff_id')
         .first()
 
       if (!user) {
@@ -239,6 +240,8 @@ export default class UsersController {
 
       const { assign_classes, unassign_classes, ...payload } =
         await UpdateValidatorForOnBoardTeacherAsUser.validate(ctx.request.all())
+
+      console.log('Check this', payload)
 
       if (assign_classes) {
         for (const class_id of assign_classes) {
@@ -303,8 +306,8 @@ export default class UsersController {
         }
       }
 
-      user.staff.useTransaction(trx)
-      await user.staff.merge(payload).save()
+      user.useTransaction(trx)
+      await user.merge(payload).save()
       await trx.commit()
       return ctx.response.json(user.serialize())
     } catch (error) {

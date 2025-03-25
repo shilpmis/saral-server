@@ -108,15 +108,11 @@ router
     router.post('leave-policy', [LeavesController, 'createLeavePolicyForSchool'])
     router.put('leave-policy/:leave_policy_id', [LeavesController, 'updateLeavePolicyForSchool'])
 
-    router.get('leave-application/:staff_id', [LeavesController, 'fetchLeaveApplication'])
-    router.get('leave-application', [LeavesController, 'fetchLeaveApplicationForAdmin'])
+    router.get('leave-applications/:staff_id', [LeavesController, 'fetchLeaveApplication'])
+    router.get('leave-applications', [LeavesController, 'fetchLeaveApplicationForAdmin'])
     router.post('leave-application', [LeavesController, 'applyForLeave'])
     router.put('leave-application/:uuid', [LeavesController, 'updateAppliedLeave'])
-    router.put('/leave-application/other/status/:uuid', [
-      LeavesController,
-      'approveOtherStaffLeaveApplication',
-    ])
-    router.put('/leave-application/teacher/status/:uuid', [
+    router.put('/leave-application/status/:uuid', [
       LeavesController,
       'approveTeachersLeaveApplication',
     ])
