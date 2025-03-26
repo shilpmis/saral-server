@@ -105,46 +105,85 @@ export default class ClassSeatAvailabilitiesController {
   /**
    * Update class seat availability for a specific class
    */
-  // public async updateSeatAvailability({ params, request, response }: HttpContext) {
-  //   const classWithSeats = await ClassSeatAvailability.query()
-  //     .where('id', params.class_id)
-  //     .preload('seat_availability'); // Ensure this relation exists
+  public async updateSeatAvailability({ params, request, response, auth }: HttpContext) {
+    try {
+      const class_id = Number(params.class_id)
+      if (!class_id) {
+        return response.badRequest({ message: 'Invalid class ID' })
+      }
   
-  //   const totalSeats = classWithSeats. || 0;
-
-  //   // Get quota-allocated seats
-  //   const quotaSeats = await QuotaAllocation.query()
-  //     .where('class_id', classData.id)
-  //     .sum('total_seats as total');
-
-  //   const quota_allocated_seats = quotaSeats[0]?.total || 0;
-
-  //   // Get filled seats
-  //   const filledSeats = await StudentEnrollments.query()
-  //     .where('class_id', classData.id)
-  //     .count('* as total');
-
-  //   const filled_seats = filledSeats[0]?.total || 0;
-
-  //   // Calculate available general seats
-  //   const general_available_seats = total_seats - quota_allocated_seats;
-  //   const remaining_seats = total_seats - filled_seats;
-
-  //   // Update or create record in ClassSeatAvailability table
-  //   let seatAvailability = await ClassSeatAvailability.findBy('class_id', classData.id);
-  //   if (!seatAvailability) {
-  //     seatAvailability = new ClassSeatAvailability();
-  //     seatAvailability.class_id = classData.id;
-  //   }
-
-  //   seatAvailability.total_seats = total_seats;
-  //   seatAvailability.quota_allocated_seats = quota_allocated_seats;
-  //   seatAvailability.general_available_seats = general_available_seats;
-  //   seatAvailability.filled_seats = filled_seats;
-  //   seatAvailability.remaining_seats = remaining_seats;
-
-  //   await seatAvailability.save();
-
-  //   return response.ok({ message: `Seat availability updated for class ID ${classData.id}`, seatAvailability });
-  // }
+      const total_seats = request.input('total_seats')
+      if (!total_seats || isNaN(total_seats)) {
+        return response.badRequest({ message: 'Invalid total seats value' })
+      }
+  
+      // Fetch the class
+      const classData = await Classes.find(class_id)
+      if (!classData) {
+        return response.notFound({ message: `Class ID ${class_id} not found` })
+      }
+  
+      // Get current active academic session for school
+      const activeSession = await AcademicSession.query()
+        .where('is_active', true)
+        .andWhere('school_id', auth.user!.school_id)
+        .first()
+  
+      if (!activeSession) {
+        return response.notFound({ message: 'No active academic session found for this school' })
+      }
+  
+      const academic_session_id = activeSession.id
+  
+      // Get total quota-allocated seats
+      const quotaSum = await QuotaAllocation.query()
+        .where('class_id', class_id)
+        .sum('total_seats as total')
+  
+      const quota_allocated_seats = Number(quotaSum[0]?.$extras.total ?? 0)
+  
+      // Get filled seats
+      const filledSeats = await StudentEnrollments.query()
+        .where('class_id', class_id)
+        .count('* as total')
+  
+      const filled_seats = Number(filledSeats[0]?.$extras.total ?? 0)
+  
+      // Calculate remaining and general seats
+      const general_available_seats = total_seats - quota_allocated_seats
+      const remaining_seats = total_seats - filled_seats
+  
+      // Find or create seat availability
+      let seatAvailability = await ClassSeatAvailability.query()
+        .where('class_id', class_id)
+        .where('academic_session_id', academic_session_id)
+        .first()
+  
+      if (!seatAvailability) {
+        seatAvailability = new ClassSeatAvailability()
+        seatAvailability.class_id = class_id
+        seatAvailability.academic_session_id = academic_session_id
+      }
+  
+      // Update values
+      seatAvailability.total_seats = total_seats
+      seatAvailability.quota_allocated_seats = quota_allocated_seats
+      seatAvailability.general_available_seats = general_available_seats
+      seatAvailability.filled_seats = filled_seats
+      seatAvailability.remaining_seats = remaining_seats
+  
+      await seatAvailability.save()
+  
+      return response.ok({
+        message: `Seat availability updated for Class ID ${class_id}`,
+        seatAvailability,
+      })
+    } catch (error) {
+      console.error('Error updating seat availability:', error)
+      return response.internalServerError({
+        message: 'Failed to update seat availability',
+        error: error.message,
+      })
+    }
+  }  
 }
