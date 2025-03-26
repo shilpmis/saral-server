@@ -43,7 +43,7 @@ export default class AttendanceController {
       // Start transaction
       const trx = await db.transaction()
 
-      if (!teacher_id) {
+      if (!teacher_id && ctx.auth.user?.role_id !== 1 && ctx.auth.user?.role_id === 2) {
         return ctx.response.status(401).json({
           message: 'You are not authorized peron to mark the attendance of this class !',
         })
