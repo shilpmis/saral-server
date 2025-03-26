@@ -48,7 +48,7 @@ router
     router.put('/school/:school_id', [SchoolsController, 'update'])
 
     router.post('/academic-session', [AcademicSessionsController, 'createAcademicSessionForSchool'])
-    router.put('/academic-session/:school_id', [
+    router.put('/academic-session/:id', [
       AcademicSessionsController,
       'updateAcademicSessionForSchool',
     ])
@@ -56,6 +56,7 @@ router
       AcademicSessionsController,
       'getAllAcademicSessionInSchool',
     ])
+    router.delete('/academic-session/:id', [AcademicSessionsController, 'deleteAcademicSession'])
 
     router.get('/users', [UsersController, 'indexSchoolUsers'])
     router.post('/user', [UsersController, 'createUser'])

@@ -11,17 +11,7 @@ export default class AcademicSession extends Base {
   declare school_id: number
 
   @column()
-  declare session_name: string
-
-  @column({
-    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-  })
-  declare start_date: Date
-
-  @column({
-    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-  })
-  declare end_date: Date
+  declare session_name: string 
 
   @column()
   declare start_month: string
