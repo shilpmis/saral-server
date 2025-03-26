@@ -603,8 +603,6 @@ export default class LeavesController {
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
-    console.log(academic_sesion.id, today, status, staff_id)
-
     if (staff) {
       let applications = await StaffLeaveApplication.query()
         .select([
@@ -662,13 +660,13 @@ export default class LeavesController {
 
     let applicationQuery: StaffLeaveApplication[] = []
 
-    let staff = await Staff.query().where('school_id', ctx.auth.user!.school_id)
+    // let staff = await Staff.query().where('school_id', ctx.auth.user!.school_id)
 
-    if (!staff) {
-      return ctx.response.status(404).json({
-        message: 'No Leaves application for now !',
-      })
-    }
+    // if (!staff) {
+    //   return ctx.response.status(404).json({
+    //     message: 'No Leaves application for now !',
+    //   })
+    // }
 
     let academic_Session = await AcademicSession.query()
       .where('is_active', true)

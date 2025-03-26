@@ -5,6 +5,7 @@ import AttendanceDetail from '#models/AattendanceDetail'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import { ValidatorForMarkAttendance } from '#validators/attendance'
+import StudentEnrollments from '#models/StudentEnrollments'
 
 export default class AttendanceController {
   /**
@@ -29,7 +30,8 @@ export default class AttendanceController {
       // Check if attendance already exists for this date and class
       const existingAttendance = await AttendanceMaster.query()
         .where('class_id', class_id)
-        .where('attendance_date', date)
+        .andWhere('attendance_date', date)
+        .andWhere('academic_session_id', payload.academic_session_id)
         .first()
 
       if (existingAttendance) {
@@ -50,8 +52,9 @@ export default class AttendanceController {
         // Create attendance master entry
         const attendanceMaster = await AttendanceMaster.create(
           {
-            school_id: ctx.auth.user?.school_id,
+            // school_id: ctx.auth.user?.school_id,
             class_id: payload.class_id,
+            academic_session_id: payload.academic_session_id,
             teacher_id: payload.marked_by,
             attendance_date: payload.date,
           },
@@ -91,6 +94,7 @@ export default class AttendanceController {
    */
   async getAttendanceDetails(ctx: HttpContext) {
     const { class_id, unix_date } = ctx.params
+    const academic_session_id = ctx.request.qs().academic_session
     const school_id = ctx.auth.user!.school_id
 
     let date = new Date(unix_date * 1000).toISOString().split('T')[0]
@@ -116,9 +120,10 @@ export default class AttendanceController {
 
     try {
       const attendance = await AttendanceMaster.query()
-        .where('school_id', school_id)
-        .where('class_id', class_id)
-        .where('attendance_date', date)
+        // .where('school_id', school_id)
+        .andWhere('class_id', class_id)
+        .andWhere('attendance_date', date)
+        .andWhere('academic_session_id', academic_session_id)
         .preload('attendance_details', (query) => {
           query.preload('student', (studentQuery) => {
             studentQuery.select('id', 'first_name', 'middle_name', 'last_name', 'roll_number')
@@ -128,23 +133,24 @@ export default class AttendanceController {
 
       if (!attendance) {
         // Fetch students assigned to this class for new attendance marking
-        const students = await db
-          .query()
-          .from('students')
+
+        const student_enrollement_for_class = await StudentEnrollments.query()
+          .preload('student', (studentQuery) => {
+            studentQuery
+              .select('id', 'first_name', 'middle_name', 'last_name', 'roll_number')
+              .orderBy('roll_number', 'asc')
+          })
           .where('class_id', class_id)
-          .where('school_id', school_id)
-          .where('is_active', true)
-          .select('id', 'first_name', 'last_name', 'roll_number')
-          .orderBy('roll_number', 'asc')
+          .where('academic_session_id', academic_session_id)
 
         return ctx.response.status(200).json({
           date,
           class_id,
           marked_by: null,
-          attendance_data: students.map((student) => ({
-            student_id: student.id,
-            student_name: `${student.first_name} ${student.last_name}`,
-            roll_number: student.roll_number,
+          attendance_data: student_enrollement_for_class.map((student) => ({
+            student_id: student.student.id,
+            student_name: `${student.student.first_name} ${student.student.last_name}`,
+            roll_number: student.student.roll_number,
             status: null,
             remarks: null,
           })),

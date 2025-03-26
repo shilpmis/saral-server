@@ -10,46 +10,44 @@ import Classes from './Classes.js'
 import Teacher from './Teacher.js'
 
 export default class AttendanceMasters extends Base {
+  @column()
+  declare academic_session_id: number
 
-    @column({ isPrimary: true })
-    declare id: number
+  // @column()
+  // declare school_id: number
 
-    @column()
-    declare school_id: number
+  @column()
+  declare class_id: number
 
-    @column()
-    declare class_id: number
+  @column()
+  declare teacher_id: number
 
-    @column()
-    declare teacher_id: number
+  @column({
+    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
+  })
+  declare attendance_date: Date
 
-    @column({
-      serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-    })
-    declare attendance_date : Date
+  @column()
+  declare is_holiday: boolean
 
-    @column()
-    declare is_holiday: boolean
+  @column.dateTime({ autoCreate: true })
+  declare created_at: DateTime
 
-    @column.dateTime({ autoCreate: true })
-    declare created_at: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updated_at: DateTime
 
-    @column.dateTime({ autoCreate: true, autoUpdate: true })
-    declare updated_at: DateTime
+  @hasMany(() => AattendanceDetail, {
+    foreignKey: 'attendance_master_id',
+    localKey: 'id',
+  })
+  declare attendance_details: HasMany<typeof AattendanceDetail>
 
-    @hasMany(() => AattendanceDetail, {
-        foreignKey: 'attendance_master_id',
-        localKey: 'id'
-    })
-    declare attendance_details: HasMany<typeof AattendanceDetail>
+  @belongsTo(() => Schools)
+  declare school: BelongsTo<typeof Schools>
 
-    @belongsTo(() => Schools)
-    declare school: BelongsTo<typeof Schools>
+  @belongsTo(() => Classes)
+  declare class: BelongsTo<typeof Classes>
 
-    @belongsTo(() => Classes)
-    declare class: BelongsTo<typeof Classes>
-
-    @belongsTo(() => Teacher)
-    declare teacher: BelongsTo<typeof Teacher>
-
+  @belongsTo(() => Teacher)
+  declare teacher: BelongsTo<typeof Teacher>
 }
