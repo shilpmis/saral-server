@@ -5,8 +5,7 @@ import { belongsTo, column, hasMany, hasOne } from '@adonisjs/lucid/orm'
 import Schools from './Schools.js'
 import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import StaffMaster from './StaffMaster.js'
-import ClassTeacherMaster from './Classteachermaster.js'
-
+import ClassTeacherMaster from './ClassTeacherMaster.js'
 export default class Staff extends Base {
   @column()
   declare employee_code: string

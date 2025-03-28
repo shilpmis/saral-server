@@ -1,4 +1,4 @@
-import ClassTeacherMaster from '#models/Classteachermaster'
+import ClassTeacherMaster from '#models/ClassTeacherMaster'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 
 export default class extends BaseSeeder {
@@ -7,18 +7,18 @@ export default class extends BaseSeeder {
     await ClassTeacherMaster.createMany([
       {
         id: 1,
-        class_id: 1,
+        division_id: 1,
         staff_id: 1,
         academic_session_id: 2,
-        status: 'Active'
+        status: 'Active',
       },
       {
         id: 2,
-        class_id: 2,
+        division_id: 2,
         staff_id: 1,
-        academic_session_id: 2, 
-        status: 'Active'
-      }
+        academic_session_id: 2,
+        status: 'Active',
+      },
     ])
   }
 }

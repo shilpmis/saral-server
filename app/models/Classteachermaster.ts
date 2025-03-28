@@ -8,7 +8,7 @@ export default class ClassTeacherMaster extends Base {
   declare academic_session_id: number
 
   @column()
-  declare class_id: number
+  declare division_id: number
 
   @column()
   declare staff_id: number

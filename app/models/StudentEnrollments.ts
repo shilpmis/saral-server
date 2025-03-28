@@ -12,7 +12,7 @@ export default class StudentEnrollments extends Base {
   declare student_id: number
 
   @column()
-  declare class_id: number
+  declare division_id: number
 
   @column()
   declare academic_session_id: number
@@ -21,13 +21,13 @@ export default class StudentEnrollments extends Base {
   declare quota_id: number
 
   @column()
-  declare status: 'Permoted' | 'Failed' | 'Pursuing' | 'Admitted'
+  declare status: 'pursuing' | 'permoted' | 'failed' | 'drop'
 
   @column()
   declare remarks: string
 
   @column()
-  declare type: 'New Admission' | 'Existing Student'
+  declare is_new_admission: boolean
 
   @belongsTo(() => Students, {
     foreignKey: 'student_id',

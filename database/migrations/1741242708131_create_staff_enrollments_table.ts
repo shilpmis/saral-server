@@ -7,23 +7,25 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
 
-      table.integer('academic_session_id')
+      table
+        .integer('academic_session_id')
         .unsigned()
         .notNullable()
-        .references('id')  
+        .references('id')
         .inTable('academic_sessions')
-        .onDelete('CASCADE');
+        .onDelete('CASCADE')
 
-      table.integer('staff_id')
+      table
+        .integer('staff_id')
         .unsigned()
         .notNullable()
         .references('id')
         .inTable('staff')
-        .onDelete('CASCADE');
+        .onDelete('CASCADE')
 
-      table.enum('status' , ['Retained' , 'Transfer' , 'Resigned']).defaultTo('Retained');
+      table.enum('status', ['retained', 'transfer', 'resigned']).defaultTo('retained')
 
-      table.string('remarks', 255).nullable();
+      table.string('remarks', 255).nullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

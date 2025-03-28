@@ -1,4 +1,4 @@
-import vine from "@vinejs/vine";
+import vine from '@vinejs/vine'
 
 /**
  * Validates the post's creation action
@@ -6,24 +6,63 @@ import vine from "@vinejs/vine";
 export const CreateValidatorForClasses = vine.compile(
   vine.object({
     // add here
-    class: vine.enum([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+    class: vine.enum([
+      'Nursery',
+      'LKG',
+      'UKG',
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      '10',
+      '11',
+      '12',
+    ]),
+    academic_session_id: vine.number().positive(),
+    is_active: vine.boolean().optional(),
+  })
+)
+
+export const CreateValidatorForDivision = vine.compile(
+  vine.object({
+    // add here
+    class_id: vine.number().positive(),
     division: vine.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']),
-    academic_session_id : vine.number().positive(),
-    aliases: vine.string().minLength(3).maxLength(10).optional(),
+    academic_session_id: vine.number().positive(),
+    is_active: vine.boolean().optional(),
   })
 )
 
 export const CreateManyValidatorForClasses = vine.compile(
-  vine.array(
-    vine.object({
-      // add here
-      class: vine.enum([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
-      division: vine.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']),
-      is_assigned : vine.boolean().optional(),
-      aliases: vine.string().trim().minLength(3).maxLength(10).optional(),
-      academic_session_id : vine.number().positive(),
-
-    }))
+  vine
+    .array(
+      vine.object({
+        class: vine.enum([
+          'Nursery',
+          'LKG',
+          'UKG',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+          '7',
+          '8',
+          '9',
+          '10',
+          '11',
+          '12',
+        ]),
+        academic_session_id: vine.number().positive(),
+        is_active: vine.boolean().optional(),
+      })
+    )
     .minLength(1)
     .maxLength(12)
 )
@@ -37,11 +76,10 @@ export const UpdateValidatorForClasses = vine.compile(
   })
 )
 
-
 /**
  * Validatioin function for cross check unique alises name for each classes belong to same school
  */
 
 // async function uniqueAliasesForPerticularSchool(params:type) {
-  
+
 // }

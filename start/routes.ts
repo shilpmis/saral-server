@@ -68,7 +68,7 @@ router
     router.post('/class/base', [ClassesController, 'createClass'])
     router.post('/classes', [ClassesController, 'createMultipleClasses'])
     router.post('/class/division', [ClassesController, 'createDivision'])
-    router.put('/class/:class_id', [ClassesController, 'updateClass'])
+    router.put('/class/:division_id', [ClassesController, 'updateClass'])
 
     router.get('students/:academic_session_id/:class_id', [
       StundetsController,

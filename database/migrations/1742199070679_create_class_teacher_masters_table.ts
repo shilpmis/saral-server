@@ -8,11 +8,19 @@ export default class extends BaseSchema {
       table.increments('id')
 
       table
-        .integer('class_id')
+        .integer('academic_session_id')
         .unsigned()
         .notNullable()
         .references('id')
-        .inTable('classes')
+        .inTable('academic_sessions')
+        .onDelete('CASCADE')
+
+      table
+        .integer('division_id')
+        .unsigned()
+        .notNullable()
+        .references('id')
+        .inTable('divisions')
         .onDelete('CASCADE')
 
       table
@@ -23,15 +31,7 @@ export default class extends BaseSchema {
         .inTable('staff')
         .onDelete('CASCADE')
 
-        table.integer('academic_session_id')
-        .unsigned()
-        .notNullable()
-        .references('id')
-        .inTable('academic_sessions')
-        .onDelete('CASCADE');
-      
-      table.enum('status', ['Active', 'Inactive']).notNullable();
-
+      table.enum('status', ['Active', 'Inactive']).notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
