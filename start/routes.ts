@@ -26,6 +26,7 @@ import ClassSeatAvailabilitiesController from '#controllers/ClassSeatAvailabilit
 import QuotasController from '#controllers/QuotaController'
 import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
+import GlobalSearchController from '#controllers/GlobalSearchController'
 
 router
   .group(() => {
@@ -70,6 +71,9 @@ router
     router.post('/class/division', [ClassesController, 'createDivision'])
     router.put('/class/:division_id', [ClassesController, 'updateClass'])
 
+    // API to get the Global Search Results
+    router.get('student/search', [GlobalSearchController, 'getStuentSearchResults'])
+    
     router.get('students/:academic_session_id/:class_id', [
       StundetsController,
       'indexClassStudents',
