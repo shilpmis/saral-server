@@ -1,11 +1,9 @@
-//import { DateTime } from 'luxon'
-//import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
 import { belongsTo, column, hasMany, hasOne } from '@adonisjs/lucid/orm'
 import Schools from './Schools.js'
 import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import StaffMaster from './StaffMaster.js'
-import ClassTeacherMaster from './ClassTeacherMaster.js'
+import ClassTeacherMaster from '#models/Classteachermaster'
 export default class Staff extends Base {
   @column()
   declare employee_code: string

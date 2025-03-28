@@ -1,4 +1,4 @@
-import ClassTeacherMaster from '#models/ClassTeacherMaster'
+import ClassTeacherMaster from '#models/Classteachermaster'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 
 export default class extends BaseSeeder {
