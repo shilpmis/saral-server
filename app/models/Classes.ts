@@ -46,6 +46,9 @@ export default class Classes extends Base {
   })
   declare fees_plan: HasOne<typeof FeesPlan>
 
-  @hasMany(() => ClassSeatAvailability, { foreignKey: 'class_id' })
+  @hasMany(() => ClassSeatAvailability, {
+    foreignKey: 'class_id',
+    localKey: 'id',
+  })
   declare seat_availability: relations.HasMany<typeof ClassSeatAvailability>
 }

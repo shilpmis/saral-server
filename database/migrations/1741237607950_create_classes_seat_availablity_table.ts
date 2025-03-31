@@ -26,7 +26,11 @@ export default class CreateClassSeatAvailabilityTable extends BaseSchema {
       table.integer('filled_seats').notNullable().defaultTo(0)
       table.integer('remaining_seats').notNullable().defaultTo(0)
 
-      table.timestamps(true, true)
+      table.timestamp('created_at')
+      table.timestamp('updated_at')
+
+      //unique constraint for class_id and academic_session_id
+      table.unique(['class_id', 'academic_session_id'], 'uq_class_academic_session')
     })
   }
 

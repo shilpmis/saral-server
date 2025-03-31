@@ -116,7 +116,6 @@ export default class StundetsController {
 
   async createSingleStudent(ctx: HttpContext) {
     const academic_session_id = ctx.request.qs().academic_session
-    console.log(academic_session_id)
     const trx = await db.transaction()
     try {
       const academicSession = await AcademicSession.query()
@@ -131,8 +130,6 @@ export default class StundetsController {
       let school_id = ctx.auth.user!.school_id
 
       let payload = await CreateValidatorStundet.validate(ctx.request.body())
-
-      console.log('payload', payload)
 
       let std = await Classes.query()
         .where('id', payload.students_data.class_id)
@@ -168,18 +165,14 @@ export default class StundetsController {
         { client: trx }
       )
 
-      const isOldStudent = await StudentEnrollments.query()
-        .where('student_id', student_data.id)
-        .andWhere('status', '!=', 'Failed')
-        .first()
-
       // Add a row in the student_enrollments table within the transaction
       await StudentEnrollments.create(
         {
           student_id: student_data.id,
           division_id: class_id,
           academic_session_id: academicSession.id,
-          status: isOldStudent ? 'permoted' : 'pursuing',
+          is_new_admission: true,
+          status: 'pursuing',
           remarks: remarks || '',
         },
         { client: trx }
@@ -193,7 +186,7 @@ export default class StundetsController {
         .json({ student_data: student_data, student_meta: student_meta_data_payload })
     } catch (error) {
       // Rollback the transaction in case of error
-      console.log(error)
+      console.log('Error while create single student', error)
       await trx.rollback()
       return ctx.response
         .status(500)
@@ -286,7 +279,6 @@ export default class StundetsController {
     let student_meta = StudentEnrollment.student.student_meta
 
     let payload = await UpdateValidatorForStundets.validate(ctx.request.body())
-    console.log('payload', payload)
     const trx = await db.transaction()
 
     try {
@@ -309,7 +301,7 @@ export default class StundetsController {
         student_meta_data: student_meta,
       })
     } catch (error) {
-      console.log(error)
+      console.log('Erro while Update Student', error)
       await trx.rollback()
       return ctx.response
         .status(500)
@@ -431,7 +423,6 @@ export default class StundetsController {
 
             validatedData.push({ student_data, student_meta_data_payload, studentEnrollment })
           } catch (validationError) {
-            console.log('validationError ', validationError)
             errors.push({
               row: index + 1,
               message: 'Validation failed',

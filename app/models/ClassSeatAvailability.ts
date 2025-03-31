@@ -27,7 +27,7 @@ export default class ClassSeatAvailability extends Base {
   declare remaining_seats: number
 
   @belongsTo(() => Classes, { foreignKey: 'class_id' })
-  declare parent_class: relations.BelongsTo<typeof Classes>
+  declare class: relations.BelongsTo<typeof Classes>
 
   @hasMany(() => QuotaAllocation, {
     foreignKey: 'class_id',

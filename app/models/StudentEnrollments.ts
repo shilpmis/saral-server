@@ -40,7 +40,7 @@ export default class StudentEnrollments extends Base {
 
   @hasOne(() => Classes, {
     foreignKey: 'id',
-    localKey: 'class_id',
+    localKey: 'division_id',
   })
   declare class: HasOne<typeof Classes>
 }

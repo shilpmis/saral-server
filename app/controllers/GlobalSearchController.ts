@@ -5,7 +5,15 @@ export default class GlobalSearchController {
   public async getStuentSearchResults({ auth, request, response }: HttpContext) {
     try {
       const school_id = auth.user?.school_id
-      const { academic_session_id, name, gr_no, aadhar_no, primary_mobile, enrollment_code, detailed } = request.qs()
+      const {
+        academic_session_id,
+        name,
+        gr_no,
+        aadhar_no,
+        primary_mobile,
+        enrollment_code,
+        detailed,
+      } = request.qs()
 
       if (!school_id || !academic_session_id) {
         return response.badRequest({ message: 'Invalid request: Missing required parameters.' })
@@ -53,7 +61,8 @@ export default class GlobalSearchController {
           })
       } else {
         studentsQuery.preload('academic_class', (query) => {
-          query.where('academic_session_id', academic_session_id).preload('class')
+          query.where('academic_session_id', academic_session_id)
+          // .preload('class')
         })
       }
 
