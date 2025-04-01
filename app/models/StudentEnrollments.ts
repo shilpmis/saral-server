@@ -4,6 +4,7 @@ import Students from './Students.js'
 import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
 import Quota from './Quota.js'
 import Classes from './Classes.js'
+import Divisions from './Divisions.js'
 
 export default class StudentEnrollments extends Base {
   public static table = 'student_enrollments'
@@ -38,9 +39,9 @@ export default class StudentEnrollments extends Base {
   @belongsTo(() => Quota)
   declare quota: BelongsTo<typeof Quota>
 
-  @hasOne(() => Classes, {
+  @hasOne(() => Divisions, {
     foreignKey: 'id',
     localKey: 'division_id',
   })
-  declare class: HasOne<typeof Classes>
+  declare class: HasOne<typeof Divisions>
 }

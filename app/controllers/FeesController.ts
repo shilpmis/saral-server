@@ -3,6 +3,7 @@ import Classes from '#models/Classes'
 import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
 import Concessions from '#models/Concessions'
 import ConcessionStudentMaster from '#models/ConcessionStudentMaster'
+import Divisions from '#models/Divisions'
 import FeesPlan from '#models/FeesPlan'
 import FeesPlanDetails from '#models/FeesPlanDetails'
 import FeesType from '#models/FeesType'
@@ -464,8 +465,8 @@ export default class FeesController {
   }
 
   async fetchFeesStatusForClass(ctx: HttpContext) {
-    let class_id = ctx.params.class_id
-    if (!class_id) {
+    let division_id = ctx.params.division_id
+    if (!division_id) {
       return ctx.response.status(400).json({
         message: 'Please provide class_id',
       })
@@ -491,10 +492,8 @@ export default class FeesController {
       })
     }
 
-    let clas = await Classes.query()
-      .where('id', class_id)
-      .andWhere('school_id', ctx.auth.user!.school_id)
-      .first()
+    let clas = await Divisions.query().where('id', division_id).first()
+    // .andWhere('school_id', ctx.auth.user!.school_id)
 
     if (!clas) {
       return ctx.response.status(404).json({
@@ -503,7 +502,7 @@ export default class FeesController {
     }
 
     let fees_plan_for_clas = await FeesPlan.query()
-      .where('class_id', class_id)
+      .where('division_id', division_id)
       .andWhere('academic_session_id', academic_session_id)
       .andWhere('status', 'Active')
       .first()
@@ -516,7 +515,7 @@ export default class FeesController {
     }
 
     let student_enrollments = await StudentEnrollments.query()
-      .where('class_id', class_id)
+      .where('division_id', division_id)
       .andWhere('academic_session_id', academic_session_id)
 
     if (student_enrollments.length === 0) {
@@ -636,9 +635,9 @@ export default class FeesController {
       })
       .preload('academic_class', (query) => {
         query.preload('class', (query) => {
-          query
-            .select('id', 'class', 'division', 'aliases')
-            .where('school_id', ctx.auth.user!.school_id)
+          // query
+          //   .select('id', 'class', 'division', 'aliases')
+          //   .where('school_id', ctx.auth.user!.school_id)
         })
         query.where('academic_session_id', academicSession.id)
       })
@@ -659,7 +658,7 @@ export default class FeesController {
         })
         query.andWhere('status', 'Active')
       })
-      .where('class_id', student.academic_class[0].division_id)
+      .where('division_id', student.academic_class[0].division_id)
       .andWhere('academic_session_id', academicSession.id)
       .andWhere('status', 'Active')
       .first()
@@ -733,7 +732,6 @@ export default class FeesController {
       },
       0
     )
-    console.log('totalConcessionAmountForPlan', feesPlan.concession_for_plan)
     let totalConcessionPercentageForPlan = feesPlan.concession_for_plan.reduce(
       (acc: number, cons: ConcessionFeesPlanMaster) => {
         if (cons.percentage) {
@@ -864,9 +862,9 @@ export default class FeesController {
       })
       .preload('academic_class', (query) => {
         query.preload('class', (query) => {
-          query
-            .select('id', 'class', 'division', 'aliases')
-            .where('school_id', ctx.auth.user!.school_id)
+          // query
+          //   .select('id', 'class', 'division', 'aliases')
+          //   .where('school_id', ctx.auth.user!.school_id)
         })
         query.where('academic_session_id', academicSession.id)
       })
@@ -880,10 +878,8 @@ export default class FeesController {
       })
     }
 
-    console.log('Check this academicSession', academicSession, student.academic_class[0].id)
-
     let fees_plan = await FeesPlan.query()
-      .where('class_id', student.academic_class[0].division_id)
+      .where('division_id', student.academic_class[0].division_id)
       .andWhere('academic_session_id', academicSession.id)
       .andWhere('status', 'Active')
       .first()

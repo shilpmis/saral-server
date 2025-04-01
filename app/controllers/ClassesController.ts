@@ -25,12 +25,22 @@ export default class ClassesController {
 
     if (ctx.request.qs().without_fees_plan === 'true') {
       try {
+        let class_for_School = await Classes.query().where('school_id', ctx.auth.user!.school_id)
+
+        if (class_for_School.length === 0) {
+          return ctx.response.status(404).json({
+            message: 'No classes found for this school',
+          })
+        }
+
         let divisions = await Divisions.query()
-          .where('school_id', ctx.params.school_id)
           .doesntHave('fees_plan')
+          .whereIn('class_id', [...class_for_School.map((item) => item.id)])
+          .preload('class')
 
         return ctx.response.json(divisions)
       } catch (error) {
+        console.log('Error while fetching classes', error)
         return ctx.response.status(500).json({ message: error })
       }
     } else {

@@ -95,13 +95,13 @@ export default class ClassSeatAvailabilitiesController {
   public async getSeatAvailability(ctx: HttpContext) {
     // Validate class_id parameter
     const clas = await Classes.query()
-      .where('id', ctx.params.class_id)
+      .where('id', ctx.params.division_id)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
     if (!clas) {
       return ctx.response.notFound({
-        error: `Class ID ${ctx.params.class_id} not found`,
+        error: `Class ID ${ctx.params.division_id} not found`,
       })
     }
 
@@ -122,13 +122,13 @@ export default class ClassSeatAvailabilitiesController {
     const availability = await ClassSeatAvailability.query()
       .preload('class')
       .preload('quota_allocation')
-      .where('class_id', ctx.params.class_id)
+      .where('class_id', ctx.params.division_id)
       .andWhere('academic_session_id', activeSession.id)
       .first()
 
     if (!availability) {
       return ctx.response.notFound({
-        error: `Seat availability data not found for class ID ${ctx.params.class_id}`,
+        error: `Seat availability data not found for class ID ${ctx.params.division_id}`,
       })
     }
 
@@ -140,7 +140,7 @@ export default class ClassSeatAvailabilitiesController {
    */
   public async updateSeatAvailability({ params, request, response, auth }: HttpContext) {
     try {
-      const class_id = Number(params.class_id)
+      const class_id = Number(params.division_id)
       if (!class_id) {
         return response.badRequest({ message: 'Invalid class ID' })
       }
@@ -151,7 +151,10 @@ export default class ClassSeatAvailabilitiesController {
       }
 
       // Fetch the class
-      const classData = await Classes.find(class_id)
+      const classData = await Classes.query()
+        .where('id', class_id)
+        .andWhere('school_id', auth.user!.school_id)
+        .first()
       if (!classData) {
         return response.notFound({ message: `Class ID ${class_id} not found` })
       }
@@ -171,6 +174,7 @@ export default class ClassSeatAvailabilitiesController {
       // Get total quota-allocated seats
       const quotaSum = await QuotaAllocation.query()
         .where('class_id', class_id)
+        .andWhere('academic_session_id', academic_session_id)
         .sum('total_seats as total')
 
       const quota_allocated_seats = Number(quotaSum[0]?.$extras.total ?? 0)

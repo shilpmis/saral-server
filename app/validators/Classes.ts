@@ -31,23 +31,9 @@ export const CreateValidatorForClasses = vine.compile(
 export const CreateValidatorForDivision = vine.compile(
   vine.object({
     // add here
-    class: vine.enum([
-      'Nursery',
-      'LKG',
-      'UKG',
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      '10',
-      '11',
-      '12',
-    ]),
+    class_id: vine.number().positive(),
+    division: vine.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']),
+    aliases: vine.string().minLength(3).maxLength(20).optional(),
     academic_session_id: vine.number().positive(),
     is_active: vine.boolean().optional(),
   })

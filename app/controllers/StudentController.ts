@@ -309,18 +309,185 @@ export default class StundetsController {
     }
   }
 
+  // public async bulkUploadStudents(ctx: HttpContext) {
+  //   const school_id = ctx.auth.user!.school_id
+  //   const division_id = ctx.params.division_id
+  //   const academic_session_id = ctx.params.academic_session_id
+  //   const role_id = ctx.auth.user!.role_id
+
+  //   if (role_id !== 1) {
+  //     return ctx.response
+  //       .status(403)
+  //       .json({ message: 'You are not authorized to perform this action.' })
+  //   }
+
+  //   if (!division_id) {
+  //     return ctx.response.status(400).json({ message: 'Class ID is required.' })
+  //   }
+
+  //   let check_ActiveSession = await AcademicSession.query()
+  //     .where('id', academic_session_id)
+  //     .andWhere('school_id', school_id)
+  //     .andWhere('is_active', true)
+  //     .first()
+
+  //   if (!check_ActiveSession) {
+  //     return ctx.response.status(400).json({ message: 'Academic session not found.' })
+  //   }
+
+  //   let school = await Schools.findOrFail(school_id)
+
+  //   const classRecord = await Divisions.query().preload('class').where('id', division_id).first()
+
+  //   if (!classRecord) {
+  //     return ctx.response.status(400).json({ message: 'Class not found.' })
+  //   }
+
+  //   if (classRecord.class.school_id !== school_id) {
+  //     return ctx.response.status(400).json({ message: 'Class not found for your school.' })
+  //   }
+
+  //   const file = ctx.request.file('file', {
+  //     extnames: ['csv', 'xlsx', 'xls'],
+  //     size: '20mb',
+  //   })
+
+  //   if (!file) {
+  //     return ctx.response.status(400).json({ message: 'No file uploaded.' })
+  //   }
+
+  //   const uploadDir = path.join(app.tmpPath(), 'uploads')
+  //   await file.move(uploadDir)
+
+  //   if (!file.isValid) {
+  //     return ctx.response.badRequest({ message: file.errors })
+  //   }
+
+  //   const filePath = path.join(uploadDir, file.clientName)
+  //   const jsonData = await parseAndReturnJSON(filePath)
+
+  //   if (!jsonData.length) {
+  //     return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' })
+  //   }
+
+  //   let validatedData = []
+  //   let errors = []
+
+  //   // Validate all records before starting the transaction
+  //   for (const [index, data] of jsonData.entries()) {
+  //     let transformedData = {
+  //       students_data: {
+  //         first_name: data['First Name'],
+  //         middle_name: data['Middle Name'] || null,
+  //         last_name: data['Last Name'],
+  //         gender: data['Gender'],
+  //         gr_no: data['GR No'],
+  //         primary_mobile: data['Mobile No'],
+  //         school_id: school_id,
+  //         is_active: true,
+  //         first_name_in_guj: data['First Name Gujarati'] || null,
+  //         middle_name_in_guj: data['Middle Name Gujarati'] || null,
+  //         last_name_in_guj: data['Last Name Gujarati'] || null,
+  //         birth_date: data['Date of Birth'] || null,
+  //         roll_number: data['Roll Number'] || null,
+  //         father_name: data['Father Name'] || null,
+  //         father_name_in_guj: data['Father Name in Gujarati'] || null,
+  //         mother_name: data['Mother Name'] || null,
+  //         mother_name_in_guj: data['Mother Name in Gujarati'] || null,
+  //         aadhar_no: data['Aadhar No'] || null,
+  //       },
+  //       student_meta_data: {
+  //         aadhar_dise_no: data['DISE Number'] || null,
+  //         birth_place: data['Birth Place'] || null,
+  //         birth_place_in_guj: data['Birth Place In Gujarati'] || null,
+  //         religion: data['Religion'] || null,
+  //         religion_in_guj: data['Religion In Gujarati'] || null,
+  //         caste: data['Caste'] || null,
+  //         caste_in_guj: data['Caste In Gujarati'] || null,
+  //         category: data['Category'] || null,
+  //         admission_date: data['Admission Date'] || null,
+  //         admission_class_id: null,
+  //         secondary_mobile: data['Other Mobile No'] || null,
+  //         privious_school: data['Previous School'] || null,
+  //         privious_school_in_guj: data['Previous School In Gujarati'] || null,
+  //         address: data['Address'] || null,
+  //         district: data['District'] || null,
+  //         city: data['City'] || null,
+  //         state: data['State'] || null,
+  //         postal_code: data['Postal Code'] || null,
+  //         bank_name: data['Bank Name'] || null,
+  //         account_no: data['Account Number'] || null,
+  //         IFSC_code: data['IFSC Code'] || null,
+  //       },
+  //     }
+
+  //     console.log('transformedData', transformedData)
+
+  //     try {
+  //       const validatedStudent = await CreateValidatorForUpload.validate(transformedData)
+  //       validatedData.push(validatedStudent)
+  //     } catch (validationError) {
+  //       errors.push({
+  //         row: index + 1,
+  //         message: validationError.message || 'Validation failed',
+  //         errors: validationError.messages || [],
+  //       })
+  //       return ctx.response.status(400).json(errors)
+  //     }
+  //   }
+
+  //   // Start transaction after validation
+  //   const trx = await db.transaction()
+
+  //   try {
+  //     for (const validatedStudent of validatedData) {
+  //       const student_data = await Students.create(
+  //         {
+  //           ...validatedStudent.students_data,
+  //           enrollment_code: `${school.branch_code}` + Math.floor(1000 + Math.random() * 9000),
+  //         },
+  //         { client: trx }
+  //       )
+
+  //       await StudentMeta.create(
+  //         {
+  //           ...validatedStudent.student_meta_data,
+  //           student_id: student_data.id,
+  //         },
+  //         { client: trx }
+  //       )
+
+  //       await StudentEnrollments.create(
+  //         {
+  //           student_id: student_data.id,
+  //           division_id: division_id,
+  //           academic_session_id: academic_session_id,
+  //           status: 'pursuing',
+  //           is_new_admission: false,
+  //         },
+  //         { client: trx }
+  //       )
+  //     }
+
+  //     await trx.commit()
+  //     return ctx.response.status(201).json({
+  //       message: 'Bulk upload successful.',
+  //       totalInserted: validatedData.length,
+  //     })
+  //   } catch (error) {
+  //     console.log('Check =====>', error)
+  //     await trx.rollback()
+  //     return ctx.response
+  //       .status(500)
+  //       .json({ message: 'Internal server error', error: error.message })
+  //   }
+  // }
+
   public async bulkUploadStudents(ctx: HttpContext) {
-    const school_id = ctx.params.school_id
-    const class_id = ctx.params.class_id
+    const school_id = ctx.auth.user!.school_id
+    const division_id = ctx.params.division_id
     const academic_session_id = ctx.params.academic_session_id
     const role_id = ctx.auth.user!.role_id
-    // Check if the user is authorized to perform this action
-
-    if (school_id != ctx.auth.user?.school_id) {
-      return ctx.response
-        .status(403)
-        .json({ message: 'You are not authorized to perform this action.' })
-    }
 
     if (role_id !== 1) {
       return ctx.response
@@ -328,138 +495,166 @@ export default class StundetsController {
         .json({ message: 'You are not authorized to perform this action.' })
     }
 
-    if (!class_id) {
+    if (!division_id) {
       return ctx.response.status(400).json({ message: 'Class ID is required.' })
     }
 
-    let school = await Schools.findOrFail(school_id)
-
-    const classRecord = await Classes.query()
-      .where('id', class_id)
+    let check_ActiveSession = await AcademicSession.query()
+      .where('id', academic_session_id)
       .andWhere('school_id', school_id)
+      .andWhere('is_active', true)
       .first()
 
-    if (!classRecord) {
-      return ctx.response.status(400).json({ message: 'Class not found.' })
+    if (!check_ActiveSession) {
+      return ctx.response.status(400).json({ message: 'Academic session not found.' })
     }
 
-    try {
-      // Ensure a file is uploaded
-      const file = ctx.request.file('file', {
-        extnames: ['csv', 'xlsx', 'xls'],
-        size: '20mb',
-      })
-      if (!file) {
-        return ctx.response.status(400).json({ message: 'No file uploaded.' })
+    let school = await Schools.find(school_id)
+
+    if (!school) {
+      return ctx.response.status(400).json({ message: 'School not found.' })
+    }
+
+    const classRecord = await Divisions.query().preload('class').where('id', division_id).first()
+
+    if (!classRecord || classRecord.class.school_id !== school_id) {
+      return ctx.response.status(400).json({ message: 'Class not found for your school.' })
+    }
+
+    const file = ctx.request.file('file', {
+      extnames: ['csv', 'xlsx', 'xls'],
+      size: '20mb',
+    })
+
+    if (!file) {
+      return ctx.response.status(400).json({ message: 'No file uploaded.' })
+    }
+
+    const uploadDir = path.join(app.tmpPath(), 'uploads')
+    await file.move(uploadDir)
+
+    if (!file.isValid) {
+      return ctx.response.badRequest({ message: file.errors })
+    }
+
+    const filePath = path.join(uploadDir, file.clientName)
+    const jsonData = await parseAndReturnJSON(filePath)
+
+    if (!jsonData.length) {
+      return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' })
+    }
+
+    let validatedData = []
+    let errors = []
+
+    for (const [index, data] of jsonData.entries()) {
+      let transformedData = {
+        students_data: {
+          first_name: data['First Name'],
+          middle_name: data['Middle Name'] || null,
+          last_name: data['Last Name'],
+          gender: data['Gender'],
+          gr_no: data['GR No'],
+          primary_mobile: data['Mobile No'] || 8980995343,
+          school_id: school_id,
+          is_active: true,
+          first_name_in_guj: data['First Name Gujarati'] || null,
+          middle_name_in_guj: data['Middle Name Gujarati'] || null,
+          last_name_in_guj: data['Last Name Gujarati'] || null,
+          birth_date: data['Date of Birth'] || null,
+          roll_number: data['Roll Number'] || null,
+          father_name: data['Father Name'] || null,
+          father_name_in_guj: data['Father Name in Gujarati'] || null,
+          mother_name: data['Mother Name'] || null,
+          mother_name_in_guj: data['Mother Name in Gujarati'] || null,
+          aadhar_no: data['Aadhar No'] || null,
+        },
+        student_meta_data: {
+          aadhar_dise_no: data['DISE Number'] || null,
+          birth_place: data['Birth Place'] || null,
+          birth_place_in_guj: data['Birth Place In Gujarati'] || null,
+          religion: data['Religion'] || null,
+          religion_in_guj: data['Religion In Gujarati'] || null,
+          caste: data['Caste'] || null,
+          caste_in_guj: data['Caste In Gujarati'] || null,
+          category: data['Category'] || null,
+          admission_date: data['Admission Date'] || null,
+          admission_class_id: null,
+          secondary_mobile: data['Other Mobile No'] || null,
+          privious_school: data['Previous School'] || null,
+          privious_school_in_guj: data['Previous School In Gujarati'] || null,
+          address: data['Address'] || null,
+          district: data['District'] || null,
+          city: data['City'] || null,
+          state: data['State'] || null,
+          postal_code: data['Postal Code'] || null,
+          bank_name: data['Bank Name'] || null,
+          account_no: data['Account Number'] || null,
+          IFSC_code: data['IFSC Code'] || null,
+        },
       }
-      // Move file to temp storage
-      const uploadDir = path.join(app.tmpPath(), 'uploads')
-      await file.move(uploadDir)
-
-      if (!file.isValid) {
-        return ctx.response.badRequest({ message: file.errors })
-      }
-
-      // Construct file path
-      const filePath = path.join(uploadDir, file.clientName)
-
-      // Parse CSV file into JSON
-      const jsonData = await parseAndReturnJSON(filePath)
-
-      if (!jsonData.length) {
-        return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' })
-      }
-
-      // Start a database transaction
-      const trx = await db.transaction()
-
       try {
-        let validatedData = []
-        let errors = []
-        for (const [index, data] of jsonData.entries()) {
-          // Transform the flat data into nested structure
-          let transformedData = {
-            students_data: {
-              first_name: data.first_name,
-              middle_name: data.middle_name,
-              last_name: data.last_name,
-              gender: data.gender,
-              gr_no: data.gr_no,
-              primary_mobile: data.phone_number,
-              school_id: school_id,
-              is_active: true,
-            },
-          }
-
-          try {
-            const validatedStudent = await CreateValidatorForUpload.validate(transformedData)
-            // Insert student data
-            const student_data = await Students.create(
-              {
-                ...validatedStudent.students_data,
-                enrollment_code: `${school.branch_code}` + Math.floor(1000 + Math.random() * 9000),
-              },
-              { client: trx }
-            )
-
-            // Insert student meta data
-            const student_meta_data_payload = await StudentMeta.create(
-              {
-                ...validatedStudent.student_meta_data,
-                student_id: student_data.id,
-              },
-              { client: trx }
-            )
-
-            const studentEnrollment = await StudentEnrollments.create(
-              {
-                student_id: student_data.id,
-                division_id: class_id,
-                academic_session_id: academic_session_id,
-                status: 'pursuing',
-              },
-              { client: trx }
-            )
-
-            validatedData.push({ student_data, student_meta_data_payload, studentEnrollment })
-          } catch (validationError) {
-            errors.push({
-              row: index + 1,
-              message: 'Validation failed',
-              errors: validationError.messages,
-            })
-          }
-        }
-
-        // If there were errors, rollback transaction and return them
-        if (errors.length) {
-          await trx.rollback()
-          return ctx.response.status(400).json({
-            message: 'Some records failed validation',
-            errors,
-          })
-        }
-
-        // Commit transaction if everything is fine
-        await trx.commit()
-
-        return ctx.response.status(201).json({
-          message: 'Bulk upload successful',
-          totalInserted: validatedData.length,
-          // data: validatedData,
-        })
+        const paylaod = await CreateValidatorForUpload.validate(transformedData)
+        console.log('paylaod', paylaod.students_data.first_name)
+        validatedData.push(transformedData)
       } catch (validationError) {
-        await trx.rollback()
-        return ctx.response.status(400).json({
-          message: 'Validation failed',
-          errors: validationError.messages,
+        errors.push({
+          row: index + 1,
+          message: validationError.message || 'Validation failed',
+          errors: validationError.messages || [],
         })
       }
-    } catch (error) {
-      return ctx.response.internalServerError({
-        message: 'An error occurred while processing the bulk upload.',
-        error: error.message,
+    }
+    if (errors.length) {
+      return ctx.response.status(400).json({ errors })
+    }
+    // Start transaction after validation
+    const trx = await db.transaction()
+    try {
+      for (const validated_student of validatedData) {
+        console.log(
+          'validatedData',
+          validated_student.student_meta_data?.aadhar_dise_no,
+          validated_student.students_data.first_name
+        )
+        const student_data = await Students.create(
+          {
+            ...validated_student.students_data,
+            enrollment_code: `${school.branch_code}` + Math.floor(1000 + Math.random() * 9000),
+          },
+          { client: trx }
+        )
+
+        await StudentMeta.create(
+          {
+            ...validated_student.student_meta_data,
+            student_id: student_data.id,
+          },
+          { client: trx }
+        )
+
+        await StudentEnrollments.create(
+          {
+            student_id: student_data.id,
+            division_id: division_id,
+            academic_session_id: academic_session_id,
+            status: 'pursuing',
+            is_new_admission: false,
+          },
+          { client: trx }
+        )
+      }
+
+      await trx.commit()
+      return ctx.response.status(201).json({
+        message: 'Bulk upload successful.',
+        totalInserted: validatedData.length,
       })
+    } catch (error) {
+      await trx.rollback()
+      return ctx.response
+        .status(500)
+        .json({ message: 'Internal server error', error: error.message })
     }
   }
 
@@ -490,7 +685,7 @@ export default class StundetsController {
           .andWhereNotNull('class') // Ensure the class value is not null
       })
       .where('id', division_id)
-      .andWhere('school_id', ctx.auth.user!.school_id)
+      // .andWhere('school_id', ctx.auth.user!.school_id)
       .andWhereHas('class', (query) => {
         query.whereNotNull('class') // Ensure the class value exists
       })

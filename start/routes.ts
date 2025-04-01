@@ -73,7 +73,7 @@ router
 
     // API to get the Global Search Results
     router.get('student/search', [GlobalSearchController, 'getStuentSearchResults'])
-    
+
     router.get('students/:academic_session_id/:class_id', [
       StundetsController,
       'indexClassStudents',
@@ -84,7 +84,7 @@ router
     router.post('student', [StundetsController, 'createSingleStudent'])
     router.post('students/multiple/:class_id', [StundetsController, 'createMultipleStudents'])
     router.put('student/:student_id', [StundetsController, 'updateStudents'])
-    router.post('students/bulk-upload/:school_id/:academic_session_id/:class_id', [
+    router.post('students/bulk-upload/:academic_session_id/:division_id', [
       StundetsController,
       'bulkUploadStudents',
     ])
@@ -123,19 +123,19 @@ router
     ])
 
     // routes for the class seat availability
-    router.post('/classes/seat-availability', [
-      ClassSeatAvailabilitiesController,
-      'addSeatAvailability',
-    ])
-    router.get('/classes/seat-availability/all', [
+    router.post('/classes/seats', [ClassSeatAvailabilitiesController, 'addSeatAvailability'])
+    router.get('/classes/seats/all', [
       ClassSeatAvailabilitiesController,
       'getAllClassesSeatAvailability',
     ])
-    router.get('/classes/:class_id/seat-availability', [
+    router.get('/classes/seats/:division_id', [
       ClassSeatAvailabilitiesController,
       'getSeatAvailability',
     ])
-    // router.put('/classes/:class_id/update-seat-availability', [ClassSeatAvailabilitiesController,'updateSeatAvailability']);
+    router.put('/classes/seats/:division_id', [
+      ClassSeatAvailabilitiesController,
+      'updateSeatAvailability',
+    ])
 
     // routes for the quota
     router.post('/quota', [QuotasController, 'createQuotaForSeats'])
@@ -161,7 +161,7 @@ router
     router.post('/feesplan', [FeesController, 'createFeePlan'])
     router.put('/feesplan/:plan_id', [FeesController, 'updatePlan'])
 
-    router.get('/fees/status/class/:class_id', [FeesController, 'fetchFeesStatusForClass'])
+    router.get('/fees/status/class/:division_id', [FeesController, 'fetchFeesStatusForClass'])
     router.get('/fees/status/student/:student_id', [
       FeesController,
       'fetchFeesStatusForSingleStudent',

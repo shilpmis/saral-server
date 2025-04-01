@@ -1,9 +1,9 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { belongsTo, column, hasOne } from '@adonisjs/lucid/orm'
+import { belongsTo, column, hasMany, hasOne } from '@adonisjs/lucid/orm'
 import FeesPlan from './FeesPlan.js'
-import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import Classes from './Classes.js'
 
 export default class Divisions extends Base {
@@ -14,16 +14,16 @@ export default class Divisions extends Base {
   declare academic_session_id: number
 
   @column()
-  declare division: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J'
+  declare division: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'J' | 'K' | 'L'
 
   @column()
   declare aliases: string | null
 
-  @hasOne(() => FeesPlan, {
-    foreignKey: 'class_id',
+  @hasMany(() => FeesPlan, {
+    foreignKey: 'division_id',
     localKey: 'id',
   })
-  declare fees_plan: HasOne<typeof FeesPlan>
+  declare fees_plan: HasMany<typeof FeesPlan>
 
   @belongsTo(() => Classes, {
     foreignKey: 'class_id',

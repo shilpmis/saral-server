@@ -45,7 +45,7 @@ export default class Students extends Base {
   declare gr_no: number
 
   @column()
-  declare primary_mobile: number
+  declare primary_mobile: number | null
 
   @column()
   declare father_name: string | null
