@@ -186,7 +186,7 @@ export default class UsersController {
             await ClassTeacherMaster.create(
               {
                 academic_session_id: acadamic_seesion.id,
-                class_id: class_id,
+                division_id: class_id,
                 staff_id: staff.id,
                 status: 'Active',
               },
@@ -270,7 +270,7 @@ export default class UsersController {
           await ClassTeacherMaster.create(
             {
               academic_session_id: acadamic_seesion.id,
-              class_id: class_id,
+              division_id: class_id,
               staff_id: user.staff.id,
               status: 'Active',
             },

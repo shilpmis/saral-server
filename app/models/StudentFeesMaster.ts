@@ -1,7 +1,9 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column } from '@adonisjs/lucid/orm'
+import { column, hasMany } from '@adonisjs/lucid/orm'
+import StudentFeesInstallments from './StudentFeesInstallments.js'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 
 export default class StudentFeesMaster extends Base {
 
@@ -38,4 +40,10 @@ export default class StudentFeesMaster extends Base {
     @column()
     declare status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue'
 
+      @hasMany(() => StudentFeesInstallments, {
+        foreignKey: 'student_fees_master_id',
+        localKey: 'id',
+      })
+      declare paid_fees: HasMany<typeof StudentFeesInstallments>
+    
 }
