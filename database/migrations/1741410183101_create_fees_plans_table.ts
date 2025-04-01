@@ -15,13 +15,18 @@ export default class extends BaseSchema {
         .inTable('academic_sessions')
         .onDelete('CASCADE')
       table.string('description', 255).nullable()
-      table.integer('class_id').unsigned().references('id').inTable('classes').onDelete('CASCADE')
+      table
+        .integer('division_id')
+        .unsigned()
+        .references('id')
+        .inTable('divisions')
+        .onDelete('CASCADE')
       table.decimal('total_amount', 10, 2).notNullable()
       table.enum('status', ['Active', 'Inactive']).notNullable()
       table.timestamp('created_at')
       table.timestamp('updated_at')
 
-      table.unique(['academic_session_id', 'class_id'])
+      table.unique(['academic_session_id', 'division_id'])
     })
   }
 

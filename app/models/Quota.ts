@@ -1,22 +1,22 @@
-import { column } from "@adonisjs/lucid/orm";
-import Base from "./base.js";
+import { column } from '@adonisjs/lucid/orm'
+import Base from './base.js'
 
 export default class Quota extends Base {
   @column({ isPrimary: true })
-  declare id: number;
+  declare id: number
 
   @column()
-  declare name: string;
+  declare name: string
 
   @column()
-  declare school_id: number;
+  declare school_id: number
 
   @column()
-  declare academic_session_id : number
+  declare academic_session_id: number
 
   @column()
-  declare description?: string;
+  declare description?: string
 
   @column()
-  declare eligibility_criteria?: string;
+  declare eligibility_criteria?: string
 }
