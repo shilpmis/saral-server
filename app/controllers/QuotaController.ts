@@ -27,7 +27,7 @@ export default class QuotasController {
 
   public async updateQuota({ params, request }: HttpContext) {
     const quota = await Quota.findOrFail(params.id)
-    quota.merge(request.only(['name', 'description', 'eligibility_criteria']))
+    quota.merge(request.only(['name', 'description', 'eligibility_criteria', 'is_active']))
     await quota.save()
     return quota
   }
