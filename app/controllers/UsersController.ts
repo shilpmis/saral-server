@@ -13,6 +13,7 @@ import db from '@adonisjs/lucid/services/db'
 import Staff from '#models/Staff'
 import ClassTeacherMaster from '#models/Classteachermaster'
 import AcademicSession from '#models/AcademicSession'
+import Divisions from '#models/Divisions'
 
 export default class UsersController {
   async indexSchoolUsers(ctx: HttpContext) {
@@ -22,7 +23,7 @@ export default class UsersController {
       const users = await Users.query()
         .preload('staff', (query) => {
           query.preload('assigend_classes', (query) => {
-            query.preload('class')
+            query.preload('divisions')
             query.where('status', 'Active')
           })
           query.select('id', 'first_name', 'last_name', 'middle_name') // Only fetching required staff fields
@@ -160,11 +161,8 @@ export default class UsersController {
       )
 
       if (payload.assign_classes) {
-        for (const class_id of payload.assign_classes) {
-          const clas = await Classes.query()
-            .where('id', class_id)
-            .andWhere('school_id', ctx.auth.user!.school_id)
-            .first()
+        for (const division_id of payload.assign_classes) {
+          const clas = await Divisions.query().where('id', division_id).first()
 
           if (!clas) {
             return ctx.response.status(404).json({
@@ -176,7 +174,7 @@ export default class UsersController {
           // await clas.merge({ is_assigned: true }).save()
 
           let already_assigned_class = await ClassTeacherMaster.query()
-            .where('class_id', class_id)
+            .where('division_id', division_id)
             .andWhere('staff_id', staff.id)
             .first()
 
@@ -186,7 +184,7 @@ export default class UsersController {
             await ClassTeacherMaster.create(
               {
                 academic_session_id: acadamic_seesion.id,
-                division_id: class_id,
+                division_id: division_id,
                 staff_id: staff.id,
                 status: 'Active',
               },
@@ -241,14 +239,9 @@ export default class UsersController {
       const { assign_classes, unassign_classes, ...payload } =
         await UpdateValidatorForOnBoardTeacherAsUser.validate(ctx.request.all())
 
-      console.log('Check this', payload)
-
       if (assign_classes) {
-        for (const class_id of assign_classes) {
-          const clas = await Classes.query()
-            .where('id', class_id)
-            .andWhere('school_id', ctx.auth.user!.school_id)
-            .first()
+        for (const division_id of assign_classes) {
+          const clas = await Divisions.query().where('id', division_id).first()
 
           if (!clas) {
             return ctx.response.status(404).json({
@@ -257,7 +250,7 @@ export default class UsersController {
           }
 
           let already_assigned_class = await ClassTeacherMaster.query()
-            .where('class_id', class_id)
+            .where('division_id', division_id)
             .andWhere('staff_id', user.staff.id)
             .andWhere('academic_session_id', acadamic_seesion.id)
             .first()
@@ -270,7 +263,7 @@ export default class UsersController {
           await ClassTeacherMaster.create(
             {
               academic_session_id: acadamic_seesion.id,
-              division_id: class_id,
+              division_id: division_id,
               staff_id: user.staff.id,
               status: 'Active',
             },
@@ -280,11 +273,8 @@ export default class UsersController {
       }
 
       if (unassign_classes) {
-        for (const class_id of unassign_classes) {
-          const clas = await Classes.query()
-            .where('id', class_id)
-            .andWhere('school_id', ctx.auth.user!.school_id)
-            .first()
+        for (const division_id of unassign_classes) {
+          const clas = await Divisions.query().where('id', division_id).first()
 
           if (!clas) {
             return ctx.response.status(404).json({
@@ -296,7 +286,7 @@ export default class UsersController {
           // await clas.merge({ is_assigned: false }).save()
 
           let already_assigned_class = await ClassTeacherMaster.query()
-            .where('class_id', class_id)
+            .where('division_id', division_id)
             .andWhere('staff_id', user.staff.id)
             .andWhere('academic_session_id', acadamic_seesion.id)
             .first()
