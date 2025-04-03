@@ -1,5 +1,5 @@
 import AcademicSession from '#models/AcademicSession'
-import Classes from '#models/Classes'
+// import Classes from '#models/Classes'
 import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
 import Concessions from '#models/Concessions'
 import ConcessionStudentMaster from '#models/ConcessionStudentMaster'
@@ -861,7 +861,7 @@ export default class FeesController {
         query.where('status', 'Active')
       })
       .preload('academic_class', (query) => {
-        query.preload('class', (query) => {
+        query.preload('class', (_query) => {
           // query
           //   .select('id', 'class', 'division', 'aliases')
           //   .where('school_id', ctx.auth.user!.school_id)

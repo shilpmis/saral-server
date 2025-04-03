@@ -3,7 +3,7 @@ import { belongsTo, column, hasOne } from '@adonisjs/lucid/orm'
 import Students from './Students.js'
 import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
 import Quota from './Quota.js'
-import Classes from './Classes.js'
+// import Classes from './Classes.js'
 import Divisions from './Divisions.js'
 
 export default class StudentEnrollments extends Base {
