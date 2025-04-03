@@ -79,6 +79,7 @@ router
       'indexClassStudents',
     ])
     router.get('student/:student_id', [StundetsController, 'fetchStudent'])
+    router.get('student/detail/:student_id', [StundetsController, 'fetchStudentInDetail'])
     router.get('students/:class_id', [StundetsController, 'indexClassStudents'])
     router.get('student/:school_id/:student_id', [StundetsController, 'fetchStudent'])
     router.post('student', [StundetsController, 'createSingleStudent'])
