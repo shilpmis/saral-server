@@ -1,5 +1,5 @@
 import AcademicSession from '#models/AcademicSession'
-import Classes from '#models/Classes'
+// import Classes from '#models/Classes'
 import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
 import Concessions from '#models/Concessions'
 import ConcessionStudentMaster from '#models/ConcessionStudentMaster'
@@ -41,7 +41,7 @@ export default class FeesController {
     let academic_years = await AcademicSession.query()
       .where('id', academic_session_id)
       .andWhere('is_active', 1)
-      .andWhere('school_id', ctx.auth.user!.id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
 
     if (!academic_years) {
       return ctx.response.status(404).json({

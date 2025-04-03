@@ -23,7 +23,7 @@ export default class AdmissionsController {
       }
     }
 
-    const admission = await StudentEnrollments.create({ student_id, class_id, quota_id: selectedQuotaId, status: 'Admitted' });
+    const admission = await StudentEnrollments.create({ student_id, class_id, quota_id: selectedQuotaId, status: 'pursuing' });
     return response.created(admission);
   }
 

@@ -1,5 +1,4 @@
 import vine from '@vinejs/vine'
-import { stat } from 'fs'
 
 /**
  * Validates the post's creation action

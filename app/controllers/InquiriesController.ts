@@ -139,7 +139,7 @@ export default class InquiriesController {
         class_id: inquiry.class_applying,
         academic_session_id: inquiry.academic_session_id,
         quota_id: quotaId ?? undefined,
-        status: 'Admitted',
+        status: 'pursuing',
         remarks: 'Converted from Inquiry',
         type: 'New Admission',
       }, { client: trx });

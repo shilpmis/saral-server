@@ -2,11 +2,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 export default class ValidateQueryMiddleware {
-  async handle(ctx: HttpContext, next: NextFn) {
+  async handle(_ctx: HttpContext, next: NextFn) {
     /**
      * Middleware logic goes here (before the next call)
      */
-    const query = ctx.request.qs() // Get the query string
+    // const query = ctx.request.qs() // Get the query string
 
     // console.log(ctx)
 

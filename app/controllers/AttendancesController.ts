@@ -95,7 +95,7 @@ export default class AttendanceController {
   async getAttendanceDetails(ctx: HttpContext) {
     const { class_id, unix_date } = ctx.params
     const academic_session_id = ctx.request.qs().academic_session
-    const school_id = ctx.auth.user!.school_id
+    // const school_id = ctx.auth.user!.school_id
 
     let date = new Date(unix_date * 1000).toISOString().split('T')[0]
 
