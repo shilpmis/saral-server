@@ -84,13 +84,23 @@ export default class StundetsController {
     if (school_id !== ctx.auth.user?.school_id) {
       return ctx.response
         .status(401)
-        .json({ message: 'You are not authorized to perform this action!' })
+        .json({ message: 'You are  not authorized to perform this action!' })
+    }
+
+    let active_session = await AcademicSession.query()
+      .where('is_active', true)
+      .andWhere('school_id', school_id)
+      .first()
+
+    if (!active_session) {
+      return ctx.response.status(404).json({ message: 'No active academic session found!' })
     }
 
     try {
       // Fetch the student enrollment record
       const studentEnrollment = await StudentEnrollments.query()
         .where('student_id', student_id)
+        .andWhere('academic_session_id', active_session.id)
         .first()
 
       if (!studentEnrollment) {
@@ -112,6 +122,58 @@ export default class StundetsController {
         .status(500)
         .json({ message: 'Error fetching student', error: error.message })
     }
+  }
+
+  async fetchStudentInDetail(ctx: HttpContext) {
+    let student_id = ctx.params.student_id
+    let academic_session_id = ctx.request.qs().academic_session
+
+    if (!student_id) {
+      return ctx.response.status(400).json({ message: 'Student ID is required' })
+    }
+
+    if (!academic_session_id) {
+      return ctx.response.status(400).json({ message: 'Academic session is required' })
+    }
+
+    let academic_session = await AcademicSession.query()
+      .where('id', academic_session_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+    if (!academic_session) {
+      return ctx.response.status(404).json({ message: 'Academic session not found' })
+    }
+
+    let detailed_student_data = await StudentEnrollments.query()
+      .preload('student', (studentQuery) => {
+        studentQuery.preload('student_meta')
+      })
+      .preload('division', (divisionQuery) => {
+        divisionQuery.preload('class')
+        // divisionQuery.where('academic_session_id', academic_session_id)
+      })
+      .preload('fees_status', (feesStatusQuery) => {
+        feesStatusQuery.preload('paid_fees', (query) => {
+          // query.where('academic_session_id', academic_session_id)
+        })
+        feesStatusQuery.where('academic_session_id', academic_session_id)
+      })
+      .preload('provided_concession', (query) => {
+        query.preload('fees_plan', (query) => {
+          query.where('academic_session_id', academic_session_id)
+        })
+        query.where('academic_session_id', academic_session_id)
+      })
+      //. where('academic_session_id', academic_session_id)
+      .where('student_id', student_id)
+      .andWhere('academic_session_id', academic_session_id)
+      .first()
+
+    if (!detailed_student_data) {
+      return ctx.response.status(404).json({ message: 'Student not found' })
+    }
+    return ctx.response.status(200).json(detailed_student_data)
   }
 
   async createSingleStudent(ctx: HttpContext) {
