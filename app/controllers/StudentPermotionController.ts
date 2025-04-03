@@ -1,9 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { schema } from '@adonisjs/validator'
-import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 
-import Student from '#models/Students'
 import Division from '#models/Divisions'
 import AcademicSession from '#models/AcademicSession'
 import StudentEnrollments from '#models/StudentEnrollments'
@@ -30,7 +28,6 @@ export default class StudentPromotionController {
       const page = payload.page || 1
       const limit = payload.limit || 50
   
-      console.log("payload", payload);
       const session = await AcademicSession.find(payload.academic_session_id)
       if (!session) {
         return response.badRequest({ success: false, message: 'Academic session not found' })
@@ -52,7 +49,9 @@ export default class StudentPromotionController {
         .preload('student', (query) => {
            query.preload('fees_status');
         })
-        .preload('class')
+        .preload('division', (query) => {
+          query.preload('class')
+        });
           
   
       if (payload.division_id) {
@@ -154,7 +153,7 @@ export default class StudentPromotionController {
 
       currentEnrollment.status = payload.status === 'promoted' ? 'permoted' : payload.status
       currentEnrollment.remarks = payload.remarks || ''
-      currentEnrollment.updated_by = auth.user!.id
+      currentEnrollment.promoted_by = auth.user!.id
       await currentEnrollment.save()
 
       const newEnrollment = new StudentEnrollments()
