@@ -95,13 +95,13 @@ export default class ClassSeatAvailabilitiesController {
   public async getSeatAvailability(ctx: HttpContext) {
     // Validate class_id parameter
     const clas = await Classes.query()
-      .where('id', ctx.params.division_id)
+      .where('id', ctx.params.class_id)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
     if (!clas) {
       return ctx.response.notFound({
-        error: `Class ID ${ctx.params.division_id} not found`,
+        error: `Class ID ${ctx.params.class_id} not found`,
       })
     }
 
@@ -122,13 +122,13 @@ export default class ClassSeatAvailabilitiesController {
     const availability = await ClassSeatAvailability.query()
       .preload('class')
       .preload('quota_allocation')
-      .where('class_id', ctx.params.division_id)
+      .where('class_id', ctx.params.class_id)
       .andWhere('academic_session_id', activeSession.id)
       .first()
 
     if (!availability) {
       return ctx.response.notFound({
-        error: `Seat availability data not found for class ID ${ctx.params.division_id}`,
+        error: `Seat availability data not found for class ID ${ctx.params.class_id}`,
       })
     }
 
@@ -140,23 +140,23 @@ export default class ClassSeatAvailabilitiesController {
    */
   public async updateSeatAvailability({ params, request, response, auth }: HttpContext) {
     try {
-      const class_id = Number(params.division_id)
+      const class_id = Number(params.class_id)
       if (!class_id) {
         return response.badRequest({ message: 'Invalid class ID' })
+      }
+
+      let clas = await Classes.query()
+        .where('id', class_id)
+        .andWhere('school_id', auth.user!.school_id)
+        .first()
+
+      if (!clas) {
+        return response.notFound({ message: `Class ID ${class_id} not found` })
       }
 
       const total_seats = request.input('total_seats')
       if (!total_seats || isNaN(total_seats)) {
         return response.badRequest({ message: 'Invalid total seats value' })
-      }
-
-      // Fetch the class
-      const classData = await Classes.query()
-        .where('id', class_id)
-        .andWhere('school_id', auth.user!.school_id)
-        .first()
-      if (!classData) {
-        return response.notFound({ message: `Class ID ${class_id} not found` })
       }
 
       // Get current active academic session for school
@@ -171,6 +171,17 @@ export default class ClassSeatAvailabilitiesController {
 
       const academic_session_id = activeSession.id
 
+      let seatAvailability = await ClassSeatAvailability.query()
+        .where('class_id', class_id)
+        .where('academic_session_id', academic_session_id)
+        .first()
+
+      if (!seatAvailability) {
+        return response.notFound({
+          message: `Seat availability not found for Class ID ${class_id}`,
+        })
+      }
+
       // Get total quota-allocated seats
       const quotaSum = await QuotaAllocation.query()
         .where('class_id', class_id)
@@ -179,34 +190,28 @@ export default class ClassSeatAvailabilitiesController {
 
       const quota_allocated_seats = Number(quotaSum[0]?.$extras.total ?? 0)
 
-      // Get filled seats
-      const filledSeats = await StudentEnrollments.query()
-        .where('class_id', class_id)
-        .count('* as total')
+      if (total_seats < quota_allocated_seats) {
+        return response.badRequest({
+          message: `Total seats cannot be less than quota allocated seats (${quota_allocated_seats})`,
+        })
+      }
 
-      const filled_seats = Number(filledSeats[0]?.$extras.total ?? 0)
+      // Check if filled seats exceed total seats
+      if (seatAvailability.filled_seats > total_seats) {
+        return response.badRequest({
+          message: `Filled seats (${seatAvailability.filled_seats}) cannot exceed total seats (${total_seats})`,
+        })
+      }
 
       // Calculate remaining and general seats
       const general_available_seats = total_seats - quota_allocated_seats
-      const remaining_seats = total_seats - filled_seats
-
-      // Find or create seat availability
-      let seatAvailability = await ClassSeatAvailability.query()
-        .where('class_id', class_id)
-        .where('academic_session_id', academic_session_id)
-        .first()
-
-      if (!seatAvailability) {
-        seatAvailability = new ClassSeatAvailability()
-        seatAvailability.class_id = class_id
-        seatAvailability.academic_session_id = academic_session_id
-      }
+      const remaining_seats = total_seats - seatAvailability.filled_seats
 
       // Update values
       seatAvailability.total_seats = total_seats
       seatAvailability.quota_allocated_seats = quota_allocated_seats
       seatAvailability.general_available_seats = general_available_seats
-      seatAvailability.filled_seats = filled_seats
+      seatAvailability.filled_seats = seatAvailability.filled_seats
       seatAvailability.remaining_seats = remaining_seats
 
       await seatAvailability.save()

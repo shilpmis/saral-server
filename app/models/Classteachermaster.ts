@@ -1,7 +1,7 @@
 import Base from '#models/base'
 import { column, hasOne } from '@adonisjs/lucid/orm'
-import Classes from './Classes.js'
 import type { HasOne } from '@adonisjs/lucid/types/relations'
+import Divisions from '#models/Divisions'
 
 export default class ClassTeacherMaster extends Base {
   @column()
@@ -16,9 +16,10 @@ export default class ClassTeacherMaster extends Base {
   @column()
   declare status: 'Active' | 'Inactive'
 
-  @hasOne(() => Classes, {
-    localKey: 'class_id',
+  @hasOne(() => Divisions, {
+    localKey: 'division_id',
     foreignKey: 'id',
+    serializeAs: 'class',
   })
-  declare class: HasOne<typeof Classes>
+  declare divisions: HasOne<typeof Divisions>
 }

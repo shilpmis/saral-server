@@ -128,11 +128,11 @@ router
       ClassSeatAvailabilitiesController,
       'getAllClassesSeatAvailability',
     ])
-    router.get('/classes/seats/:division_id', [
+    router.get('/classes/seats/:class_id', [
       ClassSeatAvailabilitiesController,
       'getSeatAvailability',
     ])
-    router.put('/classes/seats/:division_id', [
+    router.put('/classes/seats/:class_id', [
       ClassSeatAvailabilitiesController,
       'updateSeatAvailability',
     ])
@@ -146,7 +146,10 @@ router
     // routes for the quota allocation
     router.post('/quota-allocation/', [QuotaAllocationsController, 'allocateQuotaToClass'])
     router.get('/quota-allocation/all', [QuotaAllocationsController, 'listAllQuotaAllocation'])
-    router.put('/quota-allocation/:id', [QuotaAllocationsController, 'updateFilledSeats'])
+    router.put('/quota-allocation/:quota_allocation_id', [
+      QuotaAllocationsController,
+      'updateTotalSeats',
+    ])
 
     router.get('attendance/:class_id/:unix_date', [AttendanceController, 'getAttendanceDetails'])
     router.post('attendance', [AttendanceController, 'markAttendance'])

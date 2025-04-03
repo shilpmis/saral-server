@@ -15,7 +15,10 @@ export default class Quota extends Base {
   declare academic_session_id: number
 
   @column()
-  declare description?: string
+  declare description: string | null
+
+  @column()
+  declare is_active: boolean
 
   @column()
   declare eligibility_criteria?: string
