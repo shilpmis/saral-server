@@ -115,7 +115,9 @@ export default class AuthController {
       if (ctx.auth.user.staff_id) {
         userQuery.preload('staff', (query) => {
           query.preload('assigend_classes', (query) => {
-            query.preload('class')
+            query.preload('divisions', (query) => {
+              query.preload('class')
+            })
           })
         })
       }

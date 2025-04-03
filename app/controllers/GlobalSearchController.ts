@@ -57,7 +57,9 @@ export default class GlobalSearchController {
             query.where('academic_session_id', academic_session_id).preload('concession')
           })
           .preload('academic_class', (query) => {
-            query.where('academic_session_id', academic_session_id).preload('class')
+            query.where('academic_session_id', academic_session_id).preload('division', (query) => {
+              query.preload('class')
+            })
           })
       } else {
         studentsQuery.preload('academic_class', (query) => {

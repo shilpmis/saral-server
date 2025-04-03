@@ -154,9 +154,7 @@ export default class StundetsController {
         // divisionQuery.where('academic_session_id', academic_session_id)
       })
       .preload('fees_status', (feesStatusQuery) => {
-        feesStatusQuery.preload('paid_fees', (query) => {
-          // query.where('academic_session_id', academic_session_id)
-        })
+        feesStatusQuery.preload('paid_fees')
         feesStatusQuery.where('academic_session_id', academic_session_id)
       })
       .preload('provided_concession', (query) => {
