@@ -43,4 +43,5 @@ export default class StudentEnrollments extends Base {
     localKey: 'division_id',
   })
   declare class: HasOne<typeof Divisions>
+  updated_by: number | undefined
 }
