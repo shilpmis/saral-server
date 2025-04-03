@@ -1,9 +1,11 @@
 import Base from '#models/base'
-import { belongsTo, column, hasOne } from '@adonisjs/lucid/orm'
+import { belongsTo, column, hasMany, hasOne } from '@adonisjs/lucid/orm'
 import Students from './Students.js'
-import type { BelongsTo, HasOne } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import Quota from './Quota.js'
 import Divisions from './Divisions.js'
+import StudentFeesMaster from './StudentFeesMaster.js'
+import ConcessionStudentMaster from './ConcessionStudentMaster.js'
 
 export default class StudentEnrollments extends Base {
   public static table = 'student_enrollments'
@@ -41,7 +43,21 @@ export default class StudentEnrollments extends Base {
   @hasOne(() => Divisions, {
     foreignKey: 'id',
     localKey: 'division_id',
+    serializeAs: 'class',
   })
-  declare class: HasOne<typeof Divisions>
-  updated_by: number | undefined
+  declare division: HasOne<typeof Divisions>
+
+  @hasOne(() => StudentFeesMaster, {
+    foreignKey: 'student_id',
+    localKey: 'id',
+  })
+  declare fees_status: HasOne<typeof StudentFeesMaster>
+
+  @hasMany(() => ConcessionStudentMaster, {
+    foreignKey: 'student_id',
+    localKey: 'id',
+  })
+  declare provided_concession: HasMany<typeof ConcessionStudentMaster>
+
+  
 }

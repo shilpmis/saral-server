@@ -2,7 +2,6 @@ import AcademicSession from '#models/AcademicSession'
 import Classes from '#models/Classes'
 import ClassSeatAvailability from '#models/ClassSeatAvailability'
 import QuotaAllocation from '#models/QuotaAllocation'
-import StudentEnrollments from '#models/StudentEnrollments'
 import type { HttpContext } from '@adonisjs/core/http'
 
 export default class ClassSeatAvailabilitiesController {

@@ -634,10 +634,10 @@ export default class FeesController {
         query.andWhere('status', 'Active')
       })
       .preload('academic_class', (query) => {
-        query.preload('class', (query) => {
-          // query
-          //   .select('id', 'class', 'division', 'aliases')
-          //   .where('school_id', ctx.auth.user!.school_id)
+        query.preload('division', (query) => {
+          query.preload('class', (query) => {
+            query.select('id', 'class').where('school_id', ctx.auth.user!.school_id)
+          })
         })
         query.where('academic_session_id', academicSession.id)
       })
@@ -861,10 +861,10 @@ export default class FeesController {
         query.where('status', 'Active')
       })
       .preload('academic_class', (query) => {
-        query.preload('class', (_query) => {
-          // query
-          //   .select('id', 'class', 'division', 'aliases')
-          //   .where('school_id', ctx.auth.user!.school_id)
+        query.preload('division', (query) => {
+          query.preload('class', (query) => {
+            query.select('id', 'class').where('school_id', ctx.auth.user!.school_id)
+          })
         })
         query.where('academic_session_id', academicSession.id)
       })
@@ -1088,10 +1088,10 @@ export default class FeesController {
       let students = await ConcessionStudentMaster.query()
         .preload('student', (query) => {
           query.preload('academic_class', (query) => {
-            query.preload('class', (query) => {
-              query
-                .select('id', 'class', 'division', 'aliases')
-                .where('school_id', ctx.auth.user!.school_id)
+            query.preload('division', (query) => {
+              query.preload('class', (query) => {
+                query.select('id', 'class').where('school_id', ctx.auth.user!.school_id)
+              })
             })
           })
           query.select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
