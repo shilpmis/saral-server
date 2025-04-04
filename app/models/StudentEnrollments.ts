@@ -58,4 +58,8 @@ export default class StudentEnrollments extends Base {
     localKey: 'id',
   })
   declare provided_concession: HasMany<typeof ConcessionStudentMaster>
+  
+  @column()
+  declare promoted_by: number | null
+
 }
