@@ -11,7 +11,7 @@ export default class StudentPromotionController {
   /**
    * Fetch students eligible for promotion
    */
-  public async getStudentsForPromotion({ request, response }: HttpContext) {
+  public async getStudentsForPromotion(ctx : HttpContext) {
      try {
       const getSchema = schema.create({
         academic_session_id: schema.number(),
@@ -23,26 +23,38 @@ export default class StudentPromotionController {
         limit: schema.number.optional(),
       })
   
-      const payload = await request.validate({ schema: getSchema })
+      const payload = await ctx.request.validate({ schema: getSchema })
   
       const page = payload.page || 1
       const limit = payload.limit || 50
   
-      const session = await AcademicSession.find(payload.academic_session_id)
+      const school_id = ctx.auth.user?.school_id
+      const session = await AcademicSession.query()
+        .where('id', payload.academic_session_id)
+        .if(school_id !== undefined, (query) => query.andWhere('school_id', school_id!))
+        .first()
+      
       if (!session) {
-        return response.badRequest({ success: false, message: 'Academic session not found' })
+        return ctx.response.badRequest({ success: false, message: 'Academic session not found' })
       }
-      // const division = await Division.find(payload.division_id)
-      // if (payload.division_id && !division) {
-      //   return response.badRequest({ success: false, message: 'Division not found' })
-      // }
-      // const student = await Student.find(payload.student_id)
-      // if (payload.student_id && !student) {
-      //   return response.badRequest({ success: false, message: 'Student not found' })
-      // }
-      // if (payload.status && !['drop', 'promoted', 'failed'].includes(payload.status)) {
-      //   return response.badRequest({ success: false, message: 'Invalid status' })
-      // }
+      const division = await Division.query()
+        .if(payload.division_id !== undefined, (query) => query.where('id', payload.division_id!))
+        .first()
+
+      if (payload.division_id && !division) {
+        return ctx.response.badRequest({ success: false, message: 'Division not found' })
+      }
+      const student = await Students.query()
+        .if(payload.student_id !== undefined, (query) => query.where('id', payload.student_id!))
+        .if(school_id !== undefined, (query) => query.where('school_id', school_id!))
+        .first()
+      
+      if (payload.student_id && !student) {
+        return ctx.response.badRequest({ success: false, message: 'Student not found' })
+      }
+      if (payload.status && !['drop', 'promoted', 'failed'].includes(payload.status)) {
+        return ctx.response.badRequest({ success: false, message: 'Invalid status' })
+      }
       const query = StudentEnrollments.query()
         .where('academic_session_id', payload.academic_session_id)
         .if(payload.status, (q) => q.where('status', payload.status!))
@@ -71,7 +83,7 @@ export default class StudentPromotionController {
   
       const students = await query.paginate(page, limit)
   
-      return response.ok({
+      return ctx.response.ok({
         success: true,
         data: {
           students: students.all(),
@@ -80,7 +92,7 @@ export default class StudentPromotionController {
       })
      } catch (error) {
       console.log("error occured while fetching student for promotion", error);
-      return response.internalServerError({ success: false, message: error.message })
+      return ctx.response.internalServerError({ success: false, message: error.message })
      }
   }
 
