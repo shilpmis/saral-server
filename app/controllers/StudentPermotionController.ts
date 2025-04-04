@@ -113,46 +113,48 @@ export default class StudentPromotionController {
     const payload = await request.validate({ schema: promotionSchema })
     const trx = await db.transaction()
 
+    const school_id = auth.user?.school_id;
     // validate the student id in the student enrollment table
     const student = await Students.query()
       .where('id', payload.student_id)
-      .andWhere('is_active', true)
+      .if(school_id !== undefined, (query) => query.where('school_id', school_id!))
       .first()
+
     if (!student) {
       return response.badRequest({ message: 'Student not found or inactive' })
     }
     try {
       const [sourceSession, targetSession, sourceDivision, targetDivision] = await Promise.all([
-        AcademicSession.find(payload.source_academic_session_id),
-        AcademicSession.find(payload.target_academic_session_id),
-        Division.find(payload.source_division_id),
-        Division.find(payload.target_division_id),
+        AcademicSession.query()
+          .where('id', payload.source_academic_session_id)
+          .if(school_id !== undefined, (query) => query.where('school_id', school_id!))
+          .first(),
+        AcademicSession.query()
+          .where('id', payload.target_academic_session_id)
+          .if(school_id !== undefined, (query) => query.where('school_id', school_id!))
+          .first(),
+        Division.query()
+          .where('id', payload.source_division_id)
+          .first(),
+        Division.query()
+           .where('id', payload.target_division_id)
+           .first(),
       ])
 
       if (!sourceSession) return response.badRequest({ message: 'Source session not found' })
       if (!targetSession) return response.badRequest({ message: 'Target session not found' })
       if (!sourceDivision) return response.badRequest({ message: 'Source division not found' })
       if (!targetDivision) return response.badRequest({ message: 'Target division not found' })
-      // if (sourceSession.createdAt >= targetSession.createdAt) {
-      //   return response.badRequest({ message: 'Invalid session sequence' })
-      // }
-      console.log("source_academic_session_id=====>", payload.source_academic_session_id);
-      console.log("payload.student_id=====>", payload.student_id);
+
       const currentEnrollment = await StudentEnrollments.query({ client: trx })
       .where('student_id', payload.student_id)
       .andWhere('academic_session_id', payload.source_academic_session_id)
       .andWhere('status', 'pursuing')
       .first()
-      console.log("currentEnrollment=====>", currentEnrollment);
+
       if (!currentEnrollment) {
         return response.badRequest({ message: 'Student not enrolled in source session' })
       } 
-      
-      console.log("sourceSession=====>", currentEnrollment);
-      // const currentSession = await AcademicSession.find(currentEnrollment.academic_session_id)
-      // if (!currentSession || targetSession.createdAt <= currentSession.createdAt) {
-      //   return response.badRequest({ message: 'Invalid session sequence' })
-      // }
 
       const alreadyEnrolled = await StudentEnrollments.query({ client: trx })
         .where('student_id', payload.student_id)
