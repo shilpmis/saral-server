@@ -165,7 +165,11 @@ export default class StudentPromotionController {
         return response.badRequest({ message: 'Already enrolled in target session' })
       }
 
-      currentEnrollment.status = payload.status === 'promoted' ? 'permoted' : payload.status
+      if (currentEnrollment) {
+        currentEnrollment.status = payload.status === 'promoted' ? 'permoted' : payload.status
+      } else {
+        throw new Error('Current enrollment not found')
+      }
       currentEnrollment.remarks = payload.remarks || ''
       currentEnrollment.promoted_by = auth.user!.id
       await currentEnrollment.save()
@@ -195,95 +199,123 @@ export default class StudentPromotionController {
   /**
    * Bulk promotion of students
    */
-  // public async bulkPromote({ request, response, auth }: HttpContext) {
-  //   const bulkSchema = schema.create({
-  //     student_ids: schema.array().members(schema.number()),
-  //     source_academic_session_id: schema.number(),
-  //     target_academic_session_id: schema.number(),
-  //     target_division_id: schema.number(),
-  //     status: schema.enum(['promoted', 'failed'] as const),
-  //     remarks: schema.string.optional(),
-  //   })
-
-  //   const payload = await request.validate({ schema: bulkSchema })
-  //   const trx = await db.transaction()
-
-  //   const results = { success: [], failed: [] }
-
-  //   try {
-  //     const [targetSession, targetDivision] = await Promise.all([
-  //       AcademicSession.find(payload.target_academic_session_id),
-  //       Division.find(payload.target_division_id),
-  //     ])
-
-  //     if (!targetSession) {
-  //       return response.badRequest({ message: 'Target academic session not found' })
-  //     }
-
-  //     if (!targetDivision) {
-  //       return response.badRequest({ message: 'Target division not found' })
-  //     }
-
-  //     for (const student_id of payload.student_ids) {
-  //       try {
-  //         const currentEnrollment = await StudentEnrollments.query({ client: trx })
-  //           .where('student_id', student_id)
-  //           .andWhere('academic_session_id', payload.source_academic_session_id)
-  //           .andWhere('status', 'pursuing')
-  //           .firstOrFail()
-
-  //         const existing = await StudentEnrollments.query({ client: trx })
-  //           .where('student_id', student_id)
-  //           .andWhere('academic_session_id', payload.target_academic_session_id)
-  //           .first()
-
-  //         if (existing) {
-  //           results.failed.push({ student_id, reason: 'Already enrolled in target session' })
-  //           continue
-  //         }
-
-  //         currentEnrollment.status = payload.status
-  //         currentEnrollment.updated_by = auth.user!.id
-  //         currentEnrollment.remarks = payload.remarks || ''
-  //         await currentEnrollment.save()
-
-  //         const newEnrollment = new StudentEnrollments()
-  //         newEnrollment.fill({
-  //           student_id,
-  //           division_id: payload.target_division_id,
-  //           academic_session_id: payload.target_academic_session_id,
-  //           quota_id: currentEnrollment.quota_id,
-  //           status: 'pursuing',
-  //           remarks: payload.remarks || '',
-  //           is_new_admission: false,
-  //           promoted_by: auth.user?.id,
-  //           promoted_at: DateTime.now().toSQL(),
-  //         })
-
-  //         await newEnrollment.useTransaction(trx).save()
-  //         results.success.push(student_id)
-  //       } catch (err) {
-  //         results.failed.push({ student_id, reason: err.message })
-  //       }
-  //     }
-
-  //     await trx.commit()
-  //     return response.ok({ success: true, data: results })
-  //   } catch (err) {
-  //     await trx.rollback()
-  //     return response.internalServerError({ success: false, message: err.message })
-  //   }
-  // }
+  public async bulkPromote({ request, response, auth }: HttpContext) {
+    const bulkSchema = schema.create({
+      student_ids: schema.array().members(schema.number()),
+      source_academic_session_id: schema.number(),
+      target_academic_session_id: schema.number(),
+      target_division_id: schema.number(),
+      status: schema.enum(['promoted', 'failed'] as const),
+      remarks: schema.string.optional(),
+    })
+  
+    const payload = await request.validate({ schema: bulkSchema })
+    const school_id = auth.user?.school_id;
+    const trx = await db.transaction()
+  
+    const results: { success: number[]; failed: { student_id: number; reason: string }[] } = { success: [], failed: [] }
+  
+    try {
+      const [targetSession, targetDivision] = await Promise.all([
+        AcademicSession.query()
+          .where('id', payload.target_academic_session_id)
+          .if(school_id !== undefined, (q) => q.where('school_id', school_id as number))
+          .first(),
+        Division.find(payload.target_division_id),
+      ])
+  
+      if (!targetSession) {
+        return response.badRequest({ message: 'Target academic session not found or invalid for this school' })
+      }
+  
+      if (!targetDivision) {
+        return response.badRequest({ message: 'Target division not found' })
+      }
+  
+      for (const student_id of payload.student_ids) {
+        try {
+          const student = await Students.query()
+            .where('id', student_id)
+            .if(school_id !== undefined, (q) => q.where('school_id', school_id!))
+            .first()
+  
+          if (!student) {
+            results.failed.push({ student_id, reason: 'Student not found or does not belong to this school' })
+            continue
+          }
+  
+          const currentEnrollment = await StudentEnrollments.query({ client: trx })
+            .where('student_id', student_id)
+            .andWhere('academic_session_id', payload.source_academic_session_id)
+            .andWhere('status', 'pursuing')
+            .first()
+  
+          if (!currentEnrollment) {
+            results.failed.push({ student_id, reason: 'Student not enrolled in source academic session' })
+            continue
+          }
+  
+          const alreadyEnrolled = await StudentEnrollments.query({ client: trx })
+            .where('student_id', student_id)
+            .andWhere('academic_session_id', payload.target_academic_session_id)
+            .first()
+  
+          if (alreadyEnrolled) {
+            results.failed.push({ student_id, reason: 'Already enrolled in target academic session' })
+            continue
+          }
+  
+          // Update current enrollment
+          currentEnrollment.status = payload.status === 'promoted' ? 'permoted' : payload.status
+          currentEnrollment.remarks = payload.remarks || ''
+          currentEnrollment.promoted_by = auth.user!.id
+          await currentEnrollment.save()
+  
+          // Create new enrollment
+          const newEnrollment = new StudentEnrollments()
+          newEnrollment.fill({
+            student_id,
+            division_id: payload.target_division_id,
+            academic_session_id: payload.target_academic_session_id,
+            quota_id: currentEnrollment.quota_id,
+            status: 'pursuing',
+            remarks: payload.remarks || '',
+            is_new_admission: false,
+            promoted_by: auth.user?.id,
+          })
+  
+          await newEnrollment.useTransaction(trx).save()
+          results.success.push(student_id)
+  
+        } catch (err) {
+          console.error(`Promotion failed for student_id ${student_id}:`, err.message)
+          results.failed.push({ student_id, reason: 'Unexpected error occurred during promotion' })
+        }
+      }
+  
+      await trx.commit()
+      return response.ok({ success: true, data: results })
+    } catch (err) {
+      await trx.rollback()
+      console.error('Bulk promotion failed:', err)
+      return response.internalServerError({ success: false, message: 'Bulk promotion failed. Please try again.' })
+    }
+  }
+  
+  
 
   /**
    * Get promotion history (optional filter by session)
    */
   public async getPromotionHistory({ request, response }: HttpContext) {
-    const sessionId = request.input('academic_session_id')
-
+    const sessionId = request.param('academic_session_id')
+    console.log("sessionId for student ", sessionId);
+  
+    // Define the statuses to filter for
+    const validStatuses = ['promoted', 'failed', 'drop', 'transfer'];
+  
     try {
-      const query = db
-        .from('student_enrollments')
+      const query = StudentEnrollments.query()
         .select(
           'student_id',
           'academic_session_id',
@@ -292,18 +324,23 @@ export default class StudentPromotionController {
           'remarks',
           'promoted_at'
         )
-        .whereNotNull('promoted_at')
+        .whereIn('status', validStatuses)  // Filter by statuses
         .orderBy('promoted_at', 'desc')
-
+  
       if (sessionId) {
         query.where('academic_session_id', sessionId)
       }
-
+  
       const data = await query
+        .preload('student', (query) => {
+          query.preload('fees_status')
+        })
+        .preload('division')
 
       return response.ok({ success: true, data })
     } catch (error) {
       return response.internalServerError({ success: false, message: error.message })
     }
   }
+  
 }

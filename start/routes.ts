@@ -209,11 +209,11 @@ router
     // Get students eligible for promotion
     router.post('/students-for-permotion', [StudentPromotionController, 'getStudentsForPromotion'])
     router.post('/promote-students', [StudentPromotionController, 'promote'])
-    // router.post('/bulk-promote', [StudentPromotionController, 'bulkPromote'])
+    router.post('/bulk-promote', [StudentPromotionController, 'bulkPromote'])
     // router.put('/change-division', [StudentPromotionController, 'changeClassDivision'])
     // router.put('/deactivate', [StudentPromotionController, 'deactivate'])
     // router.post('/transfer', [StudentPromotionController, 'transferStudent'])
-    router.get('/history', [StudentPromotionController, 'getPromotionHistory'])
+    router.get('/promotion-history/:academic_session_id', [StudentPromotionController, 'getPromotionHistory'])
   })
   .prefix('/api/v1/')
   .use(middleware.auth())
