@@ -20,7 +20,7 @@ export default class StudentEnrollments extends Base {
   declare academic_session_id: number
 
   @column()
-  declare quota_id: number
+  declare quota_id: number | null
 
   @column()
   declare status: 'pursuing' | 'permoted' | 'failed' | 'drop'
