@@ -194,7 +194,7 @@ router
     router.post('/inquiry', [InquiriesController, 'addInquiryForClass'])
     router.get('/inquiry/:id', [InquiriesController, 'getInquiryById'])
     router.put('/inquiry/:id', [InquiriesController, 'updateInquiry'])
-    router.post('/inquiry/:id/enroll-student', [InquiriesController, 'convertInquiryToStudent'])
+    router.post('/inquiry/convert/:inquiry_id', [InquiriesController, 'convertInquiryToStudent'])
 
     router.get('admissions/dashboard', [AdmissionDashboardController, 'getDashboardData'])
     router.get('admissions/dashboard/detailed', [
