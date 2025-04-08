@@ -27,6 +27,7 @@ import QuotasController from '#controllers/QuotaController'
 import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
 import GlobalSearchController from '#controllers/GlobalSearchController'
+import StudentPromotionController from '#controllers/StudentPermotionController'
 
 router
   .group(() => {
@@ -202,6 +203,17 @@ router
       'getDetailedStatistics',
     ])
     router.get('admissions/dashboard/trends', [AdmissionDashboardController, 'getTrendData'])
+
+
+    // Student Permotion, demotion, and drop and transfer
+    // Get students eligible for promotion
+    router.post('/students-for-permotion', [StudentPromotionController, 'getStudentsForPromotion'])
+    router.post('/promote-students', [StudentPromotionController, 'promote'])
+    router.post('/bulk-promote', [StudentPromotionController, 'bulkPromote'])
+    // router.put('/change-division', [StudentPromotionController, 'changeClassDivision'])
+    // router.put('/deactivate', [StudentPromotionController, 'deactivate'])
+    // router.post('/transfer', [StudentPromotionController, 'transferStudent'])
+    router.get('/promotion-history/:academic_session_id', [StudentPromotionController, 'getPromotionHistory'])
   })
   .prefix('/api/v1/')
   .use(middleware.auth())
