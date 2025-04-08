@@ -8,8 +8,8 @@ export default class extends BaseSchema {
       table.string('first_name', 100).notNullable().alter({ alterNullable: true })
       table.string('last_name', 100).notNullable().alter({ alterNullable: true })
 
-      table.dropColumn('class_applying')
       table.dropForeign('class_applying')
+      table.dropColumn('class_applying')
 
       table
         .integer('class_applying_for')
