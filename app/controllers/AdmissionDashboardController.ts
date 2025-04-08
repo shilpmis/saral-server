@@ -3,16 +3,14 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 
 export default class AdmissionDashboardController {
-  public async getDashboardData({ response, auth }: HttpContext) {
+  public async getDashboardData(ctx: HttpContext) {
     try {
       // Get the authenticated user's school_id (assuming the user is authenticated)
-      const schoolId = auth.user?.school_id
+      const schoolId = ctx.auth.user!.school_id
 
-      // Base query to filter by school if needed
-      const baseQuery = schoolId
-        ? AdmissionInquiry.query().where('school_id', schoolId)
-        : AdmissionInquiry.query()
-
+      const baseQuery = AdmissionInquiry.query()
+        .where('school_id', schoolId)
+        .andWhere('academic_session_id', ctx.request.input('academic_session'))
       // Get total inquiries
       const totalInquiries = await baseQuery.clone().count('* as total')
 
@@ -42,10 +40,10 @@ export default class AdmissionDashboardController {
         upcomingInterviews: Number(upcomingInterviews[0]?.$extras.total || 0),
       }
 
-      return response.ok(dashboardData)
+      return ctx.response.ok(dashboardData)
     } catch (error) {
       console.error('Error fetching admission dashboard data:', error)
-      return response.internalServerError({
+      return ctx.response.internalServerError({
         message: 'Failed to fetch dashboard data',
         error: error.message,
       })
@@ -55,14 +53,14 @@ export default class AdmissionDashboardController {
   /**
    * Get detailed admission statistics by status
    */
-  public async getDetailedStatistics({ response, auth }: HttpContext) {
+  public async getDetailedStatistics({ response, request, auth }: HttpContext) {
     try {
-      const schoolId = auth.user?.school_id
+      const schoolId = auth.user!.school_id
 
       // Base query to filter by school if needed
-      const baseQuery = schoolId
-        ? AdmissionInquiry.query().where('school_id', schoolId)
-        : AdmissionInquiry.query()
+      const baseQuery = AdmissionInquiry.query()
+        .where('school_id', schoolId)
+        .andWhere('academic_session_id', request.input('academic_session'))
 
       // Get counts for each status
       const statusCounts = await baseQuery.select('status').count('* as count').groupBy('status')
@@ -89,21 +87,20 @@ export default class AdmissionDashboardController {
   public async getTrendData({ request, response, auth }: HttpContext) {
     try {
       const { period = 'week', limit = 6 } = request.qs()
-      const schoolId = auth.user?.school_id
+      const schoolId = auth.user!.school_id
 
       // Base query
       const baseQuery = AdmissionInquiry.query()
-      if (schoolId) {
-        baseQuery.where('school_id', schoolId)
-      }
+        .where('school_id', schoolId)
+        .andWhere('academic_session_id', request.input('academic_session'))
 
       // Include class information in the query
       const records = await baseQuery
-        .select('created_at', 'class_applying', db.raw('count(*) as total'))
-        .groupBy('created_at', 'class_applying')
+        .select('created_at', 'inquiry_for_class', db.raw('count(*) as total'))
+        .groupBy('created_at', 'inquiry_for_class')
         .orderBy('created_at', period === 'month' ? 'desc' : 'asc')
         .limit(limit)
-        
+
       // Define types for our data structures
       type ClassCount = Record<string, number>
 
@@ -125,7 +122,7 @@ export default class AdmissionDashboardController {
       records.forEach((record) => {
         let timePeriod: string
         const date = new Date(record.createdAt.toJSDate())
-        const classInfo: string = String(record.class_applying || 'Unspecified')
+        const classInfo: string = String(record.inquiry_for_class || 'Unspecified')
 
         // Track all unique classes for reference
         classes.add(classInfo)
