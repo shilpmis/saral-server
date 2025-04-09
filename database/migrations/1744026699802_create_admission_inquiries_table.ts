@@ -14,7 +14,8 @@ export default class extends BaseSchema {
         .onDelete('CASCADE')
       // .defaultTo(null)
 
-      // table.dropColumn('class_applying_for');
+      table.dropForeign('class_applying_for')
+      table.dropColumn('class_applying_for')
     })
   }
 
