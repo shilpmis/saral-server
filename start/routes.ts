@@ -210,6 +210,8 @@ router
     router.post('/students-for-permotion', [StudentPromotionController, 'getStudentsForPromotion'])
     router.post('/promote-students', [StudentPromotionController, 'promote'])
     router.post('/bulk-promote', [StudentPromotionController, 'bulkPromote'])
+    router.post('/hold-back-student', [StudentPromotionController, 'holdBackStudent'])
+    router.post('/bulk-hold-back-students', [StudentPromotionController, 'bulkHoldBackStudents'])
     // router.put('/change-division', [StudentPromotionController, 'changeClassDivision'])
     // router.put('/deactivate', [StudentPromotionController, 'deactivate'])
     // router.post('/transfer', [StudentPromotionController, 'transferStudent'])
