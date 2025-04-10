@@ -1464,7 +1464,7 @@ export default class FeesController {
       }
 
       let studentEnrollment = await StudentEnrollments.query()
-        .where('id', payload.student_id)
+        .where('student_id', payload.student_id)
         .where('academic_session_id', acadamic_session.id)
         .first()
 
