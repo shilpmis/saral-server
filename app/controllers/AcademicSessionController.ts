@@ -10,21 +10,15 @@ export default class AcademicSessionsController {
     const trx = await db.transaction()
 
     try {
-      const {
-        school_id,
-        start_month,
-        end_month,
-        start_year,
-        end_year,
-        is_active,
-      } = ctx.request.only([
-        'school_id',
-        'start_month',
-        'end_month',
-        'start_year',
-        'end_year',
-        'is_active',
-      ])
+      const { school_id, start_month, end_month, start_year, end_year, is_active } =
+        ctx.request.only([
+          'school_id',
+          'start_month',
+          'end_month',
+          'start_year',
+          'end_year',
+          'is_active',
+        ])
 
       // Ensure school_id is valid
       if (!school_id || isNaN(school_id) || Number(school_id) <= 0) {
@@ -45,11 +39,13 @@ export default class AcademicSessionsController {
 
       if (!parsedStart.isValid || !parsedEnd.isValid) {
         await trx.rollback()
-        return ctx.response.badRequest({ message: 'Invalid date format for start_month or end_month. Use YYYY-MM format.' })
+        return ctx.response.badRequest({
+          message: 'Invalid date format for start_month or end_month. Use YYYY-MM format.',
+        })
       }
 
       const startMonthName = parsedStart.toFormat('LLLL') // "March"
-      const endMonthName = parsedEnd.toFormat('LLLL')     // "March"
+      const endMonthName = parsedEnd.toFormat('LLLL') // "March"
 
       const startIndex = MONTHS_ORDER.indexOf(startMonthName)
       const endIndex = MONTHS_ORDER.indexOf(endMonthName)
@@ -60,7 +56,7 @@ export default class AcademicSessionsController {
       }
 
       // Calculate duration (months between start and end)
-      let duration = (endIndex - startIndex + 1)
+      let duration = endIndex - startIndex + 1
       if (start_year !== end_year) {
         duration += 12
       }
@@ -73,15 +69,24 @@ export default class AcademicSessionsController {
       }
 
       // Prevent duplicate session for same months/years
-      const duplicate = await AcademicSession.query()
-        .where('school_id', school_id)
-        .where('start_month', startMonthName)
-        .where('end_month', endMonthName)
-        .where('start_year', start_year)
-        .where('end_year', end_year)
-        .first()
+      const academic_session = await AcademicSession.query().where('school_id', school_id)
+      // .andWhere('start_year', start_year)
+      // .andWhere('end_year', end_year)
+      // .first()
+      // .where('start_month', startMonthName)
+      // .where('end_month', endMonthName)
 
-      if (duplicate) {
+      let duplicat_session =
+        academic_session.length > 0
+          ? academic_session.find((session) => {
+              return (
+                // (session.start_month === startMonthName && session.end_month === endMonthName) ||
+                session.start_year === start_year && session.end_year === end_year
+              )
+            })
+          : false
+
+      if (duplicat_session) {
         await trx.rollback()
         return ctx.response.conflict({ message: 'Session already exists for the same period' })
       }
@@ -104,14 +109,13 @@ export default class AcademicSessionsController {
           end_month: endMonthName,
           start_year,
           end_year,
-          is_active: is_active ?? false,
+          is_active: academic_session.length === 0 ? true : is_active,
         },
         { client: trx }
       )
 
       await trx.commit()
       return ctx.response.created({ message: 'Academic session created', session })
-
     } catch (error) {
       await trx.rollback()
       console.error('Error creating academic session:', error)
@@ -158,7 +162,6 @@ export default class AcademicSessionsController {
 
       await trx.commit()
       return ctx.response.ok({ message: 'Academic session updated', session })
-
     } catch (error) {
       await trx.rollback()
       console.error('Error updating academic session:', error)
@@ -175,10 +178,10 @@ export default class AcademicSessionsController {
   public async getAllAcademicSessionInSchool(ctx: HttpContext) {
     try {
       const sessions = await AcademicSession.query()
-      .preload('school')
-      .where('school_id', ctx.params.school_id)
-      .orderBy('start_month', 'desc')
-  
+        .preload('school')
+        .where('school_id', ctx.params.school_id)
+        .orderBy('start_month', 'desc')
+
       if (sessions.length === 0) {
         return ctx.response.notFound({ message: 'No academic sessions found' })
       }
@@ -193,23 +196,23 @@ export default class AcademicSessionsController {
     }
   }
 
-  public async deleteAcademicSession(ctx: HttpContext) {
-    try {
-      const session = await AcademicSession.query()
-        .where('id', ctx.params.id)
-        .where('school_id', ctx.auth.user!.school_id)
-        .first()
-        if (!session) {
-          return ctx.response.notFound({ message: 'Session not found' })
-        }
-        await session.delete()
-        return ctx.response.ok({ message: 'Session deleted' })
-    } catch (error) {
-      console.error('Error deleting academic session:', error)
-      return ctx.response.internalServerError({
-        message: 'Failed to delete academic session',
-        error: error.message,
-      })
-    }
-  }
+  // public async deleteAcademicSession(ctx: HttpContext) {
+  //   try {
+  //     const session = await AcademicSession.query()
+  //       .where('id', ctx.params.id)
+  //       .where('school_id', ctx.auth.user!.school_id)
+  //       .first()
+  //       if (!session) {
+  //         return ctx.response.notFound({ message: 'Session not found' })
+  //       }
+  //       await session.delete()
+  //       return ctx.response.ok({ message: 'Session deleted' })
+  //   } catch (error) {
+  //     console.error('Error deleting academic session:', error)
+  //     return ctx.response.internalServerError({
+  //       message: 'Failed to delete academic session',
+  //       error: error.message,
+  //     })
+  //   }
+  // }
 }
