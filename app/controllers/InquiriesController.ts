@@ -203,7 +203,7 @@ export default class InquiriesController {
       }
 
       // Generate Unique Admission Number & Enrollment Code
-      const admissionNumber = await this.generateAdmissionNumber()
+      // const admissionNumber = await this.generateAdmissionNumber()
       const enrollmentCode = `EN-${inquiry.school_id}-${Date.now()}`
 
       const payload = await CreateValidatorStundet.validate(ctx.request.body())
@@ -213,7 +213,7 @@ export default class InquiriesController {
         {
           school_id: school_id,
           enrollment_code: enrollmentCode,
-          admission_number: admissionNumber,
+          admission_number: inquiry_id,
           gr_no: payload.students_data.gr_no,
           first_name: payload.students_data.first_name,
           middle_name: payload.students_data.middle_name,
@@ -249,7 +249,6 @@ export default class InquiriesController {
 
       // Check if Quota is Available
       if (quotaId) {
-        console.log('Check this here', inquiry.academic_session_id, quotaId)
         const quota_allocation = await QuotaAllocation.query()
           .where('quota_id', quotaId)
           .andWhere('class_id', inquiry.inquiry_for_class)
@@ -288,7 +287,7 @@ export default class InquiriesController {
       await StudentEnrollments.create(
         {
           student_id: student.id,
-          division_id: inquiry.inquiry_for_class,
+          division_id: payload.students_data.class_id,
           academic_session_id: inquiry.academic_session_id,
           quota_id: quotaId ?? null,
           status: 'pursuing',
@@ -311,6 +310,7 @@ export default class InquiriesController {
         student,
       })
     } catch (error) {
+      console.log('Error converting inquiry to student:', error)
       await trx.rollback()
       return ctx.response.internalServerError({
         error: 'Error processing inquiry conversion',
@@ -334,22 +334,22 @@ export default class InquiriesController {
   /**
    * Generate a Unique General Register (GR) Number
    */
-  private async generateGrNo(): Promise<number> {
-    const latestStudent = await Students.query().orderBy('id', 'desc').first()
-    return latestStudent ? latestStudent.gr_no + 1 : 1000
-  }
+  // private async generateGrNo(): Promise<number> {
+  //   const latestStudent = await Students.query().orderBy('id', 'desc').first()
+  //   return latestStudent ? latestStudent.gr_no + 1 : 1000
+  // }
 
-  /**
-   * Generate a Roll Number for the Given Class
-   */
-  private async generateRollNumber(classId: number): Promise<number> {
-    const studentsInClass = await StudentEnrollments.query()
-      .where('class_id', classId)
-      .count('* as total')
+  // /**
+  //  * Generate a Roll Number for the Given Class
+  //  */
+  // private async generateRollNumber(classId: number): Promise<number> {
+  //   const studentsInClass = await StudentEnrollments.query()
+  //     .where('class_id', classId)
+  //     .count('* as total')
 
-    // Ensure the count is retrieved properly
-    const totalStudents = (studentsInClass[0] as unknown as { total: number })?.total || 0
+  //   // Ensure the count is retrieved properly
+  //   const totalStudents = (studentsInClass[0] as unknown as { total: number })?.total || 0
 
-    return totalStudents + 1
-  }
+  //   return totalStudents + 1
+  // }
 }
