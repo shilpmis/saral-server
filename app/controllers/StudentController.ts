@@ -655,7 +655,6 @@ export default class StundetsController {
       }
       try {
         const paylaod = await CreateValidatorForUpload.validate(transformedData)
-        console.log('paylaod', paylaod.students_data.first_name)
         validatedData.push(transformedData)
       } catch (validationError) {
         errors.push({
