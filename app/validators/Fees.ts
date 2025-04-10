@@ -43,7 +43,7 @@ export const CreateValidatorForFeesPlan = vine.compile(
             'Half Yearly',
             'Yearly',
           ]),
-          total_installment: vine.number(),
+          total_installment: vine.number(), // string().regex(/^\d+(\.\d+)?$/), // Ensures the string contains only numbers with optional decimal points
           total_amount: vine.number().max(100000).min(100),
           installment_breakDowns: vine
             .array(

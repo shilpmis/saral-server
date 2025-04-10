@@ -2,7 +2,7 @@ import vine from '@vinejs/vine'
 
 export const CreateValidatorForLeaveType = vine.compile(
   vine.object({
-    leave_type_name: vine.string().trim().minLength(3).maxLength(25),
+    leave_type_name: vine.string().trim().minLength(2).maxLength(25),
     academic_session_id: vine.number(),
     is_paid: vine.boolean(),
     affects_payroll: vine.boolean(),
@@ -13,7 +13,7 @@ export const CreateValidatorForLeaveType = vine.compile(
 
 export const UpdateValidatorForLeaveType = vine.compile(
   vine.object({
-    leave_type_name: vine.string().trim().minLength(3).maxLength(25).optional(),
+    leave_type_name: vine.string().trim().minLength(2).maxLength(25).optional(),
     is_paid: vine.boolean().optional(),
     affects_payroll: vine.boolean(),
     requires_proof: vine.boolean().optional(),

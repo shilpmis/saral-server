@@ -82,7 +82,7 @@ export const CreateValidatorStundet = vine.compile(
 
       secondary_mobile: vine.number().nullable().optional(),
 
-      privious_school: vine.string().trim().minLength(5).maxLength(100).nullable().optional(),
+      privious_school: vine.string().trim().nullable().optional(), //.minLength(5).maxLength(100).nullable().optional(),
       privious_school_in_guj: vine.string().trim().optional().nullable().optional(),
 
       address: vine.string().trim().minLength(5).maxLength(200).nullable().optional(),
