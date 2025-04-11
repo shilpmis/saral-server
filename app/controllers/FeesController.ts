@@ -453,6 +453,25 @@ export default class FeesController {
           .save()
       }
 
+      // update all student fees master according to this plan
+
+      let student_fees_master = await StudentFeesMaster.query()
+        .where('fees_plan_id', plan.id)
+        .andWhere('academic_session_id', plan.academic_session_id)
+      // .andWhere('status', 'Pending')
+
+      for (let i = 0; i < student_fees_master.length; i++) {
+        let student_fees = student_fees_master[i]
+        await student_fees
+          .merge({
+            total_amount: plan.total_amount,
+            due_amount: Number(plan.total_amount) - Number(student_fees.paid_amount),
+            status: student_fees.paid_amount > 0 ? 'Partially Paid' : 'Pending',
+          })
+          .useTransaction(trx)
+          .save()
+      }
+
       await trx.commit()
       return ctx.response.status(200).json(plan)
     } catch (error) {
