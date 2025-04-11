@@ -20,37 +20,40 @@ import Divisions from '#models/Divisions'
 
 // Helper function to generate unique enrollment codes
 interface GenerateUniqueEnrollmentCodeParams {
-  prefix: string;
-  trx: any; // Replace `any` with the specific type for the transaction object if available
+  prefix: string
+  trx: any // Replace `any` with the specific type for the transaction object if available
 }
 
-async function generateUniqueEnrollmentCode({ prefix, trx }: GenerateUniqueEnrollmentCodeParams): Promise<string> {
-  const maxAttempts = 10;
-  let attempts = 0;
+async function generateUniqueEnrollmentCode({
+  prefix,
+  trx,
+}: GenerateUniqueEnrollmentCodeParams): Promise<string> {
+  const maxAttempts = 10
+  let attempts = 0
 
   while (attempts < maxAttempts) {
     // Generate a random code
-    const randomPart = Math.floor(1000 + Math.random() * 9000);
-    const enrollmentCode = `${prefix}${randomPart}`;
+    const randomPart = Math.floor(1000 + Math.random() * 9000)
+    const enrollmentCode = `${prefix}${randomPart}`
 
     // Check if this code already exists in the database
     const existingStudent = await Students.query({ client: trx })
       .where('enrollment_code', enrollmentCode)
-      .first();
+      .first()
 
     // If no student has this code, return it
     if (!existingStudent) {
-      return enrollmentCode;
+      return enrollmentCode
     }
 
-    attempts++;
+    attempts++
   }
 
   // If we've tried multiple times and still have collisions,
   // use timestamp + random to ensure uniqueness
-  const timestamp = Date.now().toString().slice(-5);
-  const randomPart = Math.floor(1000 + Math.random() * 9000);
-  return `${prefix}${timestamp}${randomPart}`;
+  const timestamp = Date.now().toString().slice(-5)
+  const randomPart = Math.floor(1000 + Math.random() * 9000)
+  return `${prefix}${timestamp}${randomPart}`
 }
 
 export default class StundetsController {
@@ -317,10 +320,10 @@ export default class StundetsController {
     try {
       for (var i = 0; i < payload.length; i++) {
         let student_data = await Students.create(
-          { 
-            ...payload[i].students_data, 
+          {
+            ...payload[i].students_data,
             school_id: school_id,
-            enrollment_code: await generateUniqueEnrollmentCode({ prefix: 'ENR', trx })
+            enrollment_code: await generateUniqueEnrollmentCode({ prefix: 'ENR', trx }),
           },
           { client: trx }
         )
@@ -544,7 +547,10 @@ export default class StundetsController {
         const student_data = await Students.create(
           {
             ...validated_student.students_data,
-            enrollment_code: await generateUniqueEnrollmentCode({ prefix: school.branch_code, trx }),
+            enrollment_code: await generateUniqueEnrollmentCode({
+              prefix: school.branch_code,
+              trx,
+            }),
           },
           { client: trx }
         )
