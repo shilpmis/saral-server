@@ -9,7 +9,7 @@ export default class extends BaseSeeder {
       {
         id: 1,
         school_id: 1,
-        saral_email: 'admin@melzo.saral',
+        saral_email: 'admin@HHS2324.saral',
         name: 'Admin',
         role_id: 1,
         password: '12345678',
@@ -19,7 +19,7 @@ export default class extends BaseSeeder {
       {
         id: 2,
         school_id: 1,
-        saral_email: 'principal@melzo.saral',
+        saral_email: 'principal@HHS2324.saral',
         name: 'Meet Mehta',
         role_id: 2,
         password: '12345678',
@@ -29,7 +29,7 @@ export default class extends BaseSeeder {
       {
         id: 3,
         school_id: 1,
-        saral_email: 'rita-patel01@melzo.saral',
+        saral_email: 'rita-patel01@HHS2324.saral',
         name: 'Rita Patel',
         role_id: 6,
         password: '12345678',
