@@ -58,7 +58,7 @@ router
       AcademicSessionsController,
       'getAllAcademicSessionInSchool',
     ])
-    router.delete('/academic-session/:id', [AcademicSessionsController, 'deleteAcademicSession'])
+    // router.delete('/academic-session/:id', [AcademicSessionsController, 'deleteAcademicSession'])
 
     router.get('/users', [UsersController, 'indexSchoolUsers'])
     router.post('/user', [UsersController, 'createUser'])
@@ -147,7 +147,7 @@ router
 
     // routes for the quota allocation
     router.post('/quota-allocation/', [QuotaAllocationsController, 'allocateQuotaToClass'])
-    router.get('/quota-allocation/all', [QuotaAllocationsController, 'listAllQuotaAllocation'])
+    // router.get('/quota-allocation/all', [QuotaAllocationsController, 'listAllQuotaAllocation'])
     router.put('/quota-allocation/:quota_allocation_id', [
       QuotaAllocationsController,
       'updateTotalSeats',
@@ -204,7 +204,6 @@ router
     ])
     router.get('admissions/dashboard/trends', [AdmissionDashboardController, 'getTrendData'])
 
-
     // Student Permotion, demotion, and drop and transfer
     // Get students eligible for promotion
     router.post('/students-for-permotion', [StudentPromotionController, 'getStudentsForPromotion'])
@@ -215,7 +214,10 @@ router
     // router.put('/change-division', [StudentPromotionController, 'changeClassDivision'])
     // router.put('/deactivate', [StudentPromotionController, 'deactivate'])
     // router.post('/transfer', [StudentPromotionController, 'transferStudent'])
-    router.get('/promotion-history/:academic_session_id', [StudentPromotionController, 'getPromotionHistory'])
+    router.get('/promotion-history/:academic_session_id', [
+      StudentPromotionController,
+      'getPromotionHistory',
+    ])
   })
   .prefix('/api/v1/')
   .use(middleware.auth())
