@@ -483,7 +483,7 @@ export default class StundetsController {
           last_name: data['Last Name'],
           gender: data['Gender'],
           gr_no: data['GR No'],
-          primary_mobile: data['Mobile No'] || 8980995343,
+          primary_mobile: data['Mobile No'] || 9999999999,
           school_id: school_id,
           is_active: true,
           first_name_in_guj: data['First Name Gujarati'] || null,
@@ -523,7 +523,7 @@ export default class StundetsController {
       }
       try {
         const paylaod = await CreateValidatorForUpload.validate(transformedData)
-        validatedData.push(transformedData)
+        validatedData.push(paylaod)
       } catch (validationError) {
         errors.push({
           row: index + 1,
