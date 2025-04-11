@@ -322,14 +322,14 @@ export default class InquiriesController {
   /**
    * Generate a Unique Admission Number
    */
-  private async generateAdmissionNumber(): Promise<string> {
-    const latestStudent = await Students.query().orderBy('id', 'desc').first()
-    const lastAdmissionNumber =
-      latestStudent && latestStudent.admission_number
-        ? parseInt(latestStudent.admission_number)
-        : 1000
-    return String(lastAdmissionNumber + 1)
-  }
+  // private async generateAdmissionNumber(): Promise<string> {
+  //   const latestStudent = await Students.query().orderBy('id', 'desc').first()
+  //   const lastAdmissionNumber =
+  //     latestStudent && latestStudent.admission_number
+  //       ? parseInt(latestStudent.admission_number)
+  //       : 1000
+  //   return String(lastAdmissionNumber + 1)
+  // }
 
   /**
    * Generate a Unique General Register (GR) Number
