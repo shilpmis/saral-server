@@ -5,7 +5,7 @@ export default class QuotasController {
   public async createQuotaForSeats(ctx: HttpContext) {
     try {
       const school_id = ctx.auth.user?.school_id
-      const academic_session_id = ctx.request.qs().academic_session_id
+      const academic_session_id = ctx.request.qs().academic_session
       const data = ctx.request.only(['name', 'description', 'eligibility_criteria', 'is_active'])
       const quota = await Quota.create({ ...data, school_id, academic_session_id })
       return ctx.response.created(quota)

@@ -67,19 +67,24 @@ export default class ClassSeatAvailabilitiesController {
    * Get all classes seat availability
    */
   public async getAllClassesSeatAvailability(ctx: HttpContext) {
-    let academic_session_id = await AcademicSession.query()
+    let academic_session = await AcademicSession.query()
       .where('is_active', true)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
-    if (!academic_session_id) {
+    if (!academic_session) {
       return ctx.response.notFound({ error: 'No active academic session found' })
     }
 
     const classSeatAvailabilities = await ClassSeatAvailability.query()
       .preload('class')
-      .preload('quota_allocation')
-      .where('academic_session_id', academic_session_id?.id)
+      .preload('quota_allocation', (query) => {
+        query.preload('quota', (query) => {
+          query.where('academic_session_id', academic_session.id)
+        })
+        query.where('academic_session_id', academic_session.id)
+      })
+      .where('academic_session_id', academic_session.id)
 
     if (!classSeatAvailabilities.length) {
       return ctx.response.notFound({ error: 'No seat availability data found' })

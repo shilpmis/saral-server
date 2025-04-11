@@ -1,5 +1,6 @@
 import AcademicSession from '#models/AcademicSession'
 import ClassSeatAvailability from '#models/ClassSeatAvailability'
+import Quota from '#models/Quota'
 import QuotaAllocation from '#models/QuotaAllocation'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
@@ -13,7 +14,16 @@ export default class QuotaAllocationsController {
 
     try {
       // Create the quota allocation
-      const allocation = await QuotaAllocation.create({ ...data, filled_seats: 0 }, { client: trx })
+      const allocation = await QuotaAllocation.create(
+        {
+          quota_id: data.quota_id,
+          class_id: data.class_id,
+          filled_seats: 0,
+          total_seats: data.total_seats,
+          academic_session_id: data.academic_session_id,
+        },
+        { client: trx }
+      )
 
       // Fetch the class seat availability
       const seatAvailability = await ClassSeatAvailability.query()
@@ -56,18 +66,17 @@ export default class QuotaAllocationsController {
       return { message: 'No active academic session found' }
     }
 
-    let alocated_quota = await QuotaAllocation.query()
-      .preload('quota')
-      .preload('class')
-      .where('academic_session_id', active_academic_session_id!.id)
+    let alocated_quota = await QuotaAllocation.query().preload('quota').preload('class')
+
+    // .where('academic_session_id', active_academic_session_id!.id)
 
     return ctx.response.json(alocated_quota)
   }
 
-  public async updateTotalSeats({ request, params, response }: HttpContext) {
+  public async updateTotalSeats({ request, params, response, auth }: HttpContext) {
     let active_academic_session_id = await AcademicSession.query()
-      .where('is_active', 1)
-      .andWhere('school_id', 1)
+      .where('is_active', true)
+      .andWhere('school_id', auth.user!.school_id)
       .first()
 
     if (!active_academic_session_id) {
@@ -80,12 +89,28 @@ export default class QuotaAllocationsController {
       // Find the allocation entry
       const allocation = await QuotaAllocation.query()
         .where('id', params.quota_allocation_id)
-        .andWhere('academic_session_id', active_academic_session_id!.id)
+        // .andWhere('academic_session_id', active_academic_session_id!.id)
         .first()
 
       if (!allocation) {
         await trx.rollback()
         return response.notFound({ error: 'Allocation not found' })
+      }
+
+      const quota = await Quota.query()
+        .where('id', allocation.quota_id)
+        .andWhere('school_id', auth.user!.school_id)
+        // .andWhere('academic_session_id', auth.user!.school_id)
+        .first()
+
+      if (!quota) {
+        await trx.rollback()
+        return response.notFound({ error: 'Quota not found' })
+      }
+
+      if (quota.academic_session_id !== active_academic_session_id!.id) {
+        await trx.rollback()
+        return response.notFound({ error: 'Quota not belongs to the current academic session.' })
       }
 
       const { total_seats } = request.only(['total_seats'])
