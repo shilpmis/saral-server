@@ -229,9 +229,9 @@ export default class StundetsController {
 
       let payload = await CreateValidatorStundet.validate(ctx.request.body())
 
-      let std = await Classes.query()
+      let std = await Divisions.query()
         .where('id', payload.students_data.class_id)
-        .andWhere('school_id', ctx.auth.user!.school_id)
+        // .andWhere('school_id', ctx.auth.user!.school_id)
         .first()
 
       if (!std) {
