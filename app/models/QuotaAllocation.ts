@@ -6,10 +6,10 @@ import Base from './base.js'
 
 export default class QuotaAllocation extends Base {
   @column()
-  declare academic_session_id: number
+  declare quota_id: number
 
   @column()
-  declare quota_id: number
+  declare academic_session_id: number
 
   @column()
   declare class_id: number
