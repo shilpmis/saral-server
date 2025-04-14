@@ -511,10 +511,8 @@ export default class FeesController {
       })
     }
 
-    let clas = await Divisions.query()
-      .where('id', division_id)
-      // .andWhere('academic_session_id', academic_session_id)
-      .first()
+    let clas = await Divisions.query().where('id', division_id).first()
+    // .andWhere('academic_session_id', academic_session_id)
     // .andWhere('school_id', ctx.auth.user!.school_id)
 
     if (!clas) {
