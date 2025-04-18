@@ -288,7 +288,7 @@ export default class StundetsController {
       await trx.rollback()
       return ctx.response
         .status(500)
-        .json({ message: 'Error creating student', error: error.message })
+        .json({ message: 'Error creating student', error: error })
     }
   }
 
