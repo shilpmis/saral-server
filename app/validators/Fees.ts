@@ -142,20 +142,32 @@ export const CreateValidationForPayFees = vine.compile(
 export const CreateValidationForMultipleInstallments = vine.compile(
   vine.object({
     student_id: vine.number(),
-    installlments: vine
+    installments: vine
       .array(
         vine.object({
           fee_plan_details_id: vine.number(),
           installment_id: vine.number(),
           paid_amount: vine.number(),
+          remaining_amount: vine.number(),
           discounted_amount: vine.number(),
-          paid_as_refund: vine.boolean(),
-          refunded_amount: vine.number(),
+          amount_paid_as_carry_forward: vine.number().nullable(),
           payment_mode: vine.enum(['Cash', 'Online', 'Bank Transfer']),
           transaction_reference: vine.string().nullable(),
           payment_date: vine.date(),
           remarks: vine.string().nullable(),
-          // status: vine.enum(['Pending', 'Partially Paid', 'Paid', 'Overdue', 'Failed']),
+          paid_as_refund: vine.boolean(),
+          refunded_amount: vine.number(),
+          repaid_installment: vine.boolean(),
+          applied_concessions: vine
+            .array(
+              vine.object({
+                concession_id: vine.number(),
+                concession_amount: vine.number().max(1000000).min(10).nullable(),
+                applied_amount: vine.number().max(1000000).min(10).nullable(),
+              })
+            )
+            .minLength(1)
+            .nullable(),
         })
       )
       .minLength(1),
