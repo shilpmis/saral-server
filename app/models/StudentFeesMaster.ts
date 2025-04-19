@@ -4,6 +4,7 @@ import Base from '#models/base'
 import { column, hasMany } from '@adonisjs/lucid/orm'
 import StudentFeesInstallments from './StudentFeesInstallments.js'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
+import StudentFeesPlanMaster from './StudentFeesPlanMasters.js'
 
 export default class StudentFeesMaster extends Base {
   public static table = 'student_fees_master'
@@ -37,6 +38,12 @@ export default class StudentFeesMaster extends Base {
 
   @column()
   declare status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue'
+
+  @hasMany(() => StudentFeesPlanMaster, {
+    foreignKey: 'student_fees_master_id',
+    localKey: 'id',
+  })
+  declare paid_fees_details: HasMany<typeof StudentFeesPlanMaster>
 
   @hasMany(() => StudentFeesInstallments, {
     foreignKey: 'student_fees_master_id',
