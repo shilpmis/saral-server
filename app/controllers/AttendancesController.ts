@@ -121,7 +121,7 @@ export default class AttendanceController {
     try {
       const attendance = await AttendanceMaster.query()
         // .where('school_id', school_id)
-        .andWhere('class_id', class_id)
+        .where('class_id', class_id)
         .andWhere('attendance_date', date)
         .andWhere('academic_session_id', academic_session_id)
         .preload('attendance_details', (query) => {
@@ -140,7 +140,7 @@ export default class AttendanceController {
               .select('id', 'first_name', 'middle_name', 'last_name', 'roll_number')
               .orderBy('roll_number', 'asc')
           })
-          .where('class_id', class_id)
+          .where('division_id', class_id)
           .where('academic_session_id', academic_session_id)
 
         return ctx.response.status(200).json({
