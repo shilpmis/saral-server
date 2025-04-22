@@ -1,4 +1,5 @@
 import Students from '#models/Students'
+import Staff from '#models/Staff'
 import type { HttpContext } from '@adonisjs/core/http'
 
 export default class GlobalSearchController {
@@ -73,6 +74,72 @@ export default class GlobalSearchController {
       return response.ok(students)
     } catch (error) {
       console.error('Error fetching student search results:', error)
+      return response.internalServerError({ message: 'Internal server error' })
+    }
+  }
+
+  public async getStaffSearchResults({ auth, request, response }: HttpContext) {
+    try {
+      const school_id = auth.user?.school_id
+      const {
+        name,
+        employee_code,
+        aadhar_no,
+        mobile_number,
+        email,
+        detailed,
+        is_active,
+      } = request.qs()
+
+      if (!school_id) {
+        return response.badRequest({ message: 'Invalid request: Missing required parameters.' })
+      }
+
+      const staffQuery = Staff.query().where('school_id', school_id)
+
+      if (name) {
+        staffQuery.andWhere((query) => {
+          query
+            .whereILike('first_name', `%${name}%`)
+            .orWhereILike('middle_name', `%${name}%`)
+            .orWhereILike('last_name', `%${name}%`)
+        })
+      }
+
+      if (employee_code) {
+        staffQuery.andWhere('employee_code', 'LIKE', `%${employee_code}%`)
+      }
+
+      if (aadhar_no) {
+        staffQuery.andWhere('aadhar_no', 'LIKE', `%${aadhar_no}%`)
+      }
+
+      if (mobile_number) {
+        staffQuery.andWhere('mobile_number', 'LIKE', `%${mobile_number}%`)
+      }
+
+      if (email) {
+        staffQuery.andWhere('email', 'LIKE', `%${email}%`)
+      }
+
+      if (is_active !== undefined) {
+        staffQuery.andWhere('is_active', is_active === 'true')
+      }
+
+      if (detailed === 'true') {
+        staffQuery
+          .preload('role_type')
+          .preload('school')
+          .preload('assigend_classes')
+      } else {
+        staffQuery.preload('role_type')
+      }
+
+      const staff = await staffQuery
+
+      return response.ok(staff)
+    } catch (error) {
+      console.error('Error fetching staff search results:', error)
       return response.internalServerError({ message: 'Internal server error' })
     }
   }
