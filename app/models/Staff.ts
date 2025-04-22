@@ -4,6 +4,8 @@ import Schools from './Schools.js'
 import type { BelongsTo, HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import StaffMaster from './StaffMaster.js'
 import ClassTeacherMaster from '#models/Classteachermaster'
+import StaffEnrollment from './StaffEnrollment.js'
+
 export default class Staff extends Base {
   @column()
   declare employee_code: string
@@ -173,4 +175,10 @@ export default class Staff extends Base {
     foreignKey: 'staff_id',
   })
   declare assigend_classes: HasMany<typeof ClassTeacherMaster>
+
+  @hasMany(() => StaffEnrollment, {
+    localKey: 'id',
+    foreignKey: 'staff_id',
+  })
+  declare enrollments: HasMany<typeof StaffEnrollment>
 }

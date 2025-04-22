@@ -23,7 +23,7 @@ export default class StaffEnrollment extends Base {
   declare remarks: string | null
 
   @belongsTo(() => Staff, {
-    foreignKey: 'staffId',
+    foreignKey: 'staff_id', // Fixed from 'staffId' to match column name
     localKey: 'id'
   })
   declare staff: relations.BelongsTo<typeof Staff>

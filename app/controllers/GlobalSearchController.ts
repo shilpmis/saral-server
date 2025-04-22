@@ -14,6 +14,7 @@ export default class GlobalSearchController {
         primary_mobile,
         enrollment_code,
         detailed,
+        enrollment_status,
       } = request.qs()
 
       if (!school_id || !academic_session_id) {
@@ -21,6 +22,16 @@ export default class GlobalSearchController {
       }
 
       const studentsQuery = Students.query().where('school_id', school_id)
+
+      // Filter by student enrollment for the academic session
+      studentsQuery.whereHas('academic_class', (enrollmentQuery) => {
+        enrollmentQuery.where('academic_session_id', academic_session_id)
+        
+        // Optional filter by enrollment status if provided
+        if (enrollment_status) {
+          enrollmentQuery.where('status', enrollment_status)
+        }
+      })
 
       if (name) {
         studentsQuery.andWhere((query) => {
@@ -58,14 +69,16 @@ export default class GlobalSearchController {
             query.where('academic_session_id', academic_session_id).preload('concession')
           })
           .preload('academic_class', (query) => {
-            query.where('academic_session_id', academic_session_id).preload('division', (query) => {
-              query.preload('class')
-            })
+            query.where('academic_session_id', academic_session_id)
+              .select(['id', 'student_id', 'division_id', 'academic_session_id', 'status'])
+              .preload('division', (query) => {
+                query.preload('class')
+              })
           })
       } else {
         studentsQuery.preload('academic_class', (query) => {
           query.where('academic_session_id', academic_session_id)
-          // .preload('class')
+            .select(['id', 'student_id', 'division_id', 'academic_session_id', 'status'])
         })
       }
 
@@ -82,6 +95,7 @@ export default class GlobalSearchController {
     try {
       const school_id = auth.user?.school_id
       const {
+        academic_session_id,
         name,
         employee_code,
         aadhar_no,
@@ -89,14 +103,28 @@ export default class GlobalSearchController {
         email,
         detailed,
         is_active,
+        enrollment_status,
       } = request.qs()
 
-      if (!school_id) {
+      if (!school_id || !academic_session_id) {
         return response.badRequest({ message: 'Invalid request: Missing required parameters.' })
       }
 
-      const staffQuery = Staff.query().where('school_id', school_id)
+      // Base query starting with Staff model filtered by school
+      const staffQuery = Staff.query()
+        .where('school_id', school_id)
 
+      // Filter by staff enrollment for the academic session
+      staffQuery.whereHas('enrollments', (enrollmentQuery) => {
+        enrollmentQuery.where('academic_session_id', academic_session_id)
+        
+        // Optional filter by enrollment status if provided
+        if (enrollment_status) {
+          enrollmentQuery.where('status', enrollment_status)
+        }
+      })
+
+      // Apply additional filters if provided
       if (name) {
         staffQuery.andWhere((query) => {
           query
@@ -126,13 +154,23 @@ export default class GlobalSearchController {
         staffQuery.andWhere('is_active', is_active === 'true')
       }
 
+      // Always preload role type and enrollments for the specific academic session
+      staffQuery.preload('role_type');
+      
+      // Preload enrollments filtered by academic session
+      staffQuery.preload('enrollments', (query) => {
+        query.where('academic_session_id', academic_session_id)
+      });
+
       if (detailed === 'true') {
         staffQuery
-          .preload('role_type')
           .preload('school')
-          .preload('assigend_classes')
-      } else {
-        staffQuery.preload('role_type')
+          .preload('assigend_classes', (query) => {
+            query.where('academic_session_id', academic_session_id)
+              .preload('divisions', (divisionQuery) => {
+                divisionQuery.preload('class')
+              })
+          });
       }
 
       const staff = await staffQuery
