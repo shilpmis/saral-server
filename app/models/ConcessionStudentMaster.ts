@@ -36,6 +36,9 @@ export default class ConcessionStudentMaster extends Base {
   declare percentage: number | null
 
   @column()
+  declare applied_discount: number
+
+  @column()
   declare status: 'Active' | 'Inactive'
 
   @belongsTo(() => Concessions, {
