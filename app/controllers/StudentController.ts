@@ -288,7 +288,7 @@ export default class StundetsController {
       await trx.rollback()
       return ctx.response
         .status(500)
-        .json({ message: 'Error creating student', error: error.message })
+        .json({ message: 'Error creating student', error: error })
     }
   }
 
@@ -523,7 +523,7 @@ export default class StundetsController {
       }
       try {
         const paylaod = await CreateValidatorForUpload.validate(transformedData)
-        validatedData.push(paylaod)
+        validatedData.push(transformedData)
       } catch (validationError) {
         errors.push({
           row: index + 1,

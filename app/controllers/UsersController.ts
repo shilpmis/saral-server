@@ -45,8 +45,18 @@ export default class UsersController {
       let school_id = ctx.auth.user?.school_id
 
       const payload = await CreateValidatorForUsers.validate(ctx.request.all())
-
       const school = await Schools.findBy('id', school_id)
+
+      const existingUser = await User.query()
+      .where('role_id', payload.role_id)
+      .if(school_id !== undefined, (query) => query.andWhere('school_id', school_id!))
+      .first()
+
+    if (existingUser) {
+      return ctx.response.status(400).json({
+        message: 'A user with this role already exists in the school',
+      })
+    }
 
       if (
         payload.role_id !== 1 &&

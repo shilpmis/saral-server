@@ -82,7 +82,7 @@ export default class StudentMeta extends Base {
     @column()
     declare account_no :number  | null
 
-    @column()
-    declare IFSC_code :string  | null
+    @column({ columnName: 'IFSC_code' , serializeAs: 'IFSC_code' })
+    declare IFSC_code: string | null
   
 }

@@ -33,6 +33,7 @@ router
   .group(() => {
     router.post('/signup', [AuthController, 'createSchool'])
     router.post('/login', [AuthController, 'login'])
+    router.post('/reset-password', [AuthController, 'resetPassword'])
     router.get('/organizations', [OrganizationController, 'getAllOrganization'])
     router.post('/onboard-organization', [OrganizationController, 'onboardOrganization'])
     router.get('/organization/:id', [OrganizationController, 'getOrganizationById'])
@@ -74,6 +75,7 @@ router
 
     // API to get the Global Search Results
     router.get('student/search', [GlobalSearchController, 'getStuentSearchResults'])
+    router.get('staff/search', [GlobalSearchController, 'getStaffSearchResults'])
 
     router.get('students/:academic_session_id/:class_id', [
       StundetsController,
@@ -101,7 +103,7 @@ router
     router.delete('/staff-role/:id', [StaffMasterController, 'deleteStaffRole'])
 
     router.get('staff', [StaffController, 'indexStaff'])
-    // router.get('staff/activeuser', [StaffController, 'indexTeacherActiveAsUser'])
+    router.get('staff/:id', [StaffController, 'findStaffById'])
     router.post('staff', [StaffController, 'createStaff'])
     router.put('staff/:staff_id', [StaffController, 'updateStaff'])
     router.post('staff/bulk-upload', [StaffController, 'bulkUploadStaff'])

@@ -102,7 +102,7 @@ export default class AdmissionInquiry extends Base {
   @belongsTo(() => AcademicSession, { foreignKey: 'academic_session_id' })
   declare academic_session: relations.BelongsTo<typeof AcademicSession>
 
-  @belongsTo(() => ClassSeatAvailability, { foreignKey: 'class_applying' })
+  @belongsTo(() => ClassSeatAvailability, { foreignKey: 'inquiry_for_class' })
   declare class_seat_availability: relations.BelongsTo<typeof ClassSeatAvailability>
 
   @belongsTo(() => Quota, { foreignKey: 'quota_type' })

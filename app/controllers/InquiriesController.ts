@@ -26,6 +26,15 @@ export default class InquiriesController {
     const inquiries = await AdmissionInquiry.query()
       .where('school_id', school_id)
       .andWhere('academic_session_id', academic_session_id)
+      .preload('quota', (query) => {
+        // Load all details of quota
+        query.select('*')
+      })
+      .preload('class_seat_availability', (query) => {
+        // Load class details with all attributes
+        query.select('*')
+      })
+      .preload('created_by_user')
       .orderBy('created_at', 'desc')
       .paginate(page, 10)
 
