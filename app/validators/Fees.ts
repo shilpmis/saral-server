@@ -162,7 +162,7 @@ export const CreateValidationForMultipleInstallments = vine.compile(
             .array(
               vine.object({
                 concession_id: vine.number(),
-                concession_amount: vine.number().max(1000000).min(10).nullable(),
+                // concession_amount: vine.number().max(1000000).min(10).nullable(),
                 applied_amount: vine.number().max(1000000).min(10).nullable(),
               })
             )
