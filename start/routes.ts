@@ -33,6 +33,7 @@ router
   .group(() => {
     router.post('/signup', [AuthController, 'createSchool'])
     router.post('/login', [AuthController, 'login'])
+    router.post('/reset-password', [AuthController, 'resetPassword'])
     router.get('/organizations', [OrganizationController, 'getAllOrganization'])
     router.post('/onboard-organization', [OrganizationController, 'onboardOrganization'])
     router.get('/organization/:id', [OrganizationController, 'getOrganizationById'])

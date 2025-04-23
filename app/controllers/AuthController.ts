@@ -1,5 +1,6 @@
 import Organization from '#models/organization'
 import Schools from '#models/Schools'
+import Staff from '#models/Staff'
 import User from '#models/User'
 import { CreateValidatorForSchools } from '#validators/Schools'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -152,5 +153,76 @@ export default class AuthController {
     ])
 
     return ctx.response.json({ message: 'You have been logout succesfully ! ' })
+  }
+
+  async resetPassword(ctx: HttpContext) {
+    try {
+      const { employee_code, date_of_birth, mobile_number, password, confirm_password } = ctx.request.all()
+
+      // Validate input
+      if (!employee_code || !date_of_birth || !mobile_number) {
+        return ctx.response.status(400).json({
+          message: 'Employee code, date of birth, and mobile number are required',
+        })
+      }
+
+      // Validate password fields
+      if (!password || !confirm_password) {
+        return ctx.response.status(400).json({
+          message: 'Password and confirm password are required',
+        })
+      }
+
+      // Check if passwords match
+      if (password !== confirm_password) {
+        return ctx.response.status(400).json({
+          message: 'Passwords do not match',
+        })
+      }
+
+      // Validate password strength
+      if (password.length < 8) {
+        return ctx.response.status(400).json({
+          message: 'Password must be at least 8 characters long',
+        })
+      }
+
+      // Find staff member with matching credentials
+      const staff = await Staff.query()
+        .where('employee_code', employee_code)
+        .where('mobile_number', mobile_number)
+        .where('birth_date', date_of_birth) 
+        .first()
+
+      if (!staff) {
+        return ctx.response.status(404).json({
+          message: 'No matching staff record found',
+        })
+      }
+
+      // Find associated user account
+      const user = await User.query()
+        .where('staff_id', staff.id)
+        .first()
+
+      if (!user) {
+        return ctx.response.status(404).json({
+          message: 'No user account associated with this staff member',
+        })
+      }
+
+      // Reset password to the new one provided by the user
+      user.password = password
+      await user.save()
+
+      return ctx.response.json({
+        message: 'Password has been reset successfully',
+      })
+    } catch (error) {
+      return ctx.response.status(500).json({
+        message: 'An error occurred while resetting password',
+        error: error.message,
+      })
+    }
   }
 }
