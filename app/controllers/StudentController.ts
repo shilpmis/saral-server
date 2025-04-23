@@ -522,7 +522,7 @@ export default class StundetsController {
         },
       }
       try {
-        const paylaod = await CreateValidatorForUpload.validate(transformedData)
+        // const paylaod = await CreateValidatorForUpload.validate(transformedData)
         validatedData.push(transformedData)
       } catch (validationError) {
         errors.push({
