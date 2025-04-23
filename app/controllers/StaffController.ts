@@ -100,6 +100,38 @@ export default class StaffController {
     return ctx.response.status(200).json(staff)
   }
 
+  /**
+   * Find staff by ID
+   */
+  public async findStaffById(ctx: HttpContext) {
+    try {
+      const staffId = ctx.params.id;
+      const school_id = ctx.auth.user!.school_id;
+      
+      // Always preload all relationships for complete data
+      const staffQuery = Staff.query()
+        .where('id', staffId)
+        .where('school_id', school_id)
+        .preload('role_type')  // Load staff role details
+        .preload('assigend_classes', (query) => {
+          return query.preload('divisions', (divisionQuery) => {
+            divisionQuery.preload('class')
+          })
+        });
+        
+      const staff = await staffQuery.first();
+
+      if (!staff) {
+        return ctx.response.notFound({ message: 'Staff not found' });
+      }
+
+      return ctx.response.ok(staff);
+    } catch (error) {
+      console.error('Error fetching staff:', error);
+      return ctx.response.internalServerError({ message: 'Internal server error' });
+    }
+  }
+
   async createStaff(ctx: HttpContext) {
     const trx = await db.transaction()
 
