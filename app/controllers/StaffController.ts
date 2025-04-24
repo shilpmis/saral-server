@@ -10,14 +10,19 @@ import app from '@adonisjs/core/services/app'
 import { parseAndReturnJSON } from '../../utility/parseCsv.js'
 import ExcelJS from 'exceljs'
 import User from '#models/User'
+import { Console } from 'node:console'
 
 export default class StaffController {
   async indexStaff(ctx: HttpContext) {
     let type = ctx.request.input('type', 'all')
-    let academic_session_id = ctx.request.input('academic_sessions', 0)
+    let academic_session_id = ctx.request.input('academic_sessions')
     let page = ctx.request.input('page', 'all')
     let school_id = ctx.auth.user!.school_id
 
+
+    if(!academic_session_id){
+      return ctx.response.status(400).json({ message: 'Please provide academic session id.' });   
+    }
     console.log('type', type)
 
     let staff: Staff[] = []
@@ -30,7 +35,7 @@ export default class StaffController {
           .join('staff_enrollments as se', 's.staff_id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
           .where('s.school_id', school_id)
-          .where('sm.is_teaching', 1)
+          .andWhere('sm.is_teaching', 1)
           .select(['s.*', 'sm.role', 'sm.working_hours'])
           .paginate(page, 10)
       } else {
@@ -40,8 +45,8 @@ export default class StaffController {
           .join('staff_enrollments as se', 's.id', 'se.staff_id')
           .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
           .where('s.school_id', school_id)
-          .where('se.academic_session_id', academic_session_id)
-          .where('sm.is_teaching_role', 1)
+          .andWhere('se.academic_session_id', academic_session_id)
+          .andWhere('sm.is_teaching_role', 1)
           .select(['s.*', 'sm.role', 'sm.working_hours'])
           .paginate(page, 10)
       }
@@ -77,22 +82,20 @@ export default class StaffController {
         .andWhere('role_id', 6)
         .andWhereNotNull('staff_id')
 
-      staff = await Staff.query()
-        .select([
-          'staff.*',
-          // 'staff.id',
-          // 'staff.first_name',
-          // 'staff.middle_name',
-          // 'staff.last_name',
-          // 'staff.staff_role_id',
-          'sm.role as role',
-        ])
-        .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
-        .where('sm.is_teaching_role', 1)
-        .whereNotIn('staff.id', [...onBoardedUser.map((user) => Number(user.staff_id))])
-        .where('staff.is_active', true)
-        .where('staff.school_id', school_id)
-      // .paginate(page, 10)
+      staff = await db        
+          .from('staff as s')
+          .join('staff_enrollments as se', 's.id', 'se.staff_id')
+          .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
+          .where('s.school_id', school_id)
+          .andWhere('se.academic_session_id', academic_session_id)
+          .andWhere('sm.is_teaching_role', 1)
+          .select([
+            's.*',
+            'sm.role as role',
+            's.*', 'sm.role', 'sm.working_hours'
+          ])
+          .whereNotIn('s.id', [...onBoardedUser.map((user) => Number(user.staff_id))])
+          // .paginate(page, 10)
 
       return ctx.response.status(200).json(staff)
     }
@@ -135,7 +138,7 @@ export default class StaffController {
   async createStaff(ctx: HttpContext) {
     const trx = await db.transaction()
 
-    let academic_session_id = ctx.request.input('academic_sessions', 0)
+    let academic_session_id = ctx.request.input('academic_sessions')
     let school_id = ctx.auth.user!.school_id
 
     if (academic_session_id === 0) {
@@ -407,6 +410,7 @@ export default class StaffController {
       const academic_session = await AcademicSession.query()
         .where('id', academic_session_id)
         .andWhere('school_id', ctx.auth.user!.school_id)
+        .andWhere('is_active', true)
         .first()
 
       if (!academic_session) {
