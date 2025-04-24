@@ -10,7 +10,6 @@ import app from '@adonisjs/core/services/app'
 import { parseAndReturnJSON } from '../../utility/parseCsv.js'
 import ExcelJS from 'exceljs'
 import User from '#models/User'
-import { Console } from 'node:console'
 
 export default class StaffController {
   async indexStaff(ctx: HttpContext) {
