@@ -377,98 +377,105 @@ export default class StaffController {
   }
 
   public async exportToExcel(ctx: HttpContext) {
-    const { fields } = ctx.request.only(['fields'])
+    try {
+      // Get parameters from query string instead of request body
+      const fields = ctx.request.input('fields')
+      const staff_type = ctx.request.input('staff-type', '')
+      const school_id = ctx.auth.user!.school_id
+      const academic_session_id = ctx.params.academic_session_id
 
-    const school_id = ctx.params.school_id
-    const academic_session_id = ctx.params.academic_session_id
-    const staff_type = ctx.request.input('staff-type')
+      // Validate required parameters
+      if (!school_id || fields.length === 0 || !staff_type) {
+        return ctx.response.badRequest({ 
+          error: 'School ID, staff type, and at least one field are required' 
+        })
+      }
 
-    if (!school_id || !fields || !staff_type) {
-      return ctx.response.badRequest({ error: 'School ID , Staff type and fields are required' })
-    }
+      // Validate staff type
+      if (staff_type !== 'teaching' && staff_type !== 'non-teaching') {
+        return ctx.response.badRequest({ error: 'Invalid staff type' })
+      }
 
-    if (staff_type !== 'teaching' && staff_type !== 'non-teaching') {
-      return ctx.response.badRequest({ error: 'Invalid staff type' })
-    }
-    console.log(school_id, ctx.auth.user!.school_id)
-    if (school_id != ctx.auth.user!.school_id) {
-      return ctx.response
-        .status(403)
-        .json({ message: 'You are not authorized to perform this action' })
-    }
+      // Authorization check
+      if (school_id !== ctx.auth.user!.school_id) {
+        return ctx.response.forbidden({ 
+          message: 'You are not authorized to perform this action' 
+        })
+      }
 
-    let academic_session = await AcademicSession.query()
-      .where('id', academic_session_id)
-      .andWhere('school_id', ctx.auth.user!.school_id)
-      .first()
+      // Verify academic session exists
+      const academic_session = await AcademicSession.query()
+        .where('id', academic_session_id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
 
-    if (!academic_session) {
-      return ctx.response.badRequest({ error: 'Academic session not found' })
-    }
+      if (!academic_session) {
+        return ctx.response.badRequest({ error: 'Academic session not found' })
+      }
 
-    let staff = await db
-      .query()
-      .from('staff as s')
-      .join('staff_enrollments as se', 's.id', 'se.staff_id')
-      .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
-      .where('s.school_id', school_id)
-      .where('sm.is_teaching_role', staff_type === 'teaching' ? 1 : 0)
-      .select(['s.*', 'sm.role'])
+      // Get staff data
+      const staff = await db
+        .query()
+        .from('staff as s')
+        .join('staff_enrollments as se', 's.id', 'se.staff_id')
+        .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
+        .where('s.school_id', school_id)
+        .where('sm.is_teaching_role', staff_type === 'teaching' ? 1 : 0)
+        .select(['s.*', 'sm.role'])
 
-    if (staff.length === 0) {
-      return ctx.response.badRequest({ error: 'No Staff found !' })
-    }
+      if (staff.length === 0) {
+        return ctx.response.badRequest({ error: 'No staff found matching the criteria' })
+      }
 
-    const staffRoles = await StaffMaster.query()
-      .where('school_id', school_id)
-      .andWhere('is_teaching_role', staff_type === 'teaching' ? 1 : 0)
-      .andWhere('academic_session_id', academic_session_id)
-    // Merge `students` and `student_meta` data by `student_id`
+      // Get all staff roles from this school without academic session filter
+      const staffRoles = await StaffMaster.query()
+        .where('school_id', school_id)
+        .andWhere('is_teaching_role', staff_type === 'teaching' ? 1 : 0)
 
-    if (staffRoles.length === 0) {
-      return ctx.response.badRequest({ error: 'No Staff Role found !' })
-    }
+      if (staffRoles.length === 0) {
+        return ctx.response.badRequest({ error: 'No staff roles found for this school' })
+      }
 
-    const mergedData = staff
+      // Create Excel Workbook
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Staff Data')
 
-    // Create Excel Workbook
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Class Data')
+      // Add headers
+      worksheet.addRow(fields)
 
-    // Prepare Headers
-    const headers = [, ...fields]
-    worksheet.addRow(headers)
-
-    console.log('staffRoles', staffRoles)
-    // Add Data
-    mergedData.forEach((data: any) => {
-      const rowValues = headers.map((header: string) => {
-        if (header === 'staff_role') {
-          const role = staffRoles.find((role) => role.id === data.staff_role_id)
-          console.log('data.staff_role_id ', data.staff_role_id)
-          return role ? role.role : ''
-        }
-        return (data as Record<string, any>)[header] || ''
+      // Add data rows
+      staff.forEach((data) => {
+        const rowValues = fields.map((header: string) => {
+          if (header === 'staff_role') {
+            const role = staffRoles.find((role) => role.id === data.staff_role_id)
+            return role ? role.role : ''
+          }
+          return data[header] || ''
+        })
+        worksheet.addRow(rowValues)
       })
-      worksheet.addRow(rowValues)
-    })
 
-    // Generate File Buffer
-    const buffer = await workbook.xlsx.writeBuffer()
+      // Generate file buffer
+      const buffer = await workbook.xlsx.writeBuffer()
+      const uniqueValue = new Date().getTime()
 
-    // Generate unique value for the file name
-    const uniqueValue = new Date().getTime()
+      // Set response headers for file download
+      ctx.response.header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
+      ctx.response.header(
+        'Content-Disposition',
+        `attachment; filename="staff_${academic_session.session_name}_data_${uniqueValue}.xlsx"`
+      )
 
-    // Send Excel File as Response
-    ctx.response.header(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    ctx.response.header(
-      'Content-Disposition',
-      `attachment; filename="staff_${academic_session.session_name}_data_${uniqueValue}.xlsx"`
-    )
-
-    return ctx.response.send(buffer)
+      return ctx.response.send(buffer)
+    } catch (error) {
+      console.error('Error generating Excel export:', error)
+      return ctx.response.internalServerError({ 
+        error: 'Failed to generate Excel export',
+        message: error.message 
+      })
+    }
   }
 }
