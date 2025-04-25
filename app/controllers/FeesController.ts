@@ -1194,7 +1194,7 @@ export default class FeesController {
           discounted_amount: number
           paid_as_refund: boolean
           refunded_amount: number
-          payment_mode: 'Cash' | 'Online' | 'Bank Transfer'
+          payment_mode: 'Cash' | 'Online' | 'Bank Transfer' | 'Cheque' | 'UPI' | 'Full Discount'
           transaction_reference: String | null
           payment_date: Date
           remarks: string | null
@@ -1279,14 +1279,14 @@ export default class FeesController {
             throw new Error(result_message)
           }
 
-          if (
-            Number(total_remaining_amount) > 0 &&
-            Number(total_remaining_amount) !== Number(installment.amount_paid_as_carry_forward)
-          ) {
-            result_status = 400
-            result_message = `Paid amount for installment number ${installment.installment_id} is not equals to remaining amount for this installment.`
-            throw new Error(result_message)
-          }
+          // if (
+          //   Number(total_remaining_amount) > 0 &&
+          //   Number(total_remaining_amount) !== Number(installment.amount_paid_as_carry_forward)
+          // ) {
+          //   result_status = 400
+          //   result_message = `Paid amount for installment number ${installment.installment_id} is not equals to remaining amount for this installment.`
+          //   throw new Error(result_message)
+          // }
 
           if (!installment.repaid_installment) {
             result_status = 400
