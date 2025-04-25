@@ -28,11 +28,9 @@ import {
   UpdateValidatorForFeesPlan,
   UpdateValidatorForFeesType,
 } from '#validators/Fees'
-import { compose } from '@adonisjs/core/helpers'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import { HasOne } from '@adonisjs/lucid/types/relations'
-import { disconnect } from 'process'
 
 export default class FeesController {
   async indexFeesTyeForSchool(ctx: HttpContext) {
@@ -66,6 +64,45 @@ export default class FeesController {
       // .paginate(ctx.request.input('page', 1), 10);
     }
     return ctx.response.json(fees_types)
+  }
+
+  async indexFeesTypeByFilter(ctx: HttpContext) {
+    let academic_session_id = ctx.request.input('academic_session')
+    let filter_type = ctx.request.input('type')
+
+    if (filter_type === 'division') {
+      if (!academic_session_id) {
+        return ctx.response.status(400).json({
+          message: 'Please provide academic_session_id',
+        })
+      }
+
+      let academic_years = await AcademicSession.query()
+        .where('id', academic_session_id)
+        .andWhere('is_active', 1)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+
+      if (!academic_years) {
+        return ctx.response.status(404).json({
+          message: 'No active academic year found for this school',
+        })
+      }
+      let division_id = ctx.request.input('value')
+
+      let fees_types = await db
+        .query()
+        .from('fees_plans as fp')
+        .join('fees_plan_details as fpd', 'fp.id', 'fpd.fees_plan_id')
+        .join('fees_types as ft', 'fpd.fees_type_id', 'ft.id')
+        .where('fp.academic_session_id', academic_session_id)
+        .andWhere('fp.division_id', division_id)
+        .distinct()
+        .select('ft.*')
+
+      return ctx.response.json(fees_types)
+    } else {
+      return ctx.response.status(400).json([])
+    }
   }
 
   async createFeesType(ctx: HttpContext) {
@@ -469,7 +506,7 @@ export default class FeesController {
         await student_fees
           .merge({
             total_amount: plan.total_amount,
-            due_amount: Number(plan.total_amount) - Number(student_fees.paid_amount),
+            // due_amount: Number(plan.total_amount) - Number(student_fees.paid_amount),
             status: student_fees.paid_amount > 0 ? 'Partially Paid' : 'Pending',
           })
           .useTransaction(trx)
@@ -1110,7 +1147,9 @@ export default class FeesController {
             total_amount: fees_plan.total_amount,
             due_amount: total_due_amount,
             status:
-              fees_plan.total_amount - Number(total_paid_amount) === 0 ? 'Paid' : 'Partially Paid',
+              fees_plan.total_amount - (Number(total_paid_amount) + Number(total_discount)) === 0
+                ? 'Paid'
+                : 'Partially Paid',
           },
           { client: trx }
         )
@@ -1133,7 +1172,9 @@ export default class FeesController {
                 Number(
                   Number(student.fees_status!.paid_amount) +
                     Number(total_paid_amount) +
-                    +Number(total_paid_carry_forwarded_amount)
+                    Number(student.fees_status!.discounted_amount) +
+                    Number(total_discount) +
+                    Number(total_paid_carry_forwarded_amount)
                 ) ===
               0
                 ? 'Paid'
@@ -1163,6 +1204,11 @@ export default class FeesController {
       }
 
       let different_type_of_paid_installments: TypeForPaidInstallmentsOfDifferentFeesType[] = []
+
+      let different_type_of_concession_applied: {
+        concession_id: number
+        total_amount: number
+      }[] = []
 
       let paid_installments = payload.installments
 
@@ -1233,7 +1279,10 @@ export default class FeesController {
             throw new Error(result_message)
           }
 
-          if (Number(total_remaining_amount) !== Number(installment.paid_amount)) {
+          if (
+            Number(total_remaining_amount) > 0 &&
+            Number(total_remaining_amount) !== Number(installment.amount_paid_as_carry_forward)
+          ) {
             result_status = 400
             result_message = `Paid amount for installment number ${installment.installment_id} is not equals to remaining amount for this installment.`
             throw new Error(result_message)
@@ -1246,17 +1295,24 @@ export default class FeesController {
             throw new Error(result_message)
           }
 
-          if (Number(installment.amount_paid_as_carry_forward) !== 0) {
-            result_status = 400
-            result_message = `Amount paid as carry forward amount should be 0 , (Installments is bieng paid for seconed time to pay remaining amount in case where installment is last and there can not be any carry forward available . ).`
-            throw new Error(result_message)
-          }
+          // if (Number(installment.amount_paid_as_carry_forward) !== 0) {
+          //   result_status = 400
+          //   result_message = `Amount paid as carry forward amount should be 0 , (Installments is bieng paid for seconed time to pay remaining amount in case where installment is last and there can not be any carry forward available . ).`
+          //   throw new Error(result_message)
+          // }
 
           if (Number(installment.discounted_amount) !== 0) {
             result_status = 400
             result_message = `Discounted amount should be 0 , (Installments is bieng paid for seconed time to pay remaining amount . ).`
             throw new Error(result_message)
           }
+
+          console.log(
+            'already_paid_installments[0].paid_amount',
+            installment.remaining_amount,
+            installment.amount_paid_as_carry_forward,
+            installment.remaining_amount == 0 ? 0 : installment.amount_paid_as_carry_forward
+          )
 
           await StudentFeesInstallments.create(
             {
@@ -1270,7 +1326,8 @@ export default class FeesController {
               payment_date: installment.payment_date,
               remarks: installment.remarks,
               status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid',
-              amount_paid_as_carry_forward: 0.0,
+              amount_paid_as_carry_forward:
+                installment.remaining_amount > 0 ? 0 : installment.amount_paid_as_carry_forward,
             },
             { client: trx }
           )
@@ -1368,6 +1425,21 @@ export default class FeesController {
 
           if (installment.applied_concessions) {
             for (let p = 0; p < installment.applied_concessions.length; p++) {
+              let index = different_type_of_concession_applied.findIndex(
+                (concession) =>
+                  concession.concession_id === installment.applied_concessions![p].concession_id
+              )
+
+              if (index !== -1) {
+                different_type_of_concession_applied[index].total_amount +=
+                  installment.applied_concessions![p].applied_amount ?? 0
+              } else {
+                different_type_of_concession_applied.push({
+                  concession_id: installment.applied_concessions![p].concession_id,
+                  total_amount: installment.applied_concessions![p].applied_amount ?? 0,
+                })
+              }
+
               await ConcessionsInstallmentMasters.create(
                 {
                   concession_id: installment.applied_concessions![p].concession_id,
@@ -1377,32 +1449,6 @@ export default class FeesController {
                 },
                 { client: trx }
               )
-
-              let concession_student_master = await ConcessionStudentMaster.query()
-                .where('concession_id', installment.applied_concessions[p].concession_id)
-                .andWhere('student_id', student.id)
-                .andWhere('academic_session_id', academicSession.id)
-                .first()
-
-              if (!concession_student_master) {
-                result_status = 500
-                result_message = `No Concession Student Master found (Id : ${installment.applied_concessions[p].concession_id}).`
-                throw new Error(result_message)
-              } else {
-                console.log(
-                  'concession_student_master',
-                  Number(concession_student_master.applied_discount) +
-                    Number(installment.applied_concessions[p]!.applied_amount ?? 0)
-                )
-                await concession_student_master
-                  .merge({
-                    applied_discount:
-                      Number(concession_student_master.applied_discount) +
-                      Number(installment.applied_concessions[p]!.applied_amount ?? 0),
-                  })
-                  .useTransaction(trx)
-                  .save()
-              }
             }
           }
         }
@@ -1525,6 +1571,40 @@ export default class FeesController {
             },
             { client: trx }
           )
+        }
+      }
+
+      /**
+       *
+       * Need to update Concession Student MASTER ,
+       * which maintain records of how much total amount of concession is beem used for pearticular type.
+       */
+
+      for (let i = 0; i < different_type_of_concession_applied.length; i++) {
+        console.log(
+          'different_type_of_concession_applied==>',
+          different_type_of_concession_applied[i]
+        )
+
+        let concession_student_master = await ConcessionStudentMaster.query()
+          .where('concession_id', different_type_of_concession_applied[i].concession_id)
+          .andWhere('student_id', student.id)
+          .andWhere('academic_session_id', academicSession.id)
+          .first()
+
+        if (!concession_student_master) {
+          result_status = 500
+          result_message = `No Concession Student Master found (Id : ${different_type_of_concession_applied[i].concession_id}).`
+          throw new Error(result_message)
+        } else {
+          await concession_student_master
+            .merge({
+              applied_discount:
+                Number(concession_student_master.applied_discount) +
+                Number(different_type_of_concession_applied[i].total_amount ?? 0),
+            })
+            .useTransaction(trx)
+            .save()
         }
       }
 
