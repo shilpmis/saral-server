@@ -161,6 +161,7 @@ router
     /**Fees */
 
     router.get('/feestype', [FeesController, 'indexFeesTyeForSchool'])
+    router.get('/feestype/filter', [FeesController, 'indexFeesTypeByFilter'])
     router.post('/feestype', [FeesController, 'createFeesType'])
     router.put('/feestype/:id', [FeesController, 'updateFeesType'])
     router.get('/feesplan', [FeesController, 'indexFeesPlanForSchool'])
