@@ -1264,11 +1264,11 @@ export default class FeesController {
               acc + Number(paid_installment.paid_amount),
             0
           )
-          let total_remaining_amount = already_paid_installments.reduce(
-            (acc: number, paid_installment: StudentFeesInstallments) =>
-              acc + Number(paid_installment.remaining_amount),
-            0
-          )
+          // let total_remaining_amount = already_paid_installments.reduce(
+          //   (acc: number, paid_installment: StudentFeesInstallments) =>
+          //     acc + Number(paid_installment.remaining_amount),
+          //   0
+          // )
 
           if (
             Number(total_paid_amount_for_installment) ===
