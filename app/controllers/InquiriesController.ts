@@ -7,7 +7,7 @@ import db from '@adonisjs/lucid/services/db'
 import { CreateValidatorForInquiry, UpdateValidatorForInquiry } from '#validators/Inquiry'
 import AcademicSession from '#models/AcademicSession'
 import ClassSeatAvailability from '#models/ClassSeatAvailability'
-import { CreateValidatorStundet } from '#validators/Stundets'
+import { CreateValidatorStundet } from '#validators/Students'
 import QuotaAllocation from '#models/QuotaAllocation'
 import StudentMeta from '#models/StudentMeta'
 export default class InquiriesController {

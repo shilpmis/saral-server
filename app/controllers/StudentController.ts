@@ -6,7 +6,7 @@ import {
   // CreateValidatorForUpload,
   CreateValidatorStundet,
   UpdateValidatorForStundets,
-} from '#validators/Stundets'
+} from '#validators/Students'
 import Students from '#models/Students'
 import StudentMeta from '#models/StudentMeta'
 import db from '@adonisjs/lucid/services/db'
