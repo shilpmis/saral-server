@@ -28,6 +28,8 @@ import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
 import GlobalSearchController from '#controllers/GlobalSearchController'
 import StudentPromotionController from '#controllers/StudentPermotionController'
+import PayrollControllerTsController from '#controllers/PayrollController'
+import PayrollController from '#controllers/PayrollController'
 
 router
   .group(() => {
@@ -125,6 +127,16 @@ router
       LeavesController,
       'approveTeachersLeaveApplication',
     ])
+
+    // payroll
+
+    router.post('/payroll/salary-component', [PayrollController, 'createSalaryComponent'])
+    router.put('/payroll/salary-component/:component_id', [
+      PayrollController,
+      'updateSalaryComponent',
+    ])
+    router.post('/payroll/salary-template', [PayrollController, 'createSalaryTemplate'])
+    router.put('/payroll/salary-template/:template_id', [PayrollController, 'updateSalaryTemplate'])
 
     // routes for the class seat availability
     router.post('/classes/seats', [ClassSeatAvailabilitiesController, 'addSeatAvailability'])

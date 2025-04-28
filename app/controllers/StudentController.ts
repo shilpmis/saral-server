@@ -2,6 +2,7 @@ import Classes from '#models/Classes'
 import type { HttpContext } from '@adonisjs/core/http'
 import {
   CreateValidatorForMultipleStundets,
+  CreateValidatorForUpload,
   // CreateValidatorForUpload,
   CreateValidatorStundet,
   UpdateValidatorForStundets,
@@ -286,9 +287,7 @@ export default class StundetsController {
       // Rollback the transaction in case of error
       console.log('Error while create single student', error)
       await trx.rollback()
-      return ctx.response
-        .status(500)
-        .json({ message: 'Error creating student', error: error })
+      return ctx.response.status(500).json({ message: 'Error creating student', error: error })
     }
   }
 
@@ -522,7 +521,7 @@ export default class StundetsController {
         },
       }
       try {
-        // const paylaod = await CreateValidatorForUpload.validate(transformedData)
+        const paylaod = await CreateValidatorForUpload.validate(transformedData)
         validatedData.push(transformedData)
       } catch (validationError) {
         errors.push({
@@ -539,11 +538,6 @@ export default class StundetsController {
     const trx = await db.transaction()
     try {
       for (const validated_student of validatedData) {
-        console.log(
-          'validatedData',
-          validated_student.student_meta_data?.aadhar_dise_no,
-          validated_student.students_data.first_name
-        )
         const student_data = await Students.create(
           {
             ...validated_student.students_data,
