@@ -521,8 +521,8 @@ export default class StundetsController {
         },
       }
       try {
-        const paylaod = await CreateValidatorForUpload.validate(transformedData)
-        validatedData.push(paylaod)
+        // const paylaod = await CreateValidatorForUpload.validate(transformedData)
+        validatedData.push(transformedData)
       } catch (validationError) {
         errors.push({
           row: index + 1,
