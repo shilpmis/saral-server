@@ -462,7 +462,7 @@ export default class StundetsController {
     await file.move(uploadDir)
 
     if (!file.isValid) {
-      return ctx.response.badRequest({ message: file.errors })
+      return ctx.response.status(400).json({ message: file.errors })
     }
 
     const filePath = path.join(uploadDir, file.clientName)
@@ -472,10 +472,31 @@ export default class StundetsController {
       return ctx.response.badRequest({ message: 'CSV file is empty or improperly formatted.' })
     }
 
+    // Get all existing DISE numbers to avoid duplicates
+    const existingDiseNumbers = await db
+      .from('students_meta')
+      .select('aadhar_dise_no')
+      .whereNotNull('aadhar_dise_no')
+
+    const existingDiseSet = new Set(existingDiseNumbers.map(record => record.aadhar_dise_no.toString()))
+    
     let validatedData = []
     let errors = []
+    let skippedDuplicates = []
 
     for (const [index, data] of jsonData.entries()) {
+      // Check for duplicate DISE number before transformation
+      const currentDiseNumber = data['DISE Number']
+      if (currentDiseNumber && existingDiseSet.has(currentDiseNumber.toString())) {
+        skippedDuplicates.push({
+          row: index + 1,
+          name: `${data['First Name']} ${data['Last Name']}`,
+          dise_number: currentDiseNumber,
+          reason: 'DISE Number already exists in database'
+        })
+        continue // Skip this record
+      }
+
       let transformedData = {
         students_data: {
           first_name: data['First Name'],
@@ -498,7 +519,10 @@ export default class StundetsController {
           aadhar_no: data['Aadhar No'] || null,
         },
         student_meta_data: {
-          aadhar_dise_no: data['DISE Number'] || null,
+          // Parse DISE Number correctly - convert to number if possible or null if not
+          aadhar_dise_no: data['DISE Number'] ? 
+                          (!isNaN(Number(data['DISE Number'])) ? 
+                           Number(data['DISE Number']) : null) : null,
           birth_place: data['Birth Place'] || null,
           birth_place_in_guj: data['Birth Place In Gujarati'] || null,
           religion: data['Religion'] || null,
@@ -521,9 +545,10 @@ export default class StundetsController {
           IFSC_code: data['IFSC Code'] || null,
         },
       }
+      
       try {
-        const paylaod = await CreateValidatorForUpload.validate(transformedData)
-        validatedData.push(transformedData)
+        const payload = await CreateValidatorForUpload.validate(transformedData)
+        validatedData.push(payload)
       } catch (validationError) {
         errors.push({
           row: index + 1,
@@ -532,56 +557,89 @@ export default class StundetsController {
         })
       }
     }
+
     if (errors.length) {
       return ctx.response.status(400).json({ errors })
     }
+
     // Start transaction after validation
     const trx = await db.transaction()
     try {
-      for (const validated_student of validatedData) {
-        console.log(
-          'validatedData',
-          validated_student.student_meta_data?.aadhar_dise_no,
-          validated_student.students_data.first_name
-        )
-        const student_data = await Students.create(
-          {
-            ...validated_student.students_data,
-            enrollment_code: await generateUniqueEnrollmentCode({
-              prefix: school.branch_code,
+      // Process in batches for better performance
+      const batchSize = 50
+      const totalStudents = validatedData.length
+      const batches = Math.ceil(totalStudents / batchSize)
+      
+      let insertedCount = 0
+      
+      for (let batchIndex = 0; batchIndex < batches; batchIndex++) {
+        const start = batchIndex * batchSize
+        const end = Math.min(start + batchSize, totalStudents)
+        const currentBatch = validatedData.slice(start, end)
+        
+        // Process the current batch in parallel
+        await Promise.all(
+          currentBatch.map(async (validated_student) => {
+            const enrollmentCode = await generateUniqueEnrollmentCode({
+              prefix: school.branch_code || 'ENR',
               trx,
-            }),
-          },
-          { client: trx }
-        )
+            })
+            
+            // Create student record
+            const student_data = await Students.create(
+              {
+                ...validated_student.students_data,
+                enrollment_code: enrollmentCode,
+              },
+              { client: trx }
+            )
+            
+            // Create student meta data
+            await StudentMeta.create(
+              {
+                ...validated_student.student_meta_data,
+                student_id: student_data.id,
+              },
+              { client: trx }
+            )
 
-        await StudentMeta.create(
-          {
-            ...validated_student.student_meta_data,
-            student_id: student_data.id,
-          },
-          { client: trx }
-        )
+            // Create student enrollment
+            await StudentEnrollments.create(
+              {
+                student_id: student_data.id,
+                division_id: division_id,
+                academic_session_id: academic_session_id,
+                status: 'pursuing',
+                is_new_admission: false,
+              },
+              { client: trx }
+            )
 
-        await StudentEnrollments.create(
-          {
-            student_id: student_data.id,
-            division_id: division_id,
-            academic_session_id: academic_session_id,
-            status: 'pursuing',
-            is_new_admission: false,
-          },
-          { client: trx }
+            return student_data
+          })
         )
+        
+        insertedCount += currentBatch.length
       }
 
       await trx.commit()
+      
+      // Return info about both successful inserts and skipped records
       return ctx.response.status(201).json({
         message: 'Bulk upload successful.',
-        totalInserted: validatedData.length,
+        totalInserted: insertedCount,
+        skippedDuplicates: skippedDuplicates.length > 0 ? skippedDuplicates : undefined,
       })
     } catch (error) {
       await trx.rollback()
+      // Add more detailed error handling
+      if (error.message?.includes('Duplicate entry') && error.message?.includes('aadhar_dise_no')) {
+        return ctx.response.status(400).json({ 
+          message: 'Duplicate DISE number found. Please ensure all DISE numbers are unique.',
+          error: error.message
+        })
+      }
+      
       return ctx.response
         .status(500)
         .json({ message: 'Internal server error', error: error.message })

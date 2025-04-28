@@ -146,9 +146,8 @@ export const CreateValidatorForUpload = vine.compile(
       .object({
         aadhar_dise_no: vine
           .number()
-          // .unique({ table: 'students_meta', column: 'aadhar_dise_no' })
-          .nullable(),
-
+          .nullable()
+          .optional(), // Making it both nullable AND optional for maximum flexibility
         birth_place: vine.string().trim().minLength(2).maxLength(100).nullable(),
         birth_place_in_guj: vine.string().trim().nullable(),
 
