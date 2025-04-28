@@ -1,8 +1,10 @@
 import Base from '#models/base'
-import { belongsTo, column } from '@adonisjs/lucid/orm'
+import { belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import LeaveTypeMaster from './LeaveTypeMaster.js'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Staff from './Staff.js'
+import User from './User.js'
+import LeaveLog from './LeaveLog.js'
 
 export default class StaffLeaveApplication extends Base {
   @column()
@@ -23,6 +25,14 @@ export default class StaffLeaveApplication extends Base {
   @column()
   declare applied_by_self: boolean
 
+  @column()
+  declare approved_by: number | null
+
+  @column({
+    serialize: (value) => value ? new Date(value).toISOString() : null,
+  })
+  declare approved_at: string | null
+
   @column({
     serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
   })
@@ -38,6 +48,9 @@ export default class StaffLeaveApplication extends Base {
 
   @column()
   declare reason: string
+
+  @column()
+  declare remarks: string | null
 
   @column()
   declare is_half_day: boolean
@@ -68,4 +81,22 @@ export default class StaffLeaveApplication extends Base {
     foreignKey: 'staff_id',
   })
   declare staff: BelongsTo<typeof Staff>
+
+  @belongsTo(() => User, {
+    localKey: 'id',
+    foreignKey: 'applied_by',
+  })
+  declare applied_by_user: BelongsTo<typeof User>
+
+  @belongsTo(() => User, {
+    localKey: 'id',
+    foreignKey: 'approved_by',
+  })
+  declare approved_by_user: BelongsTo<typeof User>
+
+  @hasMany(() => LeaveLog, {
+    localKey: 'id',
+    foreignKey: 'leave_application_id',
+  })
+  declare logs: HasMany<typeof LeaveLog>
 }

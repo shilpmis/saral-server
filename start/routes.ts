@@ -109,22 +109,34 @@ router
     router.post('staff/bulk-upload', [StaffController, 'bulkUploadStaff'])
     router.post('staff/export/:school_id/:academic_session_id/', [StaffController, 'exportToExcel'])
 
-    router.get('leave-type', [LeavesController, 'indexLeaveTypesForSchool'])
-    router.post('leave-type', [LeavesController, 'createLeaveTypeForSchool'])
-    router.put('leave-type/:leave_type_id', [LeavesController, 'updateLeaveTypeForSchool'])
-    router.get('leave-policy', [LeavesController, 'indexLeavePolicyForSchool'])
-    router.get('leave-policy/user', [LeavesController, 'indexLeavePolicyForUser'])
-    router.post('leave-policy', [LeavesController, 'createLeavePolicyForSchool'])
-    router.put('leave-policy/:leave_policy_id', [LeavesController, 'updateLeavePolicyForSchool'])
+    // Add new routes for leave management
+    router
+      .group(() => {
+        // Leave type and policy routes (existing)
+        router.get('leave-type', [LeavesController, 'indexLeaveTypesForSchool'])
+        router.post('leave-type', [LeavesController, 'createLeaveTypeForSchool'])
+        router.put('leave-type/:leave_type_id', [LeavesController, 'updateLeaveTypeForSchool'])
+        router.get('leave-policy', [LeavesController, 'indexLeavePolicyForSchool'])
+        router.get('leave-policy/user', [LeavesController, 'indexLeavePolicyForUser'])
+        router.post('leave-policy', [LeavesController, 'createLeavePolicyForSchool'])
+        router.put('leave-policy/:leave_policy_id', [LeavesController, 'updateLeavePolicyForSchool'])
 
-    router.get('leave-applications/:staff_id', [LeavesController, 'fetchLeaveApplication'])
-    router.get('leave-applications', [LeavesController, 'fetchLeaveApplicationForAdmin'])
-    router.post('leave-application', [LeavesController, 'applyForLeave'])
-    router.put('leave-application/:uuid', [LeavesController, 'updateAppliedLeave'])
-    router.put('/leave-application/status/:uuid', [
-      LeavesController,
-      'approveTeachersLeaveApplication',
-    ])
+        // Enhanced leave management routes
+        router.get('leave-applications/:staff_id', [LeavesController, 'fetchLeaveApplication'])
+        router.get('leave-applications', [LeavesController, 'fetchLeaveApplicationForAdmin'])
+        router.post('leave-application', [LeavesController, 'applyForLeave'])
+        router.put('leave-application/:uuid', [LeavesController, 'updateAppliedLeave'])
+        router.put('leave-application/withdraw/:uuid', [LeavesController, 'withdrawLeaveApplication'])
+        router.put('leave-application/status/:uuid', [LeavesController, 'approveTeachersLeaveApplication'])
+        
+        // New routes for enhanced functionality
+        router.get('leave-balances/:staff_id', [LeavesController, 'fetchStaffLeaveBalances'])
+        router.get('leave-logs/:id', [LeavesController, 'getLeaveApplicationLogs'])
+        router.post('leave/staff/search', [LeavesController, 'searchStaff'])
+        router.post('leave/carry-forward', [LeavesController, 'processLeaveCarryForward'])
+      })
+      .prefix('/api/v1/')
+      .use(middleware.auth())
 
     // routes for the class seat availability
     router.post('/classes/seats', [ClassSeatAvailabilitiesController, 'addSeatAvailability'])
