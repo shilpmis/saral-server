@@ -135,7 +135,6 @@ router
         router.post('leave/staff/search', [LeavesController, 'searchStaff'])
         router.post('leave/carry-forward', [LeavesController, 'processLeaveCarryForward'])
       })
-      .prefix('/api/v1/')
       .use(middleware.auth())
 
     // routes for the class seat availability

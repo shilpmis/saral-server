@@ -33,22 +33,6 @@ export default class StaffLeaveApplication extends Base {
   })
   declare approved_at: string | null
 
-  @column({
-    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-  })
-  declare from_date: Date
-
-  @column({
-    serialize: (value: Date) => Base.serializeDateAsSQLDateString(value),
-  })
-  declare to_date: Date
-
-  @column()
-  declare number_of_days: number
-
-  @column()
-  declare reason: string
-
   @column()
   declare remarks: string | null
 
