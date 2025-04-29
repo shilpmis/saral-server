@@ -16,6 +16,9 @@ export default class StaffLeaveBalance extends Base {
   declare academic_session_id: number
 
   @column()
+  declare academic_year: number
+
+  @column()
   declare total_leaves: number
 
   @column()

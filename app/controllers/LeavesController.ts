@@ -552,10 +552,14 @@ export default class LeavesController {
         availableBalance = leaveBalance.available_balance
       } else {
         // Create initial leave balance if it doesn't exist
+        // Extract year from current date or academic session
+        const currentYear = new Date().getFullYear()
+        
         await StaffLeaveBalance.create({
           staff_id: targetStaffId,
           leave_type_id: payload.leave_type_id,
           academic_session_id: payload.academic_session_id,
+          academic_year: currentYear,  // Add the academic year field
           total_leaves: leavePolicy.annual_quota,
           used_leaves: 0,
           pending_leaves: 0,
@@ -1133,11 +1137,15 @@ export default class LeavesController {
                 available_balance: existingBalance.available_balance + carryAmount
               }).save()
             } else {
+              // Get the new academic year from the new session
+              const newYear = parseInt(newSession.end_year)
+              
               // Create new balance
               await StaffLeaveBalance.create({
                 staff_id: oldBalance.staff_id,
                 leave_type_id: oldBalance.leave_type_id,
                 academic_session_id: newSessionId,
+                academic_year: newYear,  // Add academic year
                 total_leaves: policy.annual_quota + carryAmount,
                 carried_forward: carryAmount,
                 used_leaves: 0,
