@@ -790,14 +790,11 @@ export default class LeavesController {
         'staff.mobile_number as staff_mobile',
         'staff.staff_role_id as staff_role_id',
         'sm.role as staff_role',
-        'sm.is_teaching_role as is_teaching_role',
-        'users.first_name as approved_by_first_name',
-        'users.last_name as approved_by_last_name'
+        'sm.is_teaching_role as is_teaching_role'
       ])
       .preload('leave_type')
       .join('staff', 'staff_leave_applications.staff_id', 'staff.id')
       .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
-      .leftJoin('users', 'staff_leave_applications.approved_by', 'users.id')
       .andWhere('staff_leave_applications.academic_session_id', academic_sesion.id)
       .andWhere('staff.is_active', true)
       .andWhere('staff.school_id', ctx.auth.user!.school_id)
