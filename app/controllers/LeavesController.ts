@@ -23,38 +23,52 @@ import { v4 as uuidv4 } from 'uuid'
 
 export default class LeavesController {
   async indexLeaveTypesForSchool(ctx: HttpContext) {
-    let school_id = ctx.auth.user!.school_id
-    let academic_session_id = ctx.request.input('academic_session_id')
+    try {
+      let school_id = ctx.auth.user!.school_id
+      let academic_session_id = ctx.request.input('academic_session_id')
+      const page = ctx.request.input('page')
 
-    // Only validate academic session if ID is provided
-    if (academic_session_id) {
-      let academic_sesion = await AcademicSession.query()
-        .where('is_active', true)
-        .andWhere('id', academic_session_id)
-        .andWhere('school_id', ctx.auth.user!.school_id)
-        .first()
+      // Only validate academic session if ID is provided
+      if (academic_session_id) {
+        let academic_session = await AcademicSession.query()
+          .where('is_active', true)
+          .andWhere('id', academic_session_id)
+          .andWhere('school_id', school_id)
+          .first()
 
-      if (!academic_sesion) {
-        return ctx.response.status(404).json({
-          message: 'No active academic session found for your school !',
+        if (!academic_session) {
+          return ctx.response.status(404).json({
+            message: 'No active academic session found for your school!',
+          })
+        }
+      }
+
+      // Return all results without pagination if specified
+      if (page === 'all') {
+        let leave_types = await LeaveTypeMaster.query()
+          .where('school_id', school_id)
+          .orderBy('id', 'desc')
+
+        return ctx.response.status(200).json({
+          message: 'Leave types fetched successfully',
+          data: leave_types,
         })
       }
-    }
 
-    if (ctx.request.input('page') == 'all') {
+      // Return paginated results
       let leave_types = await LeaveTypeMaster.query()
         .where('school_id', school_id)
         .orderBy('id', 'desc')
+        .paginate(ctx.request.input('page', 1), 6)
 
       return ctx.response.status(200).json(leave_types)
+    } catch (error) {
+      console.error('Error fetching leave types:', error)
+      return ctx.response.status(500).json({
+        message: 'Failed to fetch leave types',
+        error: process.env.NODE_ENV === 'production' ? undefined : error.message,
+      })
     }
-
-    let leave_types = await LeaveTypeMaster.query()
-      .where('school_id', school_id)
-      .orderBy('id', 'desc')
-      .paginate(ctx.request.input('page', 1), 6)
-
-    return ctx.response.status(200).json(leave_types)
   }
 
   async createLeaveTypeForSchool(ctx: HttpContext) {
@@ -123,47 +137,89 @@ export default class LeavesController {
   }
 
   async updateLeaveTypeForSchool(ctx: HttpContext) {
-    let school_id = ctx.auth.user!.school_id
-    let role_id = ctx.auth.user!.role_id
+    try {
+      const leave_type_id = ctx.params.leave_type_id
+      let school_id = ctx.auth.user!.school_id
+      let role_id = ctx.auth.user!.role_id
 
-    if (role_id !== 1 && school_id !== ctx.auth.user?.school_id) {
-      return ctx.response.status(401).json({
-        message: 'You are not authorized to create leave type for this school',
+      // Authorization check
+      if (role_id !== 1 && school_id !== ctx.auth.user?.school_id) {
+        return ctx.response.status(401).json({
+          message: 'You are not authorized to update leave types for this school',
+        })
+      }
+
+      // Find the leave type to update
+      let leave_type = await LeaveTypeMaster.query()
+        .where('id', leave_type_id)
+        .andWhere('school_id', school_id)
+        .first()
+
+      if (!leave_type) {
+        return ctx.response.status(404).json({
+          message: 'This leave type is not available for your school',
+        })
+      }
+
+      // Validate academic session
+      let academic_session = await AcademicSession.query()
+        .where('is_active', true)
+        .andWhere('school_id', school_id)
+        .first()
+
+      if (!academic_session) {
+        return ctx.response.status(404).json({
+          message: 'No active academic session found for your school!',
+        })
+      }
+
+      if (academic_session.id != leave_type.academic_session_id) {
+        return ctx.response.status(404).json({
+          message: 'Active academic session is not same as leave type academic session!',
+        })
+      }
+
+      // Validate request payload
+      let payload = await UpdateValidatorForLeaveType.validate(ctx.request.body())
+
+      // If trying to update name, check if it would create a duplicate
+      if (payload.leave_type_name && payload.leave_type_name !== leave_type.leave_type_name) {
+        const existingLeaveType = await LeaveTypeMaster.query()
+          .where('leave_type_name', payload.leave_type_name)
+          .andWhere('school_id', school_id)
+          .andWhere('academic_session_id', leave_type.academic_session_id)
+          .whereNot('id', leave_type_id)
+          .first()
+
+        if (existingLeaveType) {
+          return ctx.response.status(409).json({
+            message: 'A leave type with this name already exists for this school and academic session',
+          })
+        }
+      }
+
+      // Update leave type
+      await leave_type.merge(payload).save()
+
+      return ctx.response.status(200).json({
+        message: 'Leave type updated successfully',
+        data: leave_type,
+      })
+    } catch (error) {
+      // Check for specific database unique constraint errors
+      if (error.code === '23505' || error.message.includes('unique constraint')) {
+        return ctx.response.status(409).json({
+          message: 'A leave type with this name already exists for this school and academic session',
+        })
+      }
+
+      // Generic error handling
+      console.error('Error updating leave type:', error)
+      return ctx.response.status(500).json({
+        message: 'Failed to update leave type',
+        error: process.env.NODE_ENV === 'production' ? undefined : error.message,
       })
     }
-
-    let leave_type = await LeaveTypeMaster.query()
-      .where('id', ctx.params.leave_type_id)
-      .andWhere('school_id', school_id)
-      .first()
-
-    if (!leave_type) {
-      return ctx.response.status(404).json({
-        message: 'This leave type is not available for your school',
-      })
-    }
-
-    let academic_sesion = await AcademicSession.query()
-      .where('is_active', true)
-      .andWhere('school_id', ctx.auth.user!.school_id)
-      .first()
-
-    if (!academic_sesion) {
-      return ctx.response.status(404).json({
-        message: 'No active academic session found for your school !',
-      })
-    }
-
-    if (academic_sesion.id != leave_type.academic_session_id) {
-      return ctx.response.status(404).json({
-        message: 'Active academic session is not same as leave type academic session !',
-      })
-    }
-
-    let payload = await UpdateValidatorForLeaveType.validate(ctx.request.body())
-    await leave_type.merge(payload).save()
-
-    return ctx.response.status(200).json(leave_type)
   }
 
   async indexLeavePolicyForSchool(ctx: HttpContext) {
