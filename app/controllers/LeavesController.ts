@@ -58,30 +58,68 @@ export default class LeavesController {
   }
 
   async createLeaveTypeForSchool(ctx: HttpContext) {
-    let school_id = ctx.auth.user!.school_id
-    let role_id = ctx.auth.user!.role_id
+    try {
+      // Get user information
+      let school_id = ctx.auth.user!.school_id
+      let role_id = ctx.auth.user!.role_id
 
-    if (role_id !== 1) {
-      return ctx.response.status(401).json({
-        message: 'You are not authorized to create leave type for this school',
+      // Authorization check
+      if (role_id !== 1) {
+        return ctx.response.status(401).json({
+          message: 'You are not authorized to create leave type for this school',
+        })
+      }
+
+      // Validate request payload
+      let payload = await CreateValidatorForLeaveType.validate(ctx.request.body())
+      
+      // Validate academic session
+      let academic_session = await AcademicSession.query()
+        .where('is_active', true)
+        .andWhere('school_id', school_id)
+        .andWhere('id', payload.academic_session_id)
+        .first()
+
+      if (!academic_session) {
+        return ctx.response.status(404).json({
+          message: 'No active academic session found for your school!',
+        })
+      }
+
+      // Check if leave type with same name already exists for this school and session
+      const existingLeaveType = await LeaveTypeMaster.query()
+        .where('leave_type_name', payload.leave_type_name)
+        .andWhere('school_id', school_id)
+        .andWhere('academic_session_id', payload.academic_session_id)
+        .first()
+
+      if (existingLeaveType) {
+        return ctx.response.status(409).json({
+          message: 'A leave type with this name already exists for this school and academic session',
+        })
+      }
+
+      // Create new leave type
+      let leave = await LeaveTypeMaster.create({ ...payload, school_id: school_id })
+      return ctx.response.status(201).json({
+        message: 'Leave type created successfully',
+        data: leave,
+      })
+    } catch (error) {
+      // Check for specific database unique constraint errors
+      if (error.code === '23505' || error.message.includes('unique constraint')) {
+        return ctx.response.status(409).json({
+          message: 'A leave type with this name already exists for this school and academic session',
+        })
+      }
+      
+      // Generic error handling
+      console.error('Error creating leave type:', error)
+      return ctx.response.status(500).json({
+        message: 'Failed to create leave type',
+        error: process.env.NODE_ENV === 'production' ? undefined : error.message,
       })
     }
-
-    let payload = await CreateValidatorForLeaveType.validate(ctx.request.body())
-    let academic_sesion = await AcademicSession.query()
-      .where('is_active', true)
-      .andWhere('school_id', school_id)
-      .andWhere('id', payload.academic_session_id)
-      .first()
-
-    if (!academic_sesion) {
-      return ctx.response.status(404).json({
-        message: 'No active academic session found for your school !',
-      })
-    }
-
-    let leave = await LeaveTypeMaster.create({ ...payload, school_id: school_id })
-    return ctx.response.status(201).json(leave)
   }
 
   async updateLeaveTypeForSchool(ctx: HttpContext) {
