@@ -632,10 +632,29 @@ export default class LeavesController {
 
         // Update leave balance
         if (leaveBalance) {
+          const pendingLeaves = this.formatDecimalValue(leaveBalance.pending_leaves + numberOfDays);
+          const availableBalance = this.formatDecimalValue(leaveBalance.available_balance - numberOfDays);
+          
           await leaveBalance.merge({
-            pending_leaves: leaveBalance.pending_leaves + numberOfDays,
-            available_balance: leaveBalance.available_balance - numberOfDays,
+            pending_leaves: pendingLeaves,
+            available_balance: availableBalance,
           }).save()
+        } else {
+          // Create initial leave balance if it doesn't exist
+          // Extract year from current date or academic session
+          const currentYear = new Date().getFullYear()
+          
+          await StaffLeaveBalance.create({
+            staff_id: targetStaffId,
+            leave_type_id: payload.leave_type_id,
+            academic_session_id: payload.academic_session_id,
+            academic_year: currentYear,  // Add the academic year field
+            total_leaves: leavePolicy.annual_quota,
+            used_leaves: 0,
+            pending_leaves: 0,
+            carried_forward: 0,
+            available_balance: leavePolicy.annual_quota - numberOfDays,
+          })
         }
 
         // Log the action
@@ -924,7 +943,7 @@ export default class LeavesController {
       await leave_application.merge({
         ...payload,
         approved_by: ctx.auth.user?.id,
-        approved_at: DateTime.now().toSQL(),
+        approved_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'), // Fix datetime format
       }).useTransaction(trx).save()
 
       // Update leave balance based on approval status
@@ -936,14 +955,20 @@ export default class LeavesController {
 
       if (leaveBalance) {
         if (payload.status === 'approved') {
+          const pendingLeaves = this.formatDecimalValue(leaveBalance.pending_leaves - leave_application.number_of_days);
+          const usedLeaves = this.formatDecimalValue(leaveBalance.used_leaves + leave_application.number_of_days);
+          
           await leaveBalance.merge({
-            pending_leaves: leaveBalance.pending_leaves - leave_application.number_of_days,
-            used_leaves: leaveBalance.used_leaves + leave_application.number_of_days,
+            pending_leaves: pendingLeaves,
+            used_leaves: usedLeaves,
           }).save()
         } else if (payload.status === 'rejected') {
+          const pendingLeaves = this.formatDecimalValue(leaveBalance.pending_leaves - leave_application.number_of_days);
+          const availableBalance = this.formatDecimalValue(leaveBalance.available_balance + leave_application.number_of_days);
+          
           await leaveBalance.merge({
-            pending_leaves: leaveBalance.pending_leaves - leave_application.number_of_days,
-            available_balance: leaveBalance.available_balance + leave_application.number_of_days,
+            pending_leaves: pendingLeaves,
+            available_balance: availableBalance,
           }).save()
         }
       }
@@ -1138,10 +1163,9 @@ export default class LeavesController {
         
         if (policy) {
           // Calculate carry-forward amount (respecting max_carry_forward_days)
-          const carryAmount = Math.min(
-            oldBalance.available_balance,
-            policy.max_carry_forward_days
-          )
+          const carryAmount = this.formatDecimalValue(
+            Math.min(oldBalance.available_balance, policy.max_carry_forward_days)
+          );
           
           if (carryAmount > 0) {
             // Check if balance record already exists for new session
@@ -1153,10 +1177,13 @@ export default class LeavesController {
               
             if (existingBalance) {
               // Update existing balance
+              const totalLeaves = this.formatDecimalValue(policy.annual_quota + carryAmount);
+              const availableBalance = this.formatDecimalValue(existingBalance.available_balance + carryAmount);
+              
               await existingBalance.merge({
                 carried_forward: carryAmount,
-                total_leaves: policy.annual_quota + carryAmount,
-                available_balance: existingBalance.available_balance + carryAmount
+                total_leaves: totalLeaves,
+                available_balance: availableBalance
               }).save()
             } else {
               // Get the new academic year from the new session
@@ -1280,9 +1307,16 @@ export default class LeavesController {
         .first()
       
       if (leaveBalance) {
+        const pendingLeaves = this.formatDecimalValue(
+          Math.max(0, leaveBalance.pending_leaves - leaveApplication.number_of_days)
+        );
+        const availableBalance = this.formatDecimalValue(
+          leaveBalance.available_balance + leaveApplication.number_of_days
+        );
+        
         await leaveBalance.merge({
-          pending_leaves: Math.max(0, leaveBalance.pending_leaves - leaveApplication.number_of_days),
-          available_balance: leaveBalance.available_balance + leaveApplication.number_of_days,
+          pending_leaves: pendingLeaves,
+          available_balance: availableBalance,
         }).save()
       }
       
@@ -1307,5 +1341,19 @@ export default class LeavesController {
         message: error.message,
       })
     }
+  }
+
+  /**
+   * Helper method to format decimal values to ensure database compatibility
+   * @param value The numeric value to format
+   * @param decimals Number of decimal places (default: 2)
+   */
+  private formatDecimalValue(value: any, decimals: number = 2): number {
+    // Ensure value is a number before using toFixed
+    const numValue = Number(value);
+    if (isNaN(numValue)) {
+      return 0; // Return 0 for non-numeric values
+    }
+    return parseFloat(numValue.toFixed(decimals));
   }
 }
