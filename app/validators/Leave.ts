@@ -90,17 +90,6 @@ export const CreateValidatorForLeaveApplication = vine.compile(
     is_hourly_leave: vine.boolean(),
     total_hour: vine.number().max(4).nullable(),
     documents: vine.object({}).optional(),
-
-    /**
-         *   added from controller after check condition
-         * 
-        applied_by: vine.number().nullable(),
-        applied_by_self: vine.boolean(),
-        number_of_days : vine.number(),
-        status: vine.enum(['pending', 'approved', 'rejected', 'cancelled']),
-
-
-         * */
   })
 )
 

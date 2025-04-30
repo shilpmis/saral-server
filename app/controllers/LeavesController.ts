@@ -760,30 +760,17 @@ export default class LeavesController {
       .first()
 
     if (staff) {
+      // Improved query to properly preload staff data with role information
       let applications = await StaffLeaveApplication.query()
-        .select([
-
-          'staff_leave_applications.*',
-          'staff.id as staff_id',
-          'staff.first_name as staff_first_name',
-          'staff.middle_name as staff_middle_name',
-          'staff.last_name as staff_last_name',
-          'staff.staff_role_id as staff_role_id',
-          'sm.role as staff_role',
-        ])
-        // .preload('staff', (query) => {
-        //   query.select('id', 'first_name', 'middle_name', 'last_name', 'staff_role_id')
-        // })
-        .preload('leave_type')
-        .join('staff', 'staff_leave_applications.staff_id', 'staff.id')
-        .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
-        .where('staff_leave_applications.academic_session_id', academic_sesion.id)
+        .where('staff_leave_applications.staff_id', staff_id)
+        .andWhere('staff_leave_applications.academic_session_id', academic_sesion.id)
         .andWhereRaw('DATE(staff_leave_applications.from_date) >= ?', [today])
         .andWhere('staff_leave_applications.status', status)
-        .andWhere('sm.is_teaching_role', true)
-        .andWhere('staff.is_active', true)
-        .andWhere('staff.id', staff_id)
-        .andWhere('staff.school_id', ctx.auth.user!.school_id)
+        .preload('leave_type')
+        .preload('staff', (query) => {
+          query.select(['id', 'first_name', 'middle_name', 'last_name', 'email', 'mobile_number', 'staff_role_id'])
+            .preload('role_type') // Use the correct relationship name from Staff model
+        })
         .paginate(ctx.request.input('page'), 6)
 
       return ctx.response.status(201).json(applications)
@@ -816,68 +803,68 @@ export default class LeavesController {
       })
     }
 
-    // Build the query
+    // Build the query using preload instead of joins
     let query = StaffLeaveApplication.query()
-      .select([
-        'staff_leave_applications.*',
-        'staff.id as staff_id',
-        'staff.first_name as staff_first_name',
-        'staff.middle_name as staff_middle_name',
-        'staff.last_name as staff_last_name',
-        'staff.email as staff_email',
-        'staff.mobile_number as staff_mobile',
-        'staff.staff_role_id as staff_role_id',
-        'sm.role as staff_role',
-        'sm.is_teaching_role as is_teaching_role'
-      ])
+      .where('staff_leave_applications.academic_session_id', academic_sesion.id)
       .preload('leave_type')
-      .join('staff', 'staff_leave_applications.staff_id', 'staff.id')
-      .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
-      .andWhere('staff_leave_applications.academic_session_id', academic_sesion.id)
-      .andWhere('staff.is_active', true)
-      .andWhere('staff.school_id', ctx.auth.user!.school_id)
+      .preload('staff', (staffQuery) => {
+        staffQuery.select([
+          'id', 
+          'first_name', 
+          'middle_name', 
+          'last_name', 
+          'email', 
+          'mobile_number', 
+          'staff_role_id',
+          'school_id',
+          'is_active'
+        ])
+        .preload('role_type') // Preload the role information
+        .where('is_active', true)
+        .where('school_id', ctx.auth.user!.school_id)
+        
+        // Apply staff type filter at the staff level
+        if (staff_type === 'teaching') {
+          staffQuery.whereHas('role_type', (q) => q.where('is_teaching_role', true))
+        } else if (staff_type === 'non-teaching') {
+          staffQuery.whereHas('role_type', (q) => q.where('is_teaching_role', false))
+        }
+        
+        // Apply search term at the staff level if provided
+        if (search_term) {
+          const searchTerm = `%${search_term}%`
+          staffQuery.where(sq => {
+            sq.whereILike('first_name', searchTerm)
+              .orWhereILike('last_name', searchTerm)
+              .orWhereILike('email', searchTerm)
+              .orWhere('mobile_number', 'like', searchTerm)
+          })
+        }
+      })
 
     // Apply date filter
     if (date) {
-      query.andWhereRaw('DATE(staff_leave_applications.from_date) >= ?', [date])
+      query.whereRaw('DATE(from_date) >= ?', [date])
     } else {
-      query.andWhereRaw('DATE(staff_leave_applications.from_date) >= ?', [today])
+      query.whereRaw('DATE(from_date) >= ?', [today])
     }
 
     // Apply status filter
     if (status) {
-      query.andWhere('staff_leave_applications.status', status)
-    }
-
-    // Apply staff type filter
-    if (staff_type === 'teaching') {
-      query.andWhere('sm.is_teaching_role', true)
-    } else if (staff_type === 'non_teaching') {
-      query.andWhere('sm.is_teaching_role', false)
-    }
-
-    // Apply search term if provided
-    if (search_term) {
-      const searchTerm = `%${search_term}%`
-      query.andWhere(sq => {
-        sq.whereILike('staff.first_name', searchTerm)
-          .orWhereILike('staff.last_name', searchTerm)
-          .orWhereILike('staff.email', searchTerm)
-          .orWhere('staff.mobile_number', 'like', searchTerm)
-      })
+      query.where('status', status)
     }
 
     // Execute query with pagination
-    const applicationQuery = await query.paginate(page, 6)
+    const applications = await query.paginate(page, 6)
 
-    if (applicationQuery.total === 0) {
+    if (applications.total === 0) {
       return ctx.response.status(200).json({
         message: 'No data found',
-        data: applicationQuery
+        data: applications
       })
     }
 
-    return ctx.response.status(200).json(applicationQuery)
+    return ctx.response.status(200).json(applications)
   }
 
   async approveTeachersLeaveApplication(ctx: HttpContext) {
