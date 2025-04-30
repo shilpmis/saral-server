@@ -758,6 +758,8 @@ export default class LeavesController {
     let staff_id = ctx.params.staff_id
     let status = ctx.request.input('status', 'pending')
     let academic_session_id = ctx.request.input('academic_session_id')
+    const date = ctx.request.input('date', null)
+    const today = new Date().toISOString().split('T')[0]
 
     let academic_sesion = await AcademicSession.query()
       .where('is_active', true)
@@ -771,28 +773,44 @@ export default class LeavesController {
       })
     }
 
-    const today = new Date().toISOString().split('T')[0]
-
     let staff = await Staff.query()
       .where('id', staff_id)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
     if (staff) {
-      // Improved query to properly preload staff data with role information
-      let applications = await StaffLeaveApplication.query()
+      // Build query with improved date filtering
+      let query = StaffLeaveApplication.query()
         .where('staff_leave_applications.staff_id', staff_id)
         .andWhere('staff_leave_applications.academic_session_id', academic_sesion.id)
-        .andWhereRaw('DATE(staff_leave_applications.from_date) >= ?', [today])
-        .andWhere('staff_leave_applications.status', status)
         .preload('leave_type')
         .preload('staff', (query) => {
           query.select(['id', 'first_name', 'middle_name', 'last_name', 'email', 'mobile_number', 'staff_role_id'])
-            .preload('role_type') // Use the correct relationship name from Staff model
-        })
-        .paginate(ctx.request.input('page'), 6)
+            .preload('role_type')
+        });
 
-      return ctx.response.status(201).json(applications)
+      // Apply date filter - find leaves active on the specified date or today
+      if (date) {
+        // Find applications where the requested date falls between from_date and to_date
+        query.where((builder) => {
+          builder.whereRaw('? BETWEEN DATE(from_date) AND DATE(to_date)', [date]);
+        });
+      } else if (status !== 'all') {
+        // For current or future applications when no specific date is requested
+        query.where((builder) => {
+          builder.whereRaw('? <= DATE(to_date)', [today]);
+        });
+      }
+
+      // Apply status filter - skip if status is 'all'
+      if (status && status !== 'all') {
+        query.where('staff_leave_applications.status', status);
+      }
+
+      // Execute query with pagination
+      let applications = await query.paginate(ctx.request.input('page', 1), 6);
+
+      return ctx.response.status(200).json(applications);
     } else {
       return ctx.response.status(404).json({
         message: 'This teacher is not available for your school',
@@ -861,15 +879,21 @@ export default class LeavesController {
         }
       })
 
-    // Apply date filter
+    // Apply date filter - find leaves active on the specified date or today
     if (date) {
-      query.whereRaw('DATE(from_date) >= ?', [date])
-    } else {
-      query.whereRaw('DATE(from_date) >= ?', [today])
+      // Find applications where the requested date falls between from_date and to_date
+      query.where((builder) => {
+        builder.whereRaw('? BETWEEN DATE(from_date) AND DATE(to_date)', [date]);
+      });
+    } else if (status !== 'all') {
+      // For current or future applications when no specific date is requested
+      query.where((builder) => {
+        builder.whereRaw('? <= DATE(to_date)', [today]);
+      });
     }
 
-    // Apply status filter
-    if (status) {
+    // Apply status filter - skip if status is 'all'
+    if (status && status !== 'all') {
       query.where('status', status)
     }
 
