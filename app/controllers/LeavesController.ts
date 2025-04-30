@@ -861,15 +861,21 @@ export default class LeavesController {
         }
       })
 
-    // Apply date filter
+    // Apply date filter - find leaves active on the specified date or today
     if (date) {
-      query.whereRaw('DATE(from_date) >= ?', [date])
-    } else {
-      query.whereRaw('DATE(from_date) >= ?', [today])
+      // Find applications where the requested date falls between from_date and to_date
+      query.where((builder) => {
+        builder.whereRaw('? BETWEEN DATE(from_date) AND DATE(to_date)', [date]);
+      });
+    } else if (status !== 'all') {
+      // For current or future applications when no specific date is requested
+      query.where((builder) => {
+        builder.whereRaw('? <= DATE(to_date)', [today]);
+      });
     }
 
-    // Apply status filter
-    if (status) {
+    // Apply status filter - skip if status is 'all'
+    if (status && status !== 'all') {
       query.where('status', status)
     }
 
