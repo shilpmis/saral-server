@@ -90,17 +90,6 @@ export const CreateValidatorForLeaveApplication = vine.compile(
     is_hourly_leave: vine.boolean(),
     total_hour: vine.number().max(4).nullable(),
     documents: vine.object({}).optional(),
-
-    /**
-         *   added from controller after check condition
-         * 
-        applied_by: vine.number().nullable(),
-        applied_by_self: vine.boolean(),
-        number_of_days : vine.number(),
-        status: vine.enum(['pending', 'approved', 'rejected', 'cancelled']),
-
-
-         * */
   })
 )
 
@@ -120,6 +109,21 @@ export const UpdateValidatorForLeaveApplication = vine.compile(
 export const ValidatorForApproveApplication = vine.compile(
   vine.object({
     status: vine.enum(['approved', 'rejected', 'cancelled']),
-    remarks: vine.string().trim().minLength(2).maxLength(200).optional(),
+    remarks: vine.string().trim().minLength(2).maxLength(200),
+  })
+)
+
+export const ValidatorForCancelApplication = vine.compile(
+  vine.object({
+    remarks: vine.string().trim().minLength(2).maxLength(200),
+  })
+)
+
+export const SearchValidatorForStaff = vine.compile(
+  vine.object({
+    search_term: vine.string().trim().optional(),
+    staff_type: vine.enum(['teaching', 'non_teaching', 'all']).optional(),
+    page: vine.number().optional(),
+    per_page: vine.number().optional(),
   })
 )
