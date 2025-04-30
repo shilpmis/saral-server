@@ -129,14 +129,34 @@ router
     ])
 
     // payroll
-
+    router.get('/payroll/salary-component', [PayrollController, 'indexSalaryComponents'])
     router.post('/payroll/salary-component', [PayrollController, 'createSalaryComponent'])
     router.put('/payroll/salary-component/:component_id', [
       PayrollController,
       'updateSalaryComponent',
     ])
+    router.delete('/payroll/salary-component/:component_id', [
+      PayrollController,
+      'deleteSalaryComponent',
+    ])
+
+    router.get('/payroll/salary-template', [PayrollController, 'indexSalaryTemplates'])
+    router.get('/payroll/salary-template/:template_id', [
+      PayrollController,
+      'fetchSingleSalaryTemplate',
+    ])
     router.post('/payroll/salary-template', [PayrollController, 'createSalaryTemplate'])
     router.put('/payroll/salary-template/:template_id', [PayrollController, 'updateSalaryTemplate'])
+
+    router.get('/payroll/staff-salary-template/:staff_id', [
+      PayrollController,
+      'fetchSalaryTemplateForSingleStaff',
+    ])
+    router.post('/payroll/staff-salary-template', [PayrollController, 'createStaffSalaryTemplate'])
+    router.put('/payroll/staff-salary-template/:template_id', [
+      PayrollController,
+      'updateSalaryTemplate',
+    ])
 
     // routes for the class seat availability
     router.post('/classes/seats', [ClassSeatAvailabilitiesController, 'addSeatAvailability'])
