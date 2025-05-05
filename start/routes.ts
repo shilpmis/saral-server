@@ -29,6 +29,7 @@ import AdmissionDashboardController from '#controllers/AdmissionDashboardControl
 import GlobalSearchController from '#controllers/GlobalSearchController'
 import StudentPromotionController from '#controllers/StudentPermotionController'
 import PayrollController from '#controllers/PayrollController'
+import StaffAttendanceController from '#controllers/StaffAttendanceController'
 
 router
   .group(() => {
@@ -280,6 +281,21 @@ router
       StudentPromotionController,
       'getPromotionHistory',
     ])
+
+    router.post('staff-attendance/check-in', [StaffAttendanceController, 'checkIn'])
+    router.post('staff-attendance/check-out', [StaffAttendanceController, 'checkOut'])
+    router.post('staff-attendance/edit-request', [StaffAttendanceController, 'requestEdit'])
+
+    // Admin functions
+    router.post('staff-attendance/admin-mark', [StaffAttendanceController, 'adminMarkAttendance'])
+    router.put('staff-attendance/edit-request/:id', [
+      StaffAttendanceController,
+      'processEditRequest',
+    ])
+    router.get('staff-attendance/edit-requests', [StaffAttendanceController, 'getEditRequests'])
+
+    // View attendance
+    router.get('staff-attendance/:staff_id', [StaffAttendanceController, 'getStaffAttendance'])
   })
   .prefix('/api/v1/')
   .use(middleware.auth())
