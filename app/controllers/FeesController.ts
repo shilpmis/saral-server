@@ -57,13 +57,14 @@ export default class FeesController {
         .where('school_id', ctx.auth.user!.school_id)
         .andWhere('academic_session_id', academic_session_id)
         .paginate(ctx.request.input('page', 1), 10)
+      return ctx.response.json(fees_types)
     } else {
       fees_types = await FeesType.query()
         .where('school_id', ctx.auth.user!.school_id)
         .andWhere('academic_session_id', academic_session_id)
       // .paginate(ctx.request.input('page', 1), 10);
+      return ctx.response.json(fees_types)
     }
-    return ctx.response.json(fees_types)
   }
 
   async indexFeesTypeByFilter(ctx: HttpContext) {
@@ -238,18 +239,35 @@ export default class FeesController {
       return ctx.response.json(fees_types)
     }
 
-    let fees_types = await FeesPlan.query()
-      .preload('concession_for_plan', (query) => {
-        query
-          .preload('concession')
-          .where('academic_session_id', academic_session_id)
-          .andWhere('status', 'Active')
-      })
-      .where('academic_session_id', academic_session_id)
-      .andWhere('status', 'Active')
-      .paginate(ctx.request.input('page', 1), 10)
+    let status = ctx.request.input('status', 'All')
+    if (status === 'All') {
+      console.log('status', status)
+      let fees_types = await FeesPlan.query()
+        .preload('concession_for_plan', (query) => {
+          query
+            .preload('concession')
+            .where('academic_session_id', academic_session_id)
+            .andWhere('status', 'Active')
+        })
+        .where('academic_session_id', academic_session_id)
+        // .andWhere('status', 'Active')
+        .paginate(ctx.request.input('page', 1), 10)
 
-    return ctx.response.json(fees_types)
+      return ctx.response.json(fees_types)
+    } else {
+      let fees_types = await FeesPlan.query()
+        .preload('concession_for_plan', (query) => {
+          query
+            .preload('concession')
+            .where('academic_session_id', academic_session_id)
+            .andWhere('status', 'Active')
+        })
+        .where('academic_session_id', academic_session_id)
+        .andWhere('status', status)
+        .paginate(ctx.request.input('page', 1), 10)
+
+      return ctx.response.json(fees_types)
+    }
   }
 
   async fetchFeesPlanDetails(ctx: HttpContext) {
@@ -346,6 +364,18 @@ export default class FeesController {
       })
     }
 
+    let check_for_plan = await FeesPlan.query()
+      .where('academic_session_id', academic_session_id)
+      .andWhere('division_id', payload.fees_plan.division_id)
+      .andWhere('status', 'Active')
+      .first()
+
+    if (check_for_plan) {
+      return ctx.response.status(400).json({
+        message: 'A active Fee plan already exists for this Division',
+      })
+    }
+
     type res = {
       fees_plan: FeesPlan
       fees_types: {
@@ -414,6 +444,65 @@ export default class FeesController {
       return ctx.response.status(500).json({
         message: 'Internal Server Error',
         errors: error,
+      })
+    }
+  }
+
+  async updateFeesPlanStatus(ctx: HttpContext) {
+    let plan_id = ctx.params.plan_id
+
+    let requestd_status = ctx.params.status
+    if (requestd_status != 'Active' && requestd_status != 'Inactive') {
+      return ctx.response.status(404).json({
+        message: 'Please provicde valid Status code !',
+      })
+    }
+
+    if (ctx.auth.user?.role_id !== 1) {
+      return ctx.response.status(401).json({
+        message: 'You are not authorized to perform this action !',
+      })
+    }
+
+    let plan = await FeesPlan.query().where('id', plan_id).first()
+
+    if (!plan) {
+      return ctx.response.status(404).json({
+        message: 'Plan not found',
+      })
+    }
+
+    let academic_session = await AcademicSession.query()
+      .where('id', plan.academic_session_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+    if (!academic_session) {
+      return ctx.response.status(404).json({
+        message: 'No active academic session found for this plan',
+      })
+    }
+
+    if (!academic_session.is_active) {
+      return ctx.response.status(400).json({
+        message: 'Academic session for this plan is not active',
+      })
+    }
+
+    try {
+      if ((requestd_status = 'Active')) {
+        await FeesPlan.query()
+          .where('academic_session_id', plan.academic_session_id)
+          .andWhere('division_id', plan.division_id)
+          .where('status', 'Active')
+          .update('status', 'Inactive')
+      }
+      plan.merge({ status: requestd_status }).save()
+      return ctx.response.status(200).json([plan])
+    } catch (error) {
+      return ctx.response.status(500).json({
+        message: 'Internal Server Error',
+        error: error,
       })
     }
   }
@@ -536,7 +625,7 @@ export default class FeesController {
 
     let academic_year = await AcademicSession.query()
       .where('id', academic_session_id)
-      .andWhere('is_active', 1)
+      .andWhere('is_active', true)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
@@ -561,6 +650,8 @@ export default class FeesController {
         message: 'Class not found',
       })
     }
+
+    console.log('division_id', division_id)
 
     let fees_plan_for_clas = await FeesPlan.query()
       .where('division_id', division_id)
@@ -593,7 +684,9 @@ export default class FeesController {
     if (filter_for_eligibility_to_apply_concession) {
       let students = await Students.query()
         .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
-        .preload('fees_status')
+        .preload('fees_status', (query) => {
+          query.where('fees_plan_id', fees_plan_for_clas.id)
+        })
         .whereIn('id', [
           ...student_enrollments.map((student: StudentEnrollments) => student.student_id),
         ])
@@ -633,7 +726,9 @@ export default class FeesController {
 
     let students = await Students.query()
       .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
-      .preload('fees_status')
+      .preload('fees_status', (query) => {
+        query.where('fees_plan_id', fees_plan_for_clas.id)
+      })
       .whereIn('id', [
         ...student_enrollments.map((student: StudentEnrollments) => student.student_id),
       ])
@@ -684,6 +779,12 @@ export default class FeesController {
         message: 'No active academic year found for this school',
       })
     }
+
+    // let student_enrollments = await StudentEnrollments.query()
+    //   .where('student_id', student_id)
+    //   .andWhere('academic_session_id', academicSession.id)
+    //   // .andWhere('school_id', ctx.auth.user!.school_id)
+    //   .first()
 
     let student = await Students.query()
       .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
@@ -1102,6 +1203,12 @@ export default class FeesController {
     if (!fees_plan) {
       return ctx.response.status(404).json({
         message: 'No fees plan found for this student',
+      })
+    }
+
+    if (fees_plan.status !== 'Active') {
+      return ctx.response.status(404).json({
+        message: 'Fees plan for this student is not active',
       })
     }
 

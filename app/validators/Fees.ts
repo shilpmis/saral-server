@@ -71,6 +71,7 @@ export const UpdateValidatorForFeesPlan = vine.compile(
       .object({
         name: vine.string().trim().minLength(2).maxLength(50).optional(),
         description: vine.string().trim().minLength(2).maxLength(50).optional(),
+        // status: vine.enum(['Active', 'Inactive']).optional(),
       })
       .optional(),
     plan_details: vine

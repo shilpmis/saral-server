@@ -538,11 +538,6 @@ export default class StundetsController {
     const trx = await db.transaction()
     try {
       for (const validated_student of validatedData) {
-        console.log(
-          'validatedData',
-          validated_student.student_meta_data?.aadhar_dise_no,
-          validated_student.students_data.first_name
-        )
         const student_data = await Students.create(
           {
             ...validated_student.students_data,

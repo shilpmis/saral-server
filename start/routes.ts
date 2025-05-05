@@ -28,6 +28,7 @@ import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
 import GlobalSearchController from '#controllers/GlobalSearchController'
 import StudentPromotionController from '#controllers/StudentPermotionController'
+import PayrollController from '#controllers/PayrollController'
 import StaffAttendanceController from '#controllers/StaffAttendanceController'
 
 router
@@ -120,16 +121,25 @@ router
         router.get('leave-policy', [LeavesController, 'indexLeavePolicyForSchool'])
         router.get('leave-policy/user', [LeavesController, 'indexLeavePolicyForUser'])
         router.post('leave-policy', [LeavesController, 'createLeavePolicyForSchool'])
-        router.put('leave-policy/:leave_policy_id', [LeavesController, 'updateLeavePolicyForSchool'])
+        router.put('leave-policy/:leave_policy_id', [
+          LeavesController,
+          'updateLeavePolicyForSchool',
+        ])
 
         // Enhanced leave management routes
         router.get('leave-applications/:staff_id', [LeavesController, 'fetchLeaveApplication'])
         router.get('leave-applications', [LeavesController, 'fetchLeaveApplicationForAdmin'])
         router.post('leave-application', [LeavesController, 'applyForLeave'])
         router.put('leave-application/:uuid', [LeavesController, 'updateAppliedLeave'])
-        router.put('leave-application/withdraw/:uuid', [LeavesController, 'withdrawLeaveApplication'])
-        router.put('leave-application/status/:uuid', [LeavesController, 'approveTeachersLeaveApplication'])
-        
+        router.put('leave-application/withdraw/:uuid', [
+          LeavesController,
+          'withdrawLeaveApplication',
+        ])
+        router.put('leave-application/status/:uuid', [
+          LeavesController,
+          'approveTeachersLeaveApplication',
+        ])
+
         // New routes for enhanced functionality
         router.get('leave-balances/:staff_id', [LeavesController, 'fetchStaffLeaveBalances'])
         router.get('leave-logs/:id', [LeavesController, 'getLeaveApplicationLogs'])
@@ -137,6 +147,43 @@ router
         router.post('leave/carry-forward', [LeavesController, 'processLeaveCarryForward'])
       })
       .use(middleware.auth())
+
+    // payroll
+    router.get('/payroll/salary-component', [PayrollController, 'indexSalaryComponents'])
+    router.post('/payroll/salary-component', [PayrollController, 'createSalaryComponent'])
+    router.put('/payroll/salary-component/:component_id', [
+      PayrollController,
+      'updateSalaryComponent',
+    ])
+    router.delete('/payroll/salary-component/:component_id', [
+      PayrollController,
+      'deleteSalaryComponent',
+    ])
+
+    router.get('/payroll/salary-template', [PayrollController, 'indexSalaryTemplates'])
+    router.get('/payroll/salary-template/:template_id', [
+      PayrollController,
+      'fetchSingleSalaryTemplate',
+    ])
+    router.post('/payroll/salary-template', [PayrollController, 'createSalaryTemplate'])
+    router.put('/payroll/salary-template/:template_id', [PayrollController, 'updateSalaryTemplate'])
+
+    router.get('/payroll/staff-salary-template/:staff_id', [
+      PayrollController,
+      'fetchSalaryTemplateForSingleStaff',
+    ])
+    router.post('/payroll/staff-salary-template', [PayrollController, 'createStaffSalaryTemplate'])
+    router.put('/payroll/staff-salary-template/:staff_id/:template_id', [
+      PayrollController,
+      'updateStaffSalaryTemplate',
+    ])
+
+    router.get('/payroll/staff', [PayrollController, 'fetchStaffWithSalaryTemplates'])
+    router.post('/payroll/payrun', [PayrollController, 'createPayRunForStaff'])
+    router.put('payroll/payrun/:staff_id/:payrun_template_id', [
+      PayrollController,
+      'udpdatePayRunTemplate',
+    ])
 
     // routes for the class seat availability
     router.post('/classes/seats', [ClassSeatAvailabilitiesController, 'addSeatAvailability'])
@@ -177,6 +224,7 @@ router
     router.post('/feestype', [FeesController, 'createFeesType'])
     router.put('/feestype/:id', [FeesController, 'updateFeesType'])
     router.get('/feesplan', [FeesController, 'indexFeesPlanForSchool'])
+    router.get('/feesplan/status/:plan_id/:status', [FeesController, 'updateFeesPlanStatus'])
     router.get('/feesplan/detail/:plan_id', [FeesController, 'fetchFeesPlanDetails'])
     router.post('/feesplan', [FeesController, 'createFeePlan'])
     router.put('/feesplan/:plan_id', [FeesController, 'updatePlan'])
@@ -237,12 +285,15 @@ router
     router.post('staff-attendance/check-in', [StaffAttendanceController, 'checkIn'])
     router.post('staff-attendance/check-out', [StaffAttendanceController, 'checkOut'])
     router.post('staff-attendance/edit-request', [StaffAttendanceController, 'requestEdit'])
-    
+
     // Admin functions
     router.post('staff-attendance/admin-mark', [StaffAttendanceController, 'adminMarkAttendance'])
-    router.put('staff-attendance/edit-request/:id', [StaffAttendanceController, 'processEditRequest'])
+    router.put('staff-attendance/edit-request/:id', [
+      StaffAttendanceController,
+      'processEditRequest',
+    ])
     router.get('staff-attendance/edit-requests', [StaffAttendanceController, 'getEditRequests'])
-    
+
     // View attendance
     router.get('staff-attendance/:staff_id', [StaffAttendanceController, 'getStaffAttendance'])
   })
