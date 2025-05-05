@@ -1,16 +1,21 @@
 import AcademicSession from '#models/AcademicSession'
 import SalaryComponents from '#models/SalaryComponents'
 import SalaryTemplates from '#models/SalaryTemplates'
+import SatffPayrunComponents from '#models/SatffPayrunComponents'
+import SatffPayrunTemplates from '#models/SatffPayrunTemplates'
 import StaffEnrollment from '#models/StaffEnrollment'
 import StaffSalaryTemplates from '#models/StaffSalaryTemplates'
 import StaffTemplateComponents from '#models/StaffTemplateComponents'
 import TemplateComponents from '#models/TemplateComponents'
 import {
+  CreatePayRunTemplateValidator,
   CreateValidatorForSalaryComponent,
   CreateValidatorForSalaryTemplates,
   CreateValidatorForStaffSalaryTemplates,
   UpdateValidatorForSalaryComponent,
   UpdateValidatorForSalaryTemplates,
+  UpdateValidatorForStaffPayRun,
+  UpdateValidatorForStaffSalaryTemplates,
 } from '#validators/Payroll'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
@@ -68,13 +73,22 @@ export default class PayrollController {
   async indexSalaryComponents(ctx: HttpContext) {
     const school_id = ctx.auth.user!.school_id
     const academic_session_id = ctx.request.input('academic_session')
+    const fetch_all = ctx.request.input('all', false)
 
-    const salary_components = await SalaryComponents.query()
-      .where('school_id', school_id)
-      .andWhere('academic_session_id', academic_session_id)
-      .paginate(ctx.request.input('page', 1), 10)
-
-    return ctx.response.status(200).json(salary_components)
+    // const salary_components : SalaryComponents[] = []
+    if (!fetch_all) {
+      let salary_components = await SalaryComponents.query()
+        .where('school_id', school_id)
+        .andWhere('academic_session_id', academic_session_id)
+        .paginate(ctx.request.input('page', 1), 10)
+      return ctx.response.status(200).json(salary_components)
+    } else {
+      let salary_components = await SalaryComponents.query()
+        .where('school_id', school_id)
+        .andWhere('academic_session_id', academic_session_id)
+      // .paginate(ctx.request.input('page', 1), 10)
+      return ctx.response.status(200).json(salary_components)
+    }
   }
 
   async createSalaryComponent(ctx: HttpContext) {
@@ -289,14 +303,22 @@ export default class PayrollController {
   async indexSalaryTemplates(ctx: HttpContext) {
     const school_id = ctx.auth.user!.school_id
     const academic_session_id = ctx.request.input('academic_session')
-
-    const salary_templates = await SalaryTemplates.query()
-      .preload('template_components')
-      .where('school_id', school_id)
-      .andWhere('academic_session_id', academic_session_id)
-      .paginate(ctx.request.input('page', 1), 10)
-
-    return ctx.response.status(200).json(salary_templates)
+    const fetch_all = ctx.request.input('all', false)
+    if (!fetch_all) {
+      const salary_templates = await SalaryTemplates.query()
+        .preload('template_components')
+        .where('school_id', school_id)
+        .andWhere('academic_session_id', academic_session_id)
+        .paginate(ctx.request.input('page', 1), 10)
+      return ctx.response.status(200).json(salary_templates)
+    } else {
+      const salary_templates = await SalaryTemplates.query()
+        .preload('template_components')
+        .where('school_id', school_id)
+        .andWhere('academic_session_id', academic_session_id)
+      // .paginate(ctx.request.input('page', 1), 10)
+      return ctx.response.status(200).json(salary_templates)
+    }
   }
 
   async fetchSingleSalaryTemplate(ctx: HttpContext) {
@@ -679,12 +701,13 @@ export default class PayrollController {
                 component.salary_components_id === template_components[i].salary_components_id
             ) ?? null
 
-          if (!temp_component) {
-            return ctx.response.status(404).json({
-              components_id: template_components[i].salary_components_id,
-              message: 'Salary component is not in Template Component not found',
-            })
-          }
+          // if (!temp_component) {
+          //   return ctx.response.status(404).json({
+          //     components_id: template_components[i].salary_components_id,
+          //     message: 'Salary component is not in Template Component not found',
+          //   })
+          // }
+
           let salary_component = await SalaryComponents.query()
             .where('school_id', school_id)
             .andWhere('id', template_components[i].salary_components_id)
@@ -734,7 +757,7 @@ export default class PayrollController {
               salary_components_id: salary_component.id,
               amount: template_components[i].amount,
               percentage: template_components[i].percentage,
-              is_mandatory: salary_component.is_mandatory || temp_component.is_mandatory,
+              is_mandatory: salary_component.is_mandatory,
               total_recovered_amount: template_components[i].total_recovered_amount,
               total_recovering_amount: template_components[i].total_recovering_amount,
               recovering_end_month: template_components[i].recovering_end_month,
@@ -756,6 +779,394 @@ export default class PayrollController {
       return ctx.response
         .status(403)
         .json({ message: 'You are not authorized to perform this action' })
+    }
+  }
+
+  async updateStaffSalaryTemplate(ctx: HttpContext) {
+    const school_id = ctx.auth.user!.school_id
+    const role_id = ctx.auth.user!.role_id
+    const staff_id = ctx.params.staff_id
+    const template_id = ctx.params.template_id
+
+    let accademic_session = await AcademicSession.query()
+      .where('school_id', school_id)
+      .andWhere('is_active', true)
+      .first()
+
+    if (!accademic_session) {
+      return ctx.response.status(422).json({ message: 'Academic session is not active' })
+    }
+
+    let staff_enrollment = await StaffEnrollment.query()
+      .preload('staff')
+      .where('academic_session_id', accademic_session.id)
+      .andWhere('staff_id', staff_id)
+      .first()
+
+    if (!staff_enrollment) {
+      return ctx.response.status(422).json({ message: 'Staff enrollment not found' })
+    }
+
+    let staff_salary_template = await StaffSalaryTemplates.query()
+      .preload('template_components')
+      .where('staff_enrollments_id', staff_enrollment.id)
+      .andWhere('id', template_id)
+      .first()
+
+    if (!staff_salary_template) {
+      return ctx.response.status(404).json({ message: 'Staff Salary Template not found' })
+    }
+
+    if (role_id == 1 || role_id == 2) {
+      let {
+        existing_salary_components,
+        new_salary_components,
+        remove_salary_components,
+        ...payload
+      } = await UpdateValidatorForStaffSalaryTemplates.validate(ctx.request.body())
+
+      let trx = await db.transaction()
+
+      try {
+        if (Object.keys(payload).length > 0) {
+          await staff_salary_template.merge(payload).useTransaction(trx).save()
+        }
+
+        if (existing_salary_components && existing_salary_components.length > 0) {
+          for (let i = 0; i < existing_salary_components.length; i++) {
+            let temp_component = staff_salary_template.template_components.find(
+              (component) =>
+                component.salary_components_id ===
+                existing_salary_components[i].salary_components_id
+            )
+
+            if (!temp_component) {
+              return ctx.response.status(404).json({
+                components_id: existing_salary_components[i].salary_components_id,
+                message: 'Salary component not found',
+              })
+            }
+
+            if (
+              temp_component.amount &&
+              existing_salary_components[i].amount &&
+              (existing_salary_components[i].percentage || !existing_salary_components[i].amount)
+            ) {
+              return ctx.response.status(422).json({
+                comonent_id: existing_salary_components[i].salary_components_id,
+                message:
+                  'Salary component has calculation method percentage, amount should be null and percentage should have valid value.',
+              })
+            }
+
+            if (
+              temp_component.percentage &&
+              existing_salary_components[i].percentage &&
+              (!existing_salary_components[i].percentage || existing_salary_components[i].amount)
+            ) {
+              return ctx.response.status(422).json({
+                comonent_id: existing_salary_components[i].salary_components_id,
+                message:
+                  'Salary component has calculation method fixedd value, amount should be valid value and percentage should be null.',
+              })
+            }
+
+            await temp_component.merge(existing_salary_components[i]).useTransaction(trx).save()
+          }
+        }
+
+        if (new_salary_components && new_salary_components.length > 0) {
+          for (let i = 0; i < new_salary_components.length; i++) {
+            let temp_component = staff_salary_template.template_components.find(
+              (component) =>
+                component.salary_components_id === new_salary_components[i].salary_components_id
+            )
+
+            if (temp_component) {
+              return ctx.response.status(422).json({
+                comonent_id: new_salary_components[i].salary_components_id,
+                message: 'Salary component already exists in template',
+              })
+            }
+
+            let salary_component = await SalaryComponents.query()
+              .where('school_id', school_id)
+              .andWhere('id', new_salary_components[i].salary_components_id)
+              .first()
+
+            if (!salary_component) {
+              return ctx.response.status(404).json({ message: 'Salary component not found' })
+            }
+
+            if (
+              salary_component.calculation_method === 'percentage' &&
+              (new_salary_components[i].amount || !new_salary_components[i].percentage)
+            ) {
+              return ctx.response.status(422).json({
+                comonent_id: salary_component.id,
+                message:
+                  'Salary component has calculation method percentage, amount should be null and percentage should have valid value.',
+              })
+            }
+
+            if (
+              salary_component.calculation_method === 'amount' &&
+              (!new_salary_components[i].amount || new_salary_components[i].percentage)
+            ) {
+              return ctx.response.status(422).json({
+                comonent_id: salary_component.id,
+                message:
+                  'Salary component has calculation method fixedd value, amount should be valid value and percentage should be null.',
+              })
+            }
+
+            await StaffTemplateComponents.create(
+              {
+                staff_salary_templates_id: staff_salary_template.id,
+                salary_components_id: salary_component.id,
+                amount: new_salary_components[i].amount,
+                percentage: new_salary_components[i].percentage,
+                is_mandatory: salary_component.is_mandatory,
+                total_recovered_amount: new_salary_components[i].total_recovered_amount,
+                total_recovering_amount: new_salary_components[i].total_recovering_amount,
+                recovering_end_month: new_salary_components[i].recovering_end_month,
+              },
+              { client: trx }
+            )
+          }
+        }
+
+        if (remove_salary_components && remove_salary_components.length > 0) {
+          for (let i = 0; i < remove_salary_components.length; i++) {
+            let temp_component = staff_salary_template.template_components.find(
+              (component) =>
+                component.salary_components_id === remove_salary_components[i].salary_components_id
+            )
+
+            if (!temp_component) {
+              return ctx.response
+                .status(404)
+                .json({ message: 'Salary component not found for delete !' })
+            }
+            await temp_component.useTransaction(trx).delete()
+          }
+        }
+
+        await trx.commit()
+        return ctx.response.status(201).json({ ...staff_salary_template.serialize() })
+      } catch (error) {
+        await trx.rollback()
+        return ctx.response.status(500).json({ message: error })
+      }
+    } else {
+      return ctx.response
+        .status(403)
+        .json({ message: 'You are not authorized to perform this action' })
+    }
+  }
+
+  // Pay run y
+
+  /**
+   * Listing of all employees
+   * need a view pannel for view salary details and edit if
+   * wehen make it pay it will irreversible
+   */
+
+  async fetchStaffWithSalaryTemplates(ctx: HttpContext) {
+    let school_id = ctx.auth.user!.school_id
+
+    // let period=2025-5
+    let period = ctx.request.input('period')
+
+    // Validate the period format
+    const periodRegex = /^\d{4}-(0[1-9]|1[0-2])$/ // Matches YYYY-MM format
+    if (!periodRegex.test(period)) {
+      return ctx.response
+        .status(422)
+        .json({ message: 'Invalid period format. Expected format: YYYY-MM' })
+    }
+
+    const [year, month] = period.split('-')
+
+    let accademic_session = await AcademicSession.query()
+      .where('school_id', school_id)
+      .andWhere('is_active', true)
+      .first()
+
+    if (!accademic_session) {
+      return ctx.response.status(422).json({ message: 'Academic session is not active' })
+    }
+
+    let staff_with_salary_templates = await StaffEnrollment.query()
+      .preload('staff', (query) => {
+        query.select('id', 'staff_role_id', 'first_name', 'last_name', 'email')
+        query.preload('role_type')
+      })
+      .preload('pay_runs', (query) => {
+        query.where('payroll_period', `${year}-${month}`)
+      })
+      .preload('staff_salary_templates')
+      .where('academic_session_id', accademic_session.id)
+      .andWhereNot('status', 'Resigned')
+      .paginate(ctx.request.input('page', 1), 10)
+
+    return ctx.response.status(201).json(staff_with_salary_templates)
+  }
+
+  async createPayRunForStaff(ctx: HttpContext) {
+    let { payroll_components, ...other_paylaod } = await CreatePayRunTemplateValidator.validate(
+      ctx.request.all()
+    )
+
+    let active_session = await AcademicSession.query()
+      .where('school_id', ctx.auth.user!.school_id)
+      .andWhere('is_active', true)
+      .first()
+
+    if (!active_session) {
+      return ctx.response.status(422).json({ message: 'Academic session is not active' })
+    }
+
+    let satff_enrollment = await StaffEnrollment.query()
+      .preload('staff_salary_templates', (query) => {
+        query.preload('template_components', (query) => {
+          query.preload('salary_component')
+        })
+      })
+      .where('id', other_paylaod.staff_enrollments_id)
+      .andWhere('academic_session_id', active_session.id)
+      .first()
+
+    if (!satff_enrollment) {
+      return ctx.response.status(422).json({ message: 'No Staff Found.' })
+    }
+
+    let trx = await db.transaction()
+    try {
+      let added_payroll_components: SatffPayrunComponents[] = []
+
+      // let total_payroll = 0
+      // let anuaual_ctc = other_paylaod.based_anual_ctc
+      // let basic_pay_component = satff_enrollment.staff_salary_templates.template_components.find(
+      //   (temp_component) => temp_component.salary_component.is_based_on_annual_ctc
+      // )
+      // if (!basic_pay_component) {
+      //   return ctx.response.status(422).json({ message: 'Basic pay component not found' })
+      // }
+
+      // let basic_pay = basic_pay_component.percentage
+      //   ? other_paylaod.based_anual_ctc * (basic_pay_component.percentage / 100)
+      //   : basic_pay_component.amount;
+
+      //   total_payroll =
+
+      let pay_run_tmp = await SatffPayrunTemplates.create(
+        {
+          base_template_id: other_paylaod.base_template_id,
+          staff_enrollments_id: other_paylaod.staff_enrollments_id,
+          payroll_period: `${other_paylaod.payroll_year}-${other_paylaod.payroll_month}`,
+          template_name: other_paylaod.template_name,
+          template_code: other_paylaod.template_code,
+          based_anual_ctc: other_paylaod.based_anual_ctc,
+          total_payroll: other_paylaod.total_payroll,
+          notes: other_paylaod.notes,
+          status: 'draft',
+        },
+        { client: trx }
+      )
+
+      console.log('payroll_components', payroll_components)
+      for (let i = 0; i < payroll_components.length; i++) {
+        let temp_component = satff_enrollment.staff_salary_templates.template_components.find(
+          (component) =>
+            component.salary_components_id === payroll_components[i].salary_components_id
+        )
+        if (!temp_component) {
+          return ctx.response.status(404).json({
+            components_id: payroll_components[i].salary_components_id,
+            message: 'Salary component not found in template',
+          })
+        }
+
+        if (
+          temp_component.amount &&
+          (!payroll_components[i].amount || payroll_components[i].percentage)
+        ) {
+          return ctx.response.status(422).json({
+            comonent_id: payroll_components[i].salary_components_id,
+            message:
+              'Salary component has calculation method percentage, amount should be null and percentage should have valid value.',
+          })
+        }
+
+        if (
+          temp_component.percentage &&
+          (!payroll_components[i].percentage || payroll_components[i].amount)
+        ) {
+          return ctx.response.status(422).json({
+            comonent_id: payroll_components[i].salary_components_id,
+            message:
+              'Salary component has calculation method fixedd value, amount should be valid value and percentage should be null.',
+          })
+        }
+
+        let payrun_comp = await SatffPayrunComponents.create(
+          {
+            ...payroll_components[i],
+            satff_payrun_templates_id: pay_run_tmp.id,
+          },
+          { client: trx }
+        )
+        added_payroll_components.push(payrun_comp)
+      }
+
+      await trx.commit()
+      return ctx.response.status(201).json({ ...pay_run_tmp.serialize(), payroll_components })
+    } catch (error) {
+      await trx.rollback()
+      return ctx.response.status(500).json({ error: error })
+    }
+  }
+
+  async udpdatePayRunTemplate(ctx: HttpContext) {
+    const school_id = ctx.auth.user!.school_id
+    const role_id = ctx.auth.user!.role_id
+    const staff_id = ctx.params.staff_id
+    const payrun_template_id = ctx.params.payrun_template_id
+
+    try {
+      let active_session = await AcademicSession.query()
+        .where('school_id', school_id)
+        .andWhere('is_active', true)
+        .first()
+
+      if (!active_session) {
+        return ctx.response.status(422).json({ message: 'Academic session is not active' })
+      }
+
+      let staff_enrollment = await StaffEnrollment.query()
+        .where('staff_id', staff_id)
+        .andWhere('academic_session_id', active_session!.id)
+        .first()
+
+      if (!staff_enrollment) {
+        return ctx.response.status(422).json({ message: 'Staff enrollment not found' })
+      }
+
+      let pay_run_tmp = await SatffPayrunTemplates.query()
+        .where('staff_enrollments_id', staff_enrollment.id)
+        .andWhere('id', payrun_template_id)
+        .first()
+
+      if (!pay_run_tmp) {
+        return ctx.response.status(422).json({ message: 'Pay run template not found' })
+      }
+
+      await pay_run_tmp.merge(ctx.request.body()).save()
+      return ctx.response.status(200).json(pay_run_tmp)
+    } catch (error) {
+      return ctx.response.status(500).json({ message: error })
     }
   }
 }

@@ -1,7 +1,9 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column } from '@adonisjs/lucid/orm'
+import { column, hasOne } from '@adonisjs/lucid/orm'
+import SalaryComponents from './SalaryComponents.js'
+import type { HasOne } from '@adonisjs/lucid/types/relations'
 
 export default class StaffTemplateComponents extends Base {
   @column()
@@ -27,4 +29,10 @@ export default class StaffTemplateComponents extends Base {
 
   @column()
   declare is_mandatory: boolean
+
+  @hasOne(() => SalaryComponents, {
+    localKey: 'salary_components_id',
+    foreignKey: 'id',
+  })
+  declare salary_component: HasOne<typeof SalaryComponents>
 }

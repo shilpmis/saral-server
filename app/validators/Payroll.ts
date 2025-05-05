@@ -1,4 +1,5 @@
 import vine from '@vinejs/vine'
+import exp from 'constants'
 
 /**
  * Validates the post's creation action
@@ -182,6 +183,53 @@ export const UpdateValidatorForStaffSalaryTemplates = vine.compile(
         })
       )
       .minLength(1)
+      .optional(),
+  })
+)
+
+export const CreatePayRunTemplateValidator = vine.compile(
+  vine.object({
+    base_template_id: vine.number(),
+    staff_enrollments_id: vine.number(),
+    payroll_month: vine.string(),
+    payroll_year: vine.string(),
+    template_name: vine.string().trim().minLength(2).maxLength(50),
+    template_code: vine.string().trim().minLength(2).maxLength(50),
+    based_anual_ctc: vine.number().min(100),
+    total_payroll: vine.number().min(100),
+    notes: vine.string().nullable(),
+    payroll_components: vine
+      .array(
+        vine.object({
+          // satff_payrun_templates_id: vine.number(),
+          salary_components_id: vine.number(),
+          payslip_name: vine.string().trim().minLength(2).maxLength(50).nullable(),
+          amount: vine.number().nullable(),
+          percentage: vine.number().nullable(),
+          is_based_on_annual_ctc: vine.boolean(),
+          is_based_on_basic_pay: vine.boolean(),
+          is_modofied: vine.boolean(),
+        })
+      )
+      .minLength(1),
+  })
+)
+
+export const UpdateValidatorForStaffPayRun = vine.compile(
+  vine.object({
+    template_name: vine.string().trim().minLength(2).maxLength(50).optional(),
+    notes: vine.string().nullable().optional(),
+    status: vine
+      .enum([
+        'draft',
+        'pending',
+        'processing',
+        'partially_paid',
+        'paid',
+        'failed',
+        'cancelled',
+        'on_hold',
+      ])
       .optional(),
   })
 )
