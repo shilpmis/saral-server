@@ -9,6 +9,7 @@ import {
 import Divisions from '#models/Divisions'
 import AcademicSession from '#models/AcademicSession'
 import db from '@adonisjs/lucid/services/db'
+import { join } from 'node:path'
 
 export default class ClassesController {
   async indexClassesForSchool(ctx: HttpContext) {
@@ -33,10 +34,17 @@ export default class ClassesController {
           })
         }
 
-        let divisions = await Divisions.query()
-          .doesntHave('fees_plan')
-          .whereIn('class_id', [...class_for_School.map((item) => item.id)])
-          .preload('class')
+        let divisions = await db
+          .query()
+          .from('divisions as div')
+          .select('div.*')
+          .leftJoin('fees_plans as fp', 'div.id', 'fp.division_id')
+          .andWhereIn('div.class_id', [...class_for_School.map((item) => item.id)])
+          .andWhere((query) => {
+            query
+              .whereNull('fp.id') // No fees plan associated
+              .orWhere('fp.status', 'Inactive') // Inactive fees plan
+          })
 
         return ctx.response.json(divisions)
       } catch (error) {
