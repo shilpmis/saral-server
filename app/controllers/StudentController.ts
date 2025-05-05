@@ -2,7 +2,7 @@ import Classes from '#models/Classes'
 import type { HttpContext } from '@adonisjs/core/http'
 import {
   CreateValidatorForMultipleStundets,
-  CreateValidatorForUpload,
+  // CreateValidatorForUpload,
   // CreateValidatorForUpload,
   CreateValidatorStundet,
   UpdateValidatorForStundets,

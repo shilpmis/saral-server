@@ -9,7 +9,6 @@ import {
 import Divisions from '#models/Divisions'
 import AcademicSession from '#models/AcademicSession'
 import db from '@adonisjs/lucid/services/db'
-import { join } from 'node:path'
 
 export default class ClassesController {
   async indexClassesForSchool(ctx: HttpContext) {

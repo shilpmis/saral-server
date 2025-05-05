@@ -14,7 +14,6 @@ import {
   CreateValidatorForStaffSalaryTemplates,
   UpdateValidatorForSalaryComponent,
   UpdateValidatorForSalaryTemplates,
-  UpdateValidatorForStaffPayRun,
   UpdateValidatorForStaffSalaryTemplates,
 } from '#validators/Payroll'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -695,11 +694,11 @@ export default class PayrollController {
 
         let components_for_tmplates: StaffTemplateComponents[] = []
         for (let i = 0; i < template_components.length; i++) {
-          let temp_component: TemplateComponents | null =
-            base_template.template_components.find(
-              (component) =>
-                component.salary_components_id === template_components[i].salary_components_id
-            ) ?? null
+          // let temp_component: TemplateComponents | null =
+          //   base_template.template_components.find(
+          //     (component) =>
+          //       component.salary_components_id === template_components[i].salary_components_id
+          //   ) ?? null
 
           // if (!temp_component) {
           //   return ctx.response.status(404).json({
@@ -1131,7 +1130,7 @@ export default class PayrollController {
 
   async udpdatePayRunTemplate(ctx: HttpContext) {
     const school_id = ctx.auth.user!.school_id
-    const role_id = ctx.auth.user!.role_id
+    // const role_id = ctx.auth.user!.role_id
     const staff_id = ctx.params.staff_id
     const payrun_template_id = ctx.params.payrun_template_id
 

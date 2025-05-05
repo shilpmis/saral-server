@@ -1,7 +1,7 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column, hasMany, hasOne } from '@adonisjs/lucid/orm'
+import { column, hasMany } from '@adonisjs/lucid/orm'
 import StaffTemplateComponents from './StaffTemplateComponents.js'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import SalaryTemplates from './SalaryTemplates.js'
