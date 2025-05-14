@@ -1,5 +1,5 @@
 import AcademicSession from '#models/AcademicSession'
-// import Classes from '#models/Classes'
+import Classes from '#models/Classes'
 import ConcessionFeesPlanMaster from '#models/ConcessionFeesPlanMaster'
 import Concessions from '#models/Concessions'
 import ConcessionsInstallmentMasters from '#models/ConcessionsInstallmentMasters'
@@ -33,8 +33,12 @@ import db from '@adonisjs/lucid/services/db'
 import { HasOne } from '@adonisjs/lucid/types/relations'
 
 export default class FeesController {
+  
+  // index fees type for school which are applicable to plan 
   async indexFeesTyeForSchool(ctx: HttpContext) {
     let academic_session_id = ctx.request.input('academic_session')
+    let applicable_to = ctx.request.input('type')
+    let status = ctx.request.input('status' , 'Active')
     if (!academic_session_id) {
       return ctx.response.status(400).json({
         message: 'Please provide academic_session_id',
@@ -53,16 +57,37 @@ export default class FeesController {
     let fetch_all = ctx.request.input('all', false)
     let fees_types: FeesType[] = []
     if (!fetch_all) {
-      fees_types = await FeesType.query()
-        .where('school_id', ctx.auth.user!.school_id)
-        .andWhere('academic_session_id', academic_session_id)
-        .paginate(ctx.request.input('page', 1), 10)
+      if(applicable_to === 'all'){
+        fees_types = await FeesType.query()
+          .where('school_id', ctx.auth.user!.school_id)
+          .andWhere('academic_session_id', academic_session_id)
+          .andWhere('status', status)
+          .paginate(ctx.request.input('page', 1), 10)
+      }else{
+        fees_types = await FeesType.query()
+          .where('school_id', ctx.auth.user!.school_id)
+          .andWhere('applicable_to', applicable_to)
+          .andWhere('status', status)
+          .andWhere('academic_session_id', academic_session_id)
+          .andWhere('applicable_to', applicable_to)
+          .paginate(ctx.request.input('page', 1), 10)
+      } 
       return ctx.response.json(fees_types)
     } else {
-      fees_types = await FeesType.query()
-        .where('school_id', ctx.auth.user!.school_id)
-        .andWhere('academic_session_id', academic_session_id)
-      // .paginate(ctx.request.input('page', 1), 10);
+
+      if(applicable_to === 'all'){
+        fees_types = await FeesType.query()
+          .where('school_id', ctx.auth.user!.school_id)
+          .andWhere('academic_session_id', academic_session_id)
+          .andWhere('status', status)
+      }else{
+        fees_types = await FeesType.query()
+          .where('school_id', ctx.auth.user!.school_id)
+          .andWhere('applicable_to', applicable_to)
+          .andWhere('status', status)
+          .andWhere('academic_session_id', academic_session_id)
+          .andWhere('applicable_to', applicable_to)
+      }
       return ctx.response.json(fees_types)
     }
   }
@@ -96,6 +121,7 @@ export default class FeesController {
         .join('fees_plan_details as fpd', 'fp.id', 'fpd.fees_plan_id')
         .join('fees_types as ft', 'fpd.fees_type_id', 'ft.id')
         .where('fp.academic_session_id', academic_session_id)
+        .andWhere('ft.applicable_to', 'plan')
         .andWhere('fp.division_id', division_id)
         .distinct()
         .select('ft.*')
@@ -240,6 +266,7 @@ export default class FeesController {
     }
 
     let status = ctx.request.input('status', 'All')
+
     if (status === 'All') {
       console.log('status', status)
       let fees_types = await FeesPlan.query()
@@ -333,7 +360,9 @@ export default class FeesController {
 
     let consession = await ConcessionFeesPlanMaster.query()
       .where('fees_plan_id', plan_id)
-      .andWhere('status', 'Active')
+      .andWhere('status', 'Active');
+
+
     if (consession.length > 0) {
       resObj.consession = consession
     }
@@ -366,13 +395,13 @@ export default class FeesController {
 
     let check_for_plan = await FeesPlan.query()
       .where('academic_session_id', academic_session_id)
-      .andWhere('division_id', payload.fees_plan.division_id)
+      .andWhere('class_id', payload.fees_plan.class_id)
       .andWhere('status', 'Active')
       .first()
 
     if (check_for_plan) {
       return ctx.response.status(400).json({
-        message: 'A active Fee plan already exists for this Division',
+        message: 'A active Fee plan already exists for this Class.',
       })
     }
 
@@ -493,7 +522,7 @@ export default class FeesController {
       if ((requestd_status = 'Active')) {
         await FeesPlan.query()
           .where('academic_session_id', plan.academic_session_id)
-          .andWhere('division_id', plan.division_id)
+          .andWhere('class_id', plan.class_id)
           .where('status', 'Active')
           .update('status', 'Inactive')
       }
@@ -641,20 +670,28 @@ export default class FeesController {
       })
     }
 
-    let clas = await Divisions.query().where('id', division_id).first()
-    // .andWhere('academic_session_id', academic_session_id)
-    // .andWhere('school_id', ctx.auth.user!.school_id)
+    let division = await Divisions.query().where('id', division_id).first()
 
-    if (!clas) {
+    if (!division) {
       return ctx.response.status(404).json({
-        message: 'Class not found',
+        message: 'Division not found',
       })
     }
 
-    console.log('division_id', division_id)
+    let clas = await Classes.query()
+      .where('id', division.class_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+
+    if (!clas) {
+      return ctx.response.status(404).json({
+        message: 'Class not found for provided division',
+      })
+    }
 
     let fees_plan_for_clas = await FeesPlan.query()
-      .where('division_id', division_id)
+      .where('class_id', clas.id)
       .andWhere('academic_session_id', academic_session_id)
       .andWhere('status', 'Active')
       .first()
@@ -763,6 +800,13 @@ export default class FeesController {
 
   async fetchFeesStatusForSingleStudent(ctx: HttpContext) {
     let student_id = ctx.params.student_id
+    let acadamic_session = ctx.request.input('academic_session')
+    if (!acadamic_session) {
+      return ctx.response.status(400).json({
+        message: 'Please provide academic_session_id',
+      })
+    }
+
     if (!student_id) {
       return ctx.response.status(400).json({
         message: 'Please provide student_id',
@@ -770,7 +814,7 @@ export default class FeesController {
     }
 
     let academicSession = await AcademicSession.query()
-      .where('is_active', 1)
+      .where('id', acadamic_session)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
@@ -780,11 +824,42 @@ export default class FeesController {
       })
     }
 
-    // let student_enrollments = await StudentEnrollments.query()
-    //   .where('student_id', student_id)
-    //   .andWhere('academic_session_id', academicSession.id)
-    //   // .andWhere('school_id', ctx.auth.user!.school_id)
-    //   .first()
+    let student_enrollment = await StudentEnrollments.query()
+      .preload('division')
+      .where('student_id', student_id)
+      .andWhere('academic_session_id', academicSession.id)
+      .first()
+
+    if (!student_enrollment) {
+      return ctx.response.status(404).json({
+        message: 'No student enrollment found for this student',
+      })
+    }
+
+    let feesPlan_for_student = await FeesPlan.query()
+      .preload('fees_detail')
+      .preload('concession_for_plan', (query) => {
+        query.preload('concession', (query) => {
+          query.andWhere('status', 'Active')
+        })
+        query.andWhere('status', 'Active')
+      })
+      .where('class_id', student_enrollment.division.class_id)
+      .andWhere('academic_session_id', academicSession.id)
+      .andWhere('status', 'Active')
+
+    if (feesPlan_for_student.length === 0) {
+      return ctx.response.status(404).json({
+        message: 'No fees plan found for this student',
+      })
+    }
+
+    if (feesPlan_for_student.length > 1) {
+      return ctx.response.status(404).json({
+        message: 'More then One fees plan found for this student or for perticualar class',
+      })
+    }
+
 
     let student = await Students.query()
       .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
@@ -793,6 +868,7 @@ export default class FeesController {
           query.preload('applied_concessions')
         })
         query.preload('paid_fees_details')
+        query.where('fees_plan_id', feesPlan_for_student[0].id)
       })
       .preload('provided_concession', (query) => {
         query.preload('concession', (query) => {
@@ -818,28 +894,10 @@ export default class FeesController {
       })
     }
 
-    let feesPlan = await FeesPlan.query()
-      .preload('fees_detail')
-      .preload('concession_for_plan', (query) => {
-        query.preload('concession', (query) => {
-          query.andWhere('status', 'Active')
-        })
-        query.andWhere('status', 'Active')
-      })
-      .where('division_id', student.academic_class[0].division_id)
-      .andWhere('academic_session_id', academicSession.id)
-      .andWhere('status', 'Active')
-      .first()
-
-    if (!feesPlan) {
-      return ctx.response.status(404).json({
-        message: 'No fees plan found for this Student',
-      })
-    }
 
     let feesDetails = await FeesPlanDetails.query()
       .preload('installments_breakdown')
-      .where('fees_plan_id', feesPlan.id)
+      .where('fees_plan_id', feesPlan_for_student[0].id)
 
     type ResType = {
       fees_plan: FeesPlan
@@ -875,7 +933,7 @@ export default class FeesController {
       (acc: number, cons: ConcessionStudentMaster) => {
         if (cons.percentage) {
           if (cons.concession.concessions_to === 'plan') {
-            return acc + (Number(cons.percentage) * Number(feesPlan.total_amount)) / 100
+            return acc + (Number(cons.percentage) * Number(feesPlan_for_student[0].total_amount)) / 100
           } else {
             const matchingDetail = feesDetails.find(
               (detail) => detail.fees_type_id === cons.fees_type_id
@@ -902,11 +960,11 @@ export default class FeesController {
       studentObj.fees_status = {
         student_id: student.id,
         academic_session_id: academicSession.id,
-        fees_plan_id: feesPlan.id,
+        fees_plan_id: feesPlan_for_student[0].id,
         discounted_amount: 0.0,
         paid_amount: 0.0,
-        total_amount: feesPlan.total_amount,
-        due_amount: feesPlan.total_amount,
+        total_amount: feesPlan_for_student[0].total_amount,
+        due_amount: feesPlan_for_student[0].total_amount,
         status: 'Pending',
       }
     } else {
@@ -917,7 +975,7 @@ export default class FeesController {
       res.paid_fees = paidFees
     }
 
-    res.fees_plan = feesPlan
+    res.fees_plan = feesPlan_for_student[0]
     res.fees_details = feesDetails
 
     type InstallmentForFeesStatusOfStudent = {
@@ -935,11 +993,11 @@ export default class FeesController {
       carry_forward_amount: string | null
       amount_paid_as_carry_forward: string | null
       applied_concession:
-        | {
-            concession_id: number
-            applied_amount: number
-          }[]
-        | null
+      | {
+        concession_id: number
+        applied_amount: number
+      }[]
+      | null
     }
 
     type TypeForFeesStatusOfStudent = {
@@ -966,8 +1024,8 @@ export default class FeesController {
       let fees_plan_detail_for_indexed_feees_type =
         student.fees_status && student.fees_status.paid_fees_details
           ? student.fees_status.paid_fees_details.find(
-              (fees_plan) => fees_plan.fees_plan_details_id === feesDetails[i].id
-            )
+            (fees_plan) => fees_plan.fees_plan_details_id === feesDetails[i].id
+          )
           : null
 
       if (fees_plan_detail_for_indexed_feees_type) {
@@ -977,14 +1035,14 @@ export default class FeesController {
       let paid_installments_for_fees_type =
         student.fees_status && student.fees_status
           ? student.fees_status.paid_fees.filter(
-              (paid_installment, index, self) =>
-                installment_breakDowns.some(
-                  (installment) => installment.id === paid_installment.installment_id
-                ) &&
-                self.findIndex(
-                  (item) => item.installment_id === paid_installment.installment_id
-                ) === index
-            )
+            (paid_installment, index, self) =>
+              installment_breakDowns.some(
+                (installment) => installment.id === paid_installment.installment_id
+              ) &&
+              self.findIndex(
+                (item) => item.installment_id === paid_installment.installment_id
+              ) === index
+          )
           : []
 
       let applied_concession = student.provided_concession.filter(
@@ -1035,16 +1093,16 @@ export default class FeesController {
                 carry_forward_amount:
                   Number(feesDetails[i].total_installment) - Number(installment.installment_no) ===
                     0 ||
-                  (j === installment_breakDowns.length - 1 && k === paid_installments.length - 1)
+                    (j === installment_breakDowns.length - 1 && k === paid_installments.length - 1)
                     ? total_due_amount.toString()
                     : '0.00',
                 due_date: installment.due_date,
                 payment_status:
                   (parseFloat(total_due_amount.toString()) > 0 &&
                     Number(feesDetails[i].total_installment) -
-                      Number(installment.installment_no) ===
-                      0) ||
-                  (j === installment_breakDowns.length - 1 && k === paid_installments.length - 1)
+                    Number(installment.installment_no) ===
+                    0) ||
+                    (j === installment_breakDowns.length - 1 && k === paid_installments.length - 1)
                     ? 'Partially Paid'
                     : 'Paid',
                 is_paid: true,
@@ -1137,10 +1195,6 @@ export default class FeesController {
   async payMultipleInstallments(ctx: HttpContext) {
     const payload = await CreateValidationForMultipleInstallments.validate(ctx.request.body())
 
-    // console.log('payload', payload)
-
-    // return ctx.response.json(payload)
-
     let student_id = payload.student_id
 
     if (!student_id) {
@@ -1160,6 +1214,36 @@ export default class FeesController {
       })
     }
 
+    let student_enrollment = await StudentEnrollments.query()
+      .preload('division')
+      .where('student_id', student_id)
+      .andWhere('academic_session_id', academicSession.id)
+      .first()
+
+    if (!student_enrollment) {
+      return ctx.response.status(404).json({
+        message: 'No student enrollment found for this student',
+      })
+    }
+
+    let feesPlan_for_student = await FeesPlan.query()
+      .preload('fees_detail')
+      .where('class_id', student_enrollment.division.class_id)
+      .andWhere('academic_session_id', academicSession.id)
+      .andWhere('status', 'Active')
+
+    if (feesPlan_for_student.length === 0) {
+      return ctx.response.status(404).json({
+        message: 'No fees plan found for this student',
+      })
+    }
+
+    if (feesPlan_for_student.length > 1) {
+      return ctx.response.status(404).json({
+        message: 'More then One fees plan found for this student or for perticualar class',
+      })
+    }
+
     let student = await Students.query()
       .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
       .preload('fees_status', (query) => {
@@ -1167,6 +1251,7 @@ export default class FeesController {
           query.preload('applied_concessions')
         })
         query.preload('paid_fees_details')
+        query.where('fees_plan_id', feesPlan_for_student[0].id)
       })
       .preload('provided_concession', (query) => {
         query.preload('concession', (query) => {
@@ -1189,26 +1274,6 @@ export default class FeesController {
     if (!student) {
       return ctx.response.status(404).json({
         message: 'Student not found',
-      })
-    }
-
-    let fees_plan = await FeesPlan.query()
-      .preload('fees_detail')
-      .preload('concession_for_plan')
-      .where('division_id', student.academic_class[0].division_id)
-      .andWhere('academic_session_id', academicSession.id)
-      // .andWhere('status', 'Active')
-      .first()
-
-    if (!fees_plan) {
-      return ctx.response.status(404).json({
-        message: 'No fees plan found for this student',
-      })
-    }
-
-    if (fees_plan.status !== 'Active') {
-      return ctx.response.status(404).json({
-        message: 'Fees plan for this student is not active',
       })
     }
 
@@ -1247,14 +1312,14 @@ export default class FeesController {
         let studentFeesMaster = await StudentFeesMaster.create(
           {
             student_id: student_id,
-            fees_plan_id: fees_plan.id,
+            fees_plan_id: feesPlan_for_student[0].id,
             academic_session_id: academicSession.id,
             discounted_amount: total_discount,
             paid_amount: Number(total_paid_amount),
-            total_amount: fees_plan.total_amount,
+            total_amount: feesPlan_for_student[0].total_amount,
             due_amount: total_due_amount,
             status:
-              fees_plan.total_amount - (Number(total_paid_amount) + Number(total_discount)) === 0
+              feesPlan_for_student[0].total_amount - (Number(total_paid_amount) + Number(total_discount)) === 0
                 ? 'Paid'
                 : 'Partially Paid',
           },
@@ -1278,12 +1343,12 @@ export default class FeesController {
               Number(student.fees_status.total_amount) -
                 Number(
                   Number(student.fees_status!.paid_amount) +
-                    Number(total_paid_amount) +
-                    Number(student.fees_status!.discounted_amount) +
-                    Number(total_discount) +
-                    Number(total_paid_carry_forwarded_amount)
+                  Number(total_paid_amount) +
+                  Number(student.fees_status!.discounted_amount) +
+                  Number(total_discount) +
+                  Number(total_paid_carry_forwarded_amount)
                 ) ===
-              0
+                0
                 ? 'Paid'
                 : 'Partially Paid',
           })
@@ -1353,8 +1418,8 @@ export default class FeesController {
 
         let already_paid_installments = student.fees_status.paid_fees
           ? student.fees_status.paid_fees.filter(
-              (paid_installment) => paid_installment.installment_id === fees_installment.id
-            )
+            (paid_installment) => paid_installment.installment_id === fees_installment.id
+          )
           : null
 
         if (already_paid_installments && already_paid_installments.length > 0) {
@@ -1445,8 +1510,8 @@ export default class FeesController {
           if (
             Number(fees_installment.installment_amount) !==
             Number(installment.paid_amount) +
-              Number(installment.discounted_amount) +
-              Number(installment.remaining_amount) // fees_installment.installment_amount - Number(installment.paid_amount) +
+            Number(installment.discounted_amount) +
+            Number(installment.remaining_amount) // fees_installment.installment_amount - Number(installment.paid_amount) +
             // + Number(installment.remaining_amount)
           ) {
             result_status = 400
@@ -1475,8 +1540,8 @@ export default class FeesController {
 
           let fees_deails_for_installment_type = student.fees_status.paid_fees_details
             ? student.fees_status.paid_fees_details.find(
-                (item) => item.fees_plan_details_id === installment.fee_plan_details_id
-              )
+              (item) => item.fees_plan_details_id === installment.fee_plan_details_id
+            )
             : null
 
           if (fees_deails_for_installment_type && installment.amount_paid_as_carry_forward) {
@@ -1570,10 +1635,10 @@ export default class FeesController {
       for (let i = 0; i < different_type_of_paid_installments.length; i++) {
         let fees_plan_details_for_fees_type = student.fees_status.paid_fees_details
           ? student.fees_status.paid_fees_details.find(
-              (item) =>
-                item.fees_plan_details_id ===
-                different_type_of_paid_installments[i].fees_plan_detail_id
-            )
+            (item) =>
+              item.fees_plan_details_id ===
+              different_type_of_paid_installments[i].fees_plan_detail_id
+          )
           : null
 
         if (fees_plan_details_for_fees_type) {
@@ -1634,7 +1699,7 @@ export default class FeesController {
               status:
                 Number(fees_plan_details_for_fees_type.total_amount) -
                   (Number(newPaidAmount) + Number(newDiscountedAmount)) ===
-                0
+                  0
                   ? 'Paid'
                   : 'Partially Paid',
             })
@@ -1659,7 +1724,7 @@ export default class FeesController {
             0
           )
 
-          let total_amount = fees_plan.fees_detail.find(
+          let total_amount = feesPlan_for_student[0].fees_detail.find(
             (item) => item.id === different_type_of_paid_installments[i].fees_plan_detail_id
           )!.total_amount
 
@@ -1688,10 +1753,6 @@ export default class FeesController {
        */
 
       for (let i = 0; i < different_type_of_concession_applied.length; i++) {
-        console.log(
-          'different_type_of_concession_applied==>',
-          different_type_of_concession_applied[i]
-        )
 
         let concession_student_master = await ConcessionStudentMaster.query()
           .where('concession_id', different_type_of_concession_applied[i].concession_id)
@@ -1779,6 +1840,25 @@ export default class FeesController {
         .andWhere('academic_session_id', academic_session_id)
       // .paginate(ctx.request.input('page', 1), 10);
     }
+    return ctx.response.json(concessions)
+  }
+
+  async indexAllConcessionType(ctx: HttpContext) {
+    let academic_session_id = ctx.request.input('academic_session')
+    let academic_session = await AcademicSession.query()
+      .where('id', academic_session_id)
+      .andWhere('is_active', 1)
+      .andWhere('school_id', ctx.auth.user!.id)
+    if (!academic_session) {
+      return ctx.response.status(404).json({
+        message: 'No active academic year found for this school',
+      })
+    }
+    let concessions: Concessions[] = []
+    concessions = await Concessions.query()
+      .where('school_id', ctx.auth.user!.school_id)
+      .andWhere('academic_session_id', academic_session_id)
+
     return ctx.response.json(concessions)
   }
 
@@ -2149,7 +2229,7 @@ export default class FeesController {
             message: 'Concession Plan is not active , You can not modify this plan',
           })
         }
-        ;(await concession_applied_to_plan.merge(payload).save()).useTransaction(trx)
+        ; (await concession_applied_to_plan.merge(payload).save()).useTransaction(trx)
         await trx.commit()
         return ctx.response.status(201).json({
           message: 'Concession applied to plan successfully',
@@ -2488,7 +2568,7 @@ export default class FeesController {
             message: 'Concession Plan is not active , You can not modify this plan',
           })
         }
-        ;(await concession_applied_to_student.merge(payload).save()).useTransaction(trx)
+        ; (await concession_applied_to_student.merge(payload).save()).useTransaction(trx)
         await trx.commit()
         return ctx.response.status(201).json({
           message: 'Concession applied to plan successfully',
@@ -2506,4 +2586,9 @@ export default class FeesController {
       })
     }
   }
+
+  async applyFeesTypeToStudentFeesPlan(ctx: HttpContext) {
+     
+  }
+
 }

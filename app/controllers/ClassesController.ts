@@ -25,27 +25,40 @@ export default class ClassesController {
 
     if (ctx.request.qs().without_fees_plan === 'true') {
       try {
-        let class_for_School = await Classes.query().where('school_id', ctx.auth.user!.school_id)
-
-        if (class_for_School.length === 0) {
-          return ctx.response.status(404).json({
-            message: 'No classes found for this school',
-          })
-        }
-
-        let divisions = await db
-          .query()
-          .from('divisions as div')
-          .select('div.*')
-          .leftJoin('fees_plans as fp', 'div.id', 'fp.division_id')
-          .andWhereIn('div.class_id', [...class_for_School.map((item) => item.id)])
+        let class_for_School_without_fees_plan = await
+          db.query()
+          .from('classes as cls')
+          .distinct('cls.id')
+          .select('cls.*')
+          .leftJoin('fees_plans as fp', 'cls.id', 'fp.class_id')
           .andWhere((query) => {
             query
               .whereNull('fp.id') // No fees plan associated
               .orWhere('fp.status', 'Inactive') // Inactive fees plan
           })
+          .where('cls.school_id', ctx.auth.user!.school_id)
 
-        return ctx.response.json(divisions)
+        // Classes.query().where('school_id', ctx.auth.user!.school_id)
+
+        // if (class_for_School.length === 0) {
+        //   return ctx.response.status(404).json({
+        //     message: 'No classes found for this school',
+        //   })
+        // }
+
+        // let divisions = await db
+        //   .query()
+        //   .from('divisions as div')
+        //   .select('div.*')
+        //   .leftJoin('fees_plans as fp', 'div.id', 'fp.division_id')
+        //   .andWhereIn('div.class_id', [...class_for_School.map((item) => item.id)])
+        //   .andWhere((query) => {
+        //     query
+        //       .whereNull('fp.id') // No fees plan associated
+        //       .orWhere('fp.status', 'Inactive') // Inactive fees plan
+        //   })
+
+        return ctx.response.json(class_for_School_without_fees_plan)
       } catch (error) {
         console.log('Error while fetching classes', error)
         return ctx.response.status(500).json({ message: error })

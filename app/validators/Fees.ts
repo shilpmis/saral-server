@@ -8,6 +8,7 @@ export const CreateValidatorForFeesType = vine.compile(
     // add here
     name: vine.string().trim().minLength(2).maxLength(50),
     description: vine.string().trim().minLength(2).maxLength(50),
+    applicable_to: vine.enum(['student', 'plan']),
     academic_session_id: vine.number(),
   })
 )
@@ -29,7 +30,7 @@ export const CreateValidatorForFeesPlan = vine.compile(
     fees_plan: vine.object({
       name: vine.string().trim().minLength(2).maxLength(50).optional(),
       description: vine.string().trim().minLength(2).maxLength(50).optional(),
-      division_id: vine.number(),
+      class_id: vine.number(),
     }),
     plan_details: vine
       .array(

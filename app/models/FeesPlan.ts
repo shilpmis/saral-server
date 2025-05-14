@@ -14,6 +14,9 @@ export default class FeesPlan extends Base {
   declare division_id: number
 
   @column()
+  declare class_id: number
+
+  @column()
   declare name: string
 
   @column()

@@ -240,6 +240,7 @@ router
 
     /**concessions */
     router.get('/concessions', [FeesController, 'indexConcessionType'])
+    router.get('/concessions/all', [FeesController, 'indexAllConcessionType'])
     router.get('/concession/:concession_id', [FeesController, 'fetchDetailConcessionType'])
     router.post('/concession', [FeesController, 'createConcession'])
     router.put('/concession/:concession_id', [FeesController, 'updateConcession'])
