@@ -6,8 +6,370 @@ import Division from '#models/Divisions'
 import AcademicSession from '#models/AcademicSession'
 import StudentEnrollments from '#models/StudentEnrollments'
 import Students from '#models/Students'
+import { ValidatioinStatusForDrop, ValidatioinStatusForMigration, ValidatioinStatusForSuspended } from '#validators/StudentManagement'
+import Classes from '#models/Classes'
 
-export default class StudentPromotionController {
+export default class StudentManagementController {
+
+  /**
+   * Apis for student management
+   */
+
+  public async indexStudentForManagement(ctx: HttpContext) {
+    let schoolId = ctx.auth.user?.school_id
+    let division = ctx.params.division_id;
+
+    let active_academic_session = await AcademicSession.query()
+      .where('is_active', true)
+      .andWhere('school_id', schoolId!)
+      .first()
+
+    if (!active_academic_session) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'No active academic session found',
+      })
+    }
+
+    console.log("division ", division, active_academic_session.id)
+
+    let student = await StudentEnrollments
+      .query()
+      .where('division_id', division)
+      .andWhere('academic_session_id', active_academic_session.id)
+      .preload('student', (query) => {
+        query.select(['id', 'enrollment_code', 'first_name', 'middle_name', 'last_name', 'gr_no'])
+      })
+      .paginate(ctx.request.input('page', 1), 10)
+
+    return ctx.response.status(200).json(student)
+
+  }
+
+
+  public async updateEnrollmentStatusToMigrate(ctx: HttpContext) {
+    let student_enrollment_id = ctx.params.student_enrollment_id;
+    let school_id = ctx.auth.user!.school_id
+
+    let student_enrollment = await StudentEnrollments.query()
+      .preload('division')
+      .where('id', student_enrollment_id)
+      .first()
+
+    if (!student_enrollment) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment not found',
+      })
+    }
+
+    let check_academic_session = await AcademicSession.query()
+      .where('id', student_enrollment.academic_session_id)
+      .andWhere('school_id', school_id!)
+      .first()
+
+    if (!check_academic_session) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Academic session not found',
+      })
+    }
+
+    if (student_enrollment.status !== 'pursuing') {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment is not in pursuing status , You can update status now.',
+      })
+    }
+
+    let payload = await ValidatioinStatusForMigration.validate(ctx.request.all())
+
+    if (payload.is_migration_for_class && payload.migrated_class === student_enrollment.division.class_id) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Migration class is same as current class',
+      })
+    }
+
+    if (payload.migrated_division === student_enrollment.division.id) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Migrated Division is same as current class',
+      })
+    }
+
+    if (payload.is_migration_for_class) {
+      let new_clas = await Classes.query()
+        .where('id', payload.migrated_class)
+        .andWhere('school_id', school_id!)
+        .first()
+
+      if (!new_clas) {
+        return ctx.response.status(400).json({
+          success: false,
+          message: 'Class not found for migration',
+        })
+      }
+    }
+
+    let new_division = await Division
+      .query()
+      .where('id', payload.migrated_division)
+      .andWhere('class_id', payload.is_migration_for_class ? payload.migrated_class : student_enrollment.division.class_id)
+      .first()
+
+    if (!new_division) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Division not found for migration',
+      })
+    }
+
+    let trx = await db.transaction();
+
+    try {
+      let new_enrollment = await StudentEnrollments.create({
+        student_id: student_enrollment.student_id,
+        division_id: new_division.id,
+        academic_session_id: student_enrollment.academic_session_id,
+        status: 'pursuing',
+        quota_id: student_enrollment.quota_id,
+        is_new_admission: false,
+        remarks: payload.reason,
+        promoted_by: ctx.auth.user?.id,
+      }, { client: trx })
+
+      student_enrollment.status = 'migrated'
+      await student_enrollment.useTransaction(trx).save();
+
+      await trx.commit();
+
+      return ctx.response.status(200).json({
+        message: 'Student enrollment status updated to migrated',
+        student_enrollment: new_enrollment,
+      })
+
+    } catch (error) {
+      console.log('error occured while updating student enrollment status to migrated', error)
+      await trx.rollback()
+      return ctx.response.status(500).json({
+        success: false,
+        message: 'Error occurred while updating student enrollment status',
+      })
+    }
+
+  }
+
+  public async updateEnrollmentStatusToDrop(ctx: HttpContext) {
+    let student_enrollment_id = ctx.params.student_enrollment_id;
+    let school_id = ctx.auth.user!.school_id
+
+    let student_enrollment = await StudentEnrollments.query()
+      .preload('student')
+      .preload('division')
+      .where('id', student_enrollment_id)
+      .first()
+
+    if (!student_enrollment) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment not found',
+      })
+    }
+
+    let check_academic_session = await AcademicSession.query()
+      .where('id', student_enrollment.academic_session_id)
+      .andWhere('school_id', school_id!)
+      .first()
+
+    if (!check_academic_session) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Academic session not found',
+      })
+    }
+
+    if (student_enrollment.status !== 'pursuing') {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment is not in pursuing status , You can update status now.',
+      })
+    }
+
+    let payload = await ValidatioinStatusForDrop.validate(ctx.request.all())
+
+    let trx = await db.transaction();
+
+    try {
+      student_enrollment.status = 'drop'
+      student_enrollment.remarks = payload.reason
+      student_enrollment.promoted_by = ctx.auth.user!.id
+      await student_enrollment.useTransaction(trx).save();
+
+      student_enrollment.student.is_active = false
+      await student_enrollment.student.useTransaction(trx).save()
+
+      await trx.commit();
+
+      return ctx.response.status(200).json({
+        message: 'Student enrollment status updated to drop',
+        student_enrollment: student_enrollment,
+      })
+
+    } catch (error) {
+      console.log('error occured while updating student enrollment status to drop', error)
+      await trx.rollback()
+      return ctx.response.status(500).json({
+        success: false,
+        message: 'Error occurred while updating student enrollment status',
+      })
+    }
+
+  }
+
+  public async updateEnrollmentStatusToComplete(ctx: HttpContext) {
+    let student_enrollment_id = ctx.params.student_enrollment_id;
+    let school_id = ctx.auth.user!.school_id
+
+    let student_enrollment = await StudentEnrollments.query()
+      .preload('student')
+      .preload('division')
+      .where('id', student_enrollment_id)
+      .first()
+
+    if (!student_enrollment) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment not found',
+      })
+    }
+
+    let check_academic_session = await AcademicSession.query()
+      .where('id', student_enrollment.academic_session_id)
+      .andWhere('school_id', school_id!)
+      .first()
+
+    if (!check_academic_session) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Academic session not found',
+      })
+    }
+
+    if (student_enrollment.status !== 'pursuing') {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment is not in pursuing status , You can update status now.',
+      })
+    }
+
+    let trx = await db.transaction();
+
+    try {
+      student_enrollment.status = 'completed'
+      student_enrollment.promoted_by = ctx.auth.user!.id
+      await student_enrollment.useTransaction(trx).save();
+
+      student_enrollment.student.is_active = false
+      await student_enrollment.student.useTransaction(trx).save()
+
+      await trx.commit();
+
+      return ctx.response.status(200).json({
+        message: 'Student enrollment status updated to completed',
+        student_enrollment: student_enrollment,
+      })
+
+    } catch (error) {
+      console.log('error occured while updating student enrollment status to completed', error)
+      await trx.rollback()
+      return ctx.response.status(500).json({
+        success: false,
+        message: 'Error occurred while updating student enrollment status',
+      })
+    }
+
+  }
+
+  public async updateEnrollmentStatusToSuspended(ctx: HttpContext) {
+    let student_enrollment_id = ctx.params.student_enrollment_id;
+    let school_id = ctx.auth.user!.school_id
+
+    let payload = await ValidatioinStatusForSuspended.validate(ctx.request.all())
+
+    let student_enrollment = await StudentEnrollments.query()
+      .preload('student')
+      .preload('division')
+      .where('id', student_enrollment_id)
+      .first()
+
+    if (!student_enrollment) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment not found',
+      })
+    }
+
+        let check_academic_session = await AcademicSession.query()
+      .where('id', student_enrollment.academic_session_id)
+      .andWhere('school_id', school_id!)
+      .first()
+    
+    if (!check_academic_session) {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Academic session not found',
+      })
+    }
+
+    if (payload.status === 'suspended' && student_enrollment.status !== 'pursuing') {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment is not in pursuing status , You can update status now.',
+      })
+    }
+
+    if (payload.status === 'remove_suspension' && student_enrollment.status !== 'suspended') {
+      return ctx.response.status(400).json({
+        success: false,
+        message: 'Student enrollment is not in suspended status , You can update status now.',
+      })
+    }
+
+    let trx = await db.transaction();
+
+    try {
+
+      if (payload.status === 'suspended') {
+        student_enrollment.status = 'suspended'
+      } else {
+        student_enrollment.status = 'pursuing'
+      }
+      student_enrollment.promoted_by = ctx.auth.user!.id
+      await student_enrollment.useTransaction(trx).save();
+
+      student_enrollment.student.is_active = student_enrollment.status === 'suspended' ? false : true
+      await student_enrollment.student.useTransaction(trx).save()
+
+      await trx.commit();
+
+      return ctx.response.status(200).json({
+        message: 'Student enrollment status updated to completed',
+        student_enrollment: student_enrollment,
+      })
+
+    } catch (error) {
+      console.log('error occured while updating student enrollment status to completed', error)
+      await trx.rollback()
+      return ctx.response.status(500).json({
+        success: false,
+        message: 'Error occurred while updating student enrollment status',
+      })
+    }
+
+  }
+
+
   /**
    * Fetch students eligible for promotion
    */
