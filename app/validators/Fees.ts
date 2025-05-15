@@ -1,4 +1,5 @@
 import vine from '@vinejs/vine'
+import exp from 'constants'
 
 /**
  * Validates the post's creation action
@@ -251,3 +252,46 @@ export const UpdateValidationForAppliedConcessionToStudent = vine.compile(
     status: vine.enum(['Active', 'Inactive']).optional(),
   })
 )
+
+export const CreateValidationForApplyExtraFeesToStudent = vine.compile(
+  vine.object({
+
+    // student_id : vine.number(),
+    // academic_session_id: vine.number(),
+    // fees_type_id: vine.number(),
+    // fees_plan_id: vine.number(),
+    // total_amount : vine.number().max(1000000).min(100),
+    // paid_amount : vine.number().max(1000000).min(100),
+    // installment_breakdown : vine.array(
+    //   vine.object({
+    //     installment_no: vine.number(),
+    //     amount: vine.number(),
+    //     due_date: vine.date(),
+    //   })
+    // ).minLength(1)
+
+    student_id : vine.number(),
+    academic_session_id: vine.number(),
+    fees_type_id: vine.number(),
+    fees_plan_id: vine.number(),
+    installment_type: vine.enum([
+      'Admission',
+      'Monthly',
+      'Quarterly',
+      'Half Yearly',
+      'Yearly',
+    ]),
+    total_amount: vine.number().max(100000).min(100),
+    installment_breakDowns: vine
+      .array(
+        vine.object({
+          installment_no: vine.number(),
+          installment_amount: vine.number(),
+          due_date: vine.date(),
+        })
+      )
+      .minLength(1),
+  })
+)
+
+

@@ -26,11 +26,12 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('fees_types')
         .onDelete('CASCADE')
+      table.enum('installment_type', ['Admission', 'Monthly', 'Quarterly', 'Half Yearly', 'Yearly']).notNullable()
       table.decimal('total_amount', 10, 2).notNullable()
       table.decimal('paid_amount', 10, 2).notNullable()
       table.enum('status', ['Active', 'Inactive']).notNullable()
 
-      
+
       table.timestamp('created_at')
       table.timestamp('updated_at')
     })

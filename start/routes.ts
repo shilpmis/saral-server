@@ -27,7 +27,7 @@ import QuotasController from '#controllers/QuotaController'
 import QuotaAllocationsController from '#controllers/QuotaAllocationController'
 import AdmissionDashboardController from '#controllers/AdmissionDashboardController'
 import GlobalSearchController from '#controllers/GlobalSearchController'
-import StudentPromotionController from '#controllers/StudentPermotionController'
+import StudentManagementController from '#controllers/StudentManagementController'
 import PayrollController from '#controllers/PayrollController'
 import StaffAttendanceController from '#controllers/StaffAttendanceController'
 
@@ -227,6 +227,7 @@ router
     router.get('/feesplan/status/:plan_id/:status', [FeesController, 'updateFeesPlanStatus'])
     router.get('/feesplan/detail/:plan_id', [FeesController, 'fetchFeesPlanDetails'])
     router.post('/feesplan', [FeesController, 'createFeePlan'])
+    router.post('/feesplan/applyextrafees', [FeesController, 'applyFeesTypeToStudentFeesPlan'])
     router.put('/feesplan/:plan_id', [FeesController, 'updatePlan'])
 
     router.get('/fees/status/class/:division_id', [FeesController, 'fetchFeesStatusForClass'])
@@ -268,20 +269,24 @@ router
     ])
     router.get('admissions/dashboard/trends', [AdmissionDashboardController, 'getTrendData'])
 
-    // Student Permotion, demotion, and drop and transfer
+    // Student Mangement --- Permotion, demotion, and drop and transfer
     // Get students eligible for promotion
-    router.post('/students-for-permotion', [StudentPromotionController, 'getStudentsForPromotion'])
-    router.post('/promote-students', [StudentPromotionController, 'promote'])
-    router.post('/bulk-promote', [StudentPromotionController, 'bulkPromote'])
-    router.post('/hold-back-student', [StudentPromotionController, 'holdBackStudent'])
-    router.post('/bulk-hold-back-students', [StudentPromotionController, 'bulkHoldBackStudents'])
-    // router.put('/change-division', [StudentPromotionController, 'changeClassDivision'])
-    // router.put('/deactivate', [StudentPromotionController, 'deactivate'])
-    // router.post('/transfer', [StudentPromotionController, 'transferStudent'])
+    router.post('/students-for-permotion', [StudentManagementController, 'getStudentsForPromotion'])
+    router.post('/promote-students', [StudentManagementController, 'promote'])
+    router.post('/bulk-promote', [StudentManagementController, 'bulkPromote'])
+    router.post('/hold-back-student', [StudentManagementController, 'holdBackStudent'])
+    router.post('/bulk-hold-back-students', [StudentManagementController, 'bulkHoldBackStudents'])
     router.get('/promotion-history/:academic_session_id', [
-      StudentPromotionController,
+      StudentManagementController,
       'getPromotionHistory',
     ])
+
+    router.get('/management/students/:division_id' , [StudentManagementController , 'indexStudentForManagement'])
+    router.post('/management/student/migrate/:student_enrollment_id' , [StudentManagementController , 'updateEnrollmentStatusToMigrate'])
+    router.post('/management/student/complete/:student_enrollment_id' , [StudentManagementController , 'updateEnrollmentStatusToComplete'])
+    router.post('/management/student/suspend/:student_enrollment_id' , [StudentManagementController , 'updateEnrollmentStatusToSuspended'])
+    router.post('/management/student/drop/:student_enrollment_id' , [StudentManagementController , 'updateEnrollmentStatusToDrop'])
+
 
     router.post('staff-attendance/check-in', [StaffAttendanceController, 'checkIn'])
     router.post('staff-attendance/check-out', [StaffAttendanceController, 'checkOut'])

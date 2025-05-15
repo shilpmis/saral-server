@@ -6,7 +6,7 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.integer('student_fees_type_masters_id').unsigned().references('id').inTable('student_fees_type_masters').onDelete('CASCADE');
+      table.integer('student_fees_type_masters_id').unsigned().references('id').inTable('student_fees_type_masters').onDelete('CASCADE').withKeyName('student_fees_type_masters_id');
       table.integer('installment_no').notNullable();
       table.decimal('installment_amount', 10, 2).notNullable();
       table.date('due_date').notNullable();

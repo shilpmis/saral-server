@@ -10,13 +10,17 @@ import FeesPlanDetails from '#models/FeesPlanDetails'
 import FeesType from '#models/FeesType'
 import InstallmentBreakDowns from '#models/InstallmentBreakDowns'
 import StudentEnrollments from '#models/StudentEnrollments'
+import StudentExtraFeesInstallments from '#models/StudentExtraFeesInstallments'
 import StudentFeesInstallments from '#models/StudentFeesInstallments'
 import StudentFeesMaster from '#models/StudentFeesMaster'
 import StudentFeesPlanMaster from '#models/StudentFeesPlanMasters'
+import StudentFeesTypeInstallmentBreakdowns from '#models/StudentFeesTypeInstallmentBreakdowns'
+import StudentFeesTypeMasters from '#models/StudentFeesTypeMasters'
 import Students from '#models/Students'
 import {
   CreateValidationForApplyConcessionToPlan,
   CreateValidationForApplyConcessionToStudent,
+  CreateValidationForApplyExtraFeesToStudent,
   CreateValidationForConcessionType,
   CreateValidationForMultipleInstallments,
   CreateValidatorForFeesPlan,
@@ -33,12 +37,12 @@ import db from '@adonisjs/lucid/services/db'
 import { HasOne } from '@adonisjs/lucid/types/relations'
 
 export default class FeesController {
-  
+
   // index fees type for school which are applicable to plan 
   async indexFeesTyeForSchool(ctx: HttpContext) {
     let academic_session_id = ctx.request.input('academic_session')
     let applicable_to = ctx.request.input('type')
-    let status = ctx.request.input('status' , 'Active')
+    let status = ctx.request.input('status', 'Active')
     if (!academic_session_id) {
       return ctx.response.status(400).json({
         message: 'Please provide academic_session_id',
@@ -57,13 +61,13 @@ export default class FeesController {
     let fetch_all = ctx.request.input('all', false)
     let fees_types: FeesType[] = []
     if (!fetch_all) {
-      if(applicable_to === 'all'){
+      if (applicable_to === 'all') {
         fees_types = await FeesType.query()
           .where('school_id', ctx.auth.user!.school_id)
           .andWhere('academic_session_id', academic_session_id)
           .andWhere('status', status)
           .paginate(ctx.request.input('page', 1), 10)
-      }else{
+      } else {
         fees_types = await FeesType.query()
           .where('school_id', ctx.auth.user!.school_id)
           .andWhere('applicable_to', applicable_to)
@@ -71,16 +75,16 @@ export default class FeesController {
           .andWhere('academic_session_id', academic_session_id)
           .andWhere('applicable_to', applicable_to)
           .paginate(ctx.request.input('page', 1), 10)
-      } 
+      }
       return ctx.response.json(fees_types)
     } else {
 
-      if(applicable_to === 'all'){
+      if (applicable_to === 'all') {
         fees_types = await FeesType.query()
           .where('school_id', ctx.auth.user!.school_id)
           .andWhere('academic_session_id', academic_session_id)
           .andWhere('status', status)
-      }else{
+      } else {
         fees_types = await FeesType.query()
           .where('school_id', ctx.auth.user!.school_id)
           .andWhere('applicable_to', applicable_to)
@@ -828,6 +832,7 @@ export default class FeesController {
       .preload('division')
       .where('student_id', student_id)
       .andWhere('academic_session_id', academicSession.id)
+      .andWhere('status', 'pursuing')      
       .first()
 
     if (!student_enrollment) {
@@ -903,6 +908,7 @@ export default class FeesController {
       fees_plan: FeesPlan
       fees_details: FeesPlanDetails[]
       paid_fees: StudentFeesInstallments[]
+      extra_fees: StudentFeesTypeMasters[]
       wallet: {
         total_concession_for_student: number
         total_concession_for_plan: number
@@ -913,6 +919,7 @@ export default class FeesController {
       fees_details: [],
       fees_plan: {} as FeesPlan,
       paid_fees: [],
+      extra_fees: [],
       wallet: {
         total_concession_for_student: 0,
         total_concession_for_plan: 0,
@@ -1185,10 +1192,23 @@ export default class FeesController {
       })
     }
 
+
+    // fetch extra Fees applied for student
+    let extra_fees = await StudentFeesTypeMasters.query()
+      .preload('paid_installment')
+      .preload('installment_breakdown')
+      .where('student_enrollments_id', student_enrollment.id) 
+      .andWhere('fees_plan_id', feesPlan_for_student[0].id)
+      .andWhere('status', 'Active')
+
+    if (extra_fees) {
+      res.extra_fees = [...extra_fees]
+    }
+
     return ctx.response.json({
       student: studentObj,
-      detail: res,
       installments: FeesStatusForStudent,
+      detail: res,
     })
   }
 
@@ -2588,7 +2608,128 @@ export default class FeesController {
   }
 
   async applyFeesTypeToStudentFeesPlan(ctx: HttpContext) {
-     
+
+    let payload = await CreateValidationForApplyExtraFeesToStudent.validate(ctx.request.body())
+
+    let academic_enrollment = await StudentEnrollments.query()
+      .preload('division')
+      .where('student_id', payload.student_id)
+      .andWhere('academic_session_id', payload.academic_session_id)
+      .first()
+
+    if (!academic_enrollment) {
+      return ctx.response.status(404).json({
+        message: 'Student not found for this academic session',
+      })
+    }
+
+    // check fees plan for class 
+
+    let fees_paln = await FeesPlan.query()
+      .where('id', payload.fees_plan_id)
+      .andWhere('academic_session_id', payload.academic_session_id)
+      .andWhere('division_id', academic_enrollment.division.class_id)
+      .first()
+
+    if (!fees_paln) {
+      return ctx.response.status(404).json({
+        message: 'Fees plan not found for this class , Fees plan is required to apply extra fees',
+      })
+    }
+
+    // check payload 
+
+    let extra_fees = await FeesType.query()
+      .where('id', payload.fees_type_id)
+      .andWhere('academic_session_id', payload.academic_session_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .andWhere('applicable_to', 'student')
+      .first()
+
+    if (!extra_fees) {
+      return ctx.response.status(404).json({
+        message: 'Fees type not found for your school !',
+      })
+    }
+
+
+
+    // check if student extra fees are already applied
+    let student_fees_type = await StudentFeesTypeMasters.query()
+      .where('student_enrollments_id', academic_enrollment.id)
+      .andWhere('fees_type_id', payload.fees_type_id)
+      .andWhere('fees_plan_id', payload.fees_plan_id)
+      .andWhere('status', 'Active')
+      .first()
+
+    if (student_fees_type) {
+      return ctx.response.status(404).json({
+        message: 'This Fees type is already applied to this student .',
+      })
+    }
+
+    let student_fees_master = await StudentFeesMaster.query()
+      .where('student_id', payload.student_id)
+      .andWhere('academic_session_id', payload.academic_session_id)
+      .first()
+
+    let trx = await db.transaction();
+    try {
+
+      if (!student_fees_master) {
+        await StudentFeesMaster.create(
+          {
+            student_id: payload.student_id,
+            fees_plan_id: payload.fees_plan_id,
+            academic_session_id: payload.academic_session_id,
+            discounted_amount: 0.00,
+            paid_amount: 0.00,
+            total_amount: fees_paln.total_amount + payload.total_amount,
+            due_amount: 0.00,
+            status: 'Pending',
+          }, { client: trx }
+        )
+      } else {
+        await student_fees_master.merge({
+          total_amount: Number(student_fees_master.total_amount) + Number(payload.total_amount),
+          status: student_fees_master.status === 'Paid' ? 'Partially Paid' : student_fees_master.status,
+        }).useTransaction(trx).save()
+      }
+
+      // apply extra fees to student fees plan
+      let student_fees_type_master = await StudentFeesTypeMasters.create({
+        student_enrollments_id: academic_enrollment.id,
+        fees_type_id: payload.fees_type_id,
+        fees_plan_id: payload.fees_plan_id,
+        total_amount: payload.total_amount,
+        paid_amount: 0.00,
+        status: 'Active',
+      }, { client: trx })
+
+
+      for (let i = 0; i < payload.installment_breakDowns.length; i++) {
+        let installment_breakdown = payload.installment_breakDowns[i]
+
+        await StudentFeesTypeInstallmentBreakdowns.create({
+          student_fees_type_masters_id: student_fees_type_master.id,
+          installment_no: installment_breakdown.installment_no,
+          due_date: installment_breakdown.due_date,
+          installment_amount: installment_breakdown.installment_amount,
+        }, { client: trx })
+      }
+
+      await trx.commit()
+      return ctx.response.status(201).json({
+        message: 'Extra fees applied successfully',
+      })
+    } catch (error) {
+      await trx.rollback()
+      return ctx.response.status(500).json({
+        message: 'Internal Server Error',
+        error: error,
+      })
+    }
+
   }
 
 }
