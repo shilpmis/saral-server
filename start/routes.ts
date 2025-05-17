@@ -30,6 +30,7 @@ import GlobalSearchController from '#controllers/GlobalSearchController'
 import StudentManagementController from '#controllers/StudentManagementController'
 import PayrollController from '#controllers/PayrollController'
 import StaffAttendanceController from '#controllers/StaffAttendanceController'
+import SubjectController from '#controllers/SubjectController'
 
 router
   .group(() => {
@@ -286,6 +287,14 @@ router
     router.post('/management/student/complete/:student_enrollment_id' , [StudentManagementController , 'updateEnrollmentStatusToComplete'])
     router.post('/management/student/suspend/:student_enrollment_id' , [StudentManagementController , 'updateEnrollmentStatusToSuspended'])
     router.post('/management/student/drop/:student_enrollment_id' , [StudentManagementController , 'updateEnrollmentStatusToDrop'])
+
+
+    router.get('subjects', [SubjectController, 'indexSubjects'])
+    router.post('subject', [SubjectController, 'createSubject'])
+    router.get('subjects/division/:division_id', [SubjectController, 'indexSubjectsForDivision'])
+    // router.put('subject/:subject_id', [SubjectController, 'updateSubject'])
+    router.post('subject/assign', [SubjectController, 'assignSubjectToDivision'])
+    router.post('subject/assign/staffs', [SubjectController, 'assignStaffToSubject'])
 
 
     router.post('staff-attendance/check-in', [StaffAttendanceController, 'checkIn'])
