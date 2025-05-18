@@ -1,0 +1,77 @@
+import vine from "@vinejs/vine";
+
+export const CreateValidatorForSchoolTimeTableConfig = vine.compile(
+  vine.object({
+      // add here
+      academic_session_id : vine.number(),
+      max_periods_per_day : vine.number(),
+      default_period_duration : vine.number(),
+      allowed_period_durations : vine.array(vine.number()),
+      lab_enabled : vine.boolean(),
+      pt_enabled : vine.boolean(),
+      period_gap_duration : vine.number().nullable(),
+      teacher_max_periods_per_day : vine.number().nullable(),
+      teacher_max_periods_per_week : vine.number().nullable(),
+      is_lab_included_in_max_periods : vine.boolean(),  
+  })
+)
+
+export const UpdateValidatorForSchoolTimeTableConfig = vine.compile(
+  vine.object({
+      // add here
+      max_periods_per_day : vine.number().optional(),
+      default_period_duration : vine.number().optional(),
+      allowed_period_durations : vine.array(vine.number()).optional(),
+      lab_enabled : vine.boolean().optional(),
+      pt_enabled : vine.boolean().optional(),
+      period_gap_duration : vine.number().nullable().optional(),
+      teacher_max_periods_per_day : vine.number().nullable().optional(),
+      teacher_max_periods_per_week : vine.number().nullable().optional(),
+      is_lab_included_in_max_periods : vine.boolean().optional(),  
+  })
+)
+
+export const CreateValidatorForLabConfig = vine.compile(
+  vine.object({
+      // add here
+    school_timetable_config_id : vine.number(),
+    name : vine.string(),
+    type : vine.string(), // e.g. "science", "computer"
+    max_capacity : vine.number(), // in term of class
+    availability_per_day : vine.number().nullable(), // optional
+  })
+)
+
+export const CreateValidatorForClassDayConfig = vine.compile(
+  vine.object({
+      // add here
+    class_id : vine.number(),
+    day : vine.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat']),
+    allowed_durations : vine.array(vine.number()),
+    max_consecutive_periods : vine.number().optional(),
+    total_breaks : vine.number().optional(),
+    break_durations : vine.array(vine.number()).optional(),
+    day_start_time : vine.string().optional(), // optional
+    day_end_time : vine.string().optional(), // optional    
+  })
+)
+
+export const CreateValidatorForPeriodConfig = vine.compile(
+  vine.object({
+      // add here
+    class_day_config_id : vine.number(),
+    period_order : vine.number(), // e.g. 1, 2, 3, 4, 5
+    subject_id : vine.number(),
+    start_time : vine.string(), // e.g. "08:00" 
+    end_time : vine.string(), // e.g. "08:30"
+    is_break : vine.boolean(),
+    subjects_division_masters_id : vine.number(),
+    staff_enrollment_id : vine.number(),
+    lab_id : vine.number().nullable(), // optional
+    is_pt : vine.boolean(),
+    is_free_period : vine.boolean(),
+  })
+)
+
+
+
