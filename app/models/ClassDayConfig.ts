@@ -1,9 +1,14 @@
-//import { DateTime } from 'luxon'
-//import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column } from '@adonisjs/lucid/orm'
+import { column, hasMany } from '@adonisjs/lucid/orm'
+import PeriodsConfig from './PeriodsConfig.js'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 
 export default class ClassDayConfig extends Base {
+
+    static table = 'class_day_config'
+
+    @column()
+    declare school_timetable_config_id: number
 
     @column()
     declare class_id: number
@@ -11,8 +16,11 @@ export default class ClassDayConfig extends Base {
     @column()
     declare day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat'  // e.g. "Monday", "Tuesday", etc.
 
-    @column()
-    declare allowed_durations: number[] // e.g. [30, 45]
+    @column({
+        prepare: (value: string[]) => value && JSON.parse(JSON.stringify(value)),
+        // consume: (value: string) => value && JSON.parse(value)
+    })
+    declare allowed_durations: string | null // e.g. [30, 45]
 
     @column()
     declare max_consecutive_periods: number | null  // optional, e.g. 3
@@ -20,12 +28,22 @@ export default class ClassDayConfig extends Base {
     @column()
     declare total_breaks: number // optional, e.g. "08:00"
 
-    @column()
-    declare break_durations: number[] | null // e.g. [15, 45]
+    @column({
+        prepare: (value: string[]) => value && JSON.parse(JSON.stringify(value)),
+        // consume: (value: string) => value && JSON.parse(value)
+    })
+    declare break_durations: string | null // e.g. [15, 45]
 
     @column()
     declare day_start_time: string | null // optional
 
     @column()
     declare day_end_time: string | null // optional
+
+    @hasMany(() => PeriodsConfig, {
+        foreignKey: 'class_day_config_id',
+        localKey: 'id',
+    })
+    declare period_config: HasMany<typeof PeriodsConfig>
+
 }

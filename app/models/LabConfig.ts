@@ -5,6 +5,8 @@ import { column } from '@adonisjs/lucid/orm'
 
 export default class LabConfig extends Base {
 
+    static table = 'labs_config'
+    
     @column()
     declare school_timetable_config_id: number
 

@@ -6,6 +6,7 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
+      table.integer('school_timetable_config_id').unsigned().references('id').inTable('school_timetable_config').onDelete('CASCADE');
       table.integer('class_id').unsigned().references('id').inTable('classes')
       table.enum('day', ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'])
       table.json('allowed_durations') // [30, 45]

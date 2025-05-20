@@ -31,6 +31,7 @@ import StudentManagementController from '#controllers/StudentManagementControlle
 import PayrollController from '#controllers/PayrollController'
 import StaffAttendanceController from '#controllers/StaffAttendanceController'
 import SubjectController from '#controllers/SubjectController'
+import TimeTableController from '#controllers/TimeTableController'
 
 router
   .group(() => {
@@ -296,6 +297,23 @@ router
     router.post('subject/assign', [SubjectController, 'assignSubjectToDivision'])
     router.post('subject/assign/staffs', [SubjectController, 'assignStaffToSubject'])
 
+    // time table
+    router.get('timetable/config/:academic_session_id', [
+      TimeTableController,
+      'getSchoolTimeTableConfig',
+    ])
+    router.post('timetable/config', [
+      TimeTableController,
+      'createSchoolTimeTableConfig',
+    ])
+    router.post('timetable/config/lab', [
+      TimeTableController,
+      'createLabConfig',
+    ])
+    router.post('timetable/config/class/day', [TimeTableController ,'createClassDayConfig'])
+    router.get('timetable/:division_id', [TimeTableController ,'fetchTimeTableForDivision'])
+    router.post('timetable/config/period', [TimeTableController ,'createTimeTableForDivisionForADay'])    
+    router.post('timetable/verify/config/period', [TimeTableController ,'checkAvailabilityForConfiguredPeriod'])
 
     router.post('staff-attendance/check-in', [StaffAttendanceController, 'checkIn'])
     router.post('staff-attendance/check-out', [StaffAttendanceController, 'checkOut'])
