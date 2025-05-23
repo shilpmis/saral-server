@@ -660,7 +660,7 @@ export default class FeesController {
 
     let academic_year = await AcademicSession.query()
       .where('id', academic_session_id)
-      .andWhere('is_active', true)
+      // .andWhere('is_active', true)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
@@ -670,11 +670,11 @@ export default class FeesController {
       })
     }
 
-    if (!academic_year.is_active) {
-      return ctx.response.status(400).json({
-        message: 'Academic session is not active',
-      })
-    }
+    // if (!academic_year.is_active) {
+    //   return ctx.response.status(400).json({
+    //     message: 'Academic session is not active',
+    //   })
+    // }
 
     let division = await Divisions.query().where('id', division_id).first()
 
@@ -830,11 +830,12 @@ export default class FeesController {
       })
     }
 
+
     let student_enrollment = await StudentEnrollments.query()
       .preload('division')
       .where('student_id', student_id)
       .andWhere('academic_session_id', academicSession.id)
-      .andWhere('status', 'pursuing')
+      .andWhereIn('status', ['pursuing' , 'onboarded'])
       .first()
 
     if (!student_enrollment) {
