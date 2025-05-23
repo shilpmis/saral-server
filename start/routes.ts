@@ -81,7 +81,7 @@ router
     router.get('student/search', [GlobalSearchController, 'getStuentSearchResults'])
     router.get('staff/search', [GlobalSearchController, 'getStaffSearchResults'])
 
-    router.get('students/:academic_session_id/:class_id', [
+    router.get('students/:academic_session_id/:division_id', [
       StundetsController,
       'indexClassStudents',
     ])
@@ -239,6 +239,7 @@ router
     ])
     // router.post('/fees/pay/:student_id', [FeesController, 'payFees'])
     router.post('/fees/pay/installments', [FeesController, 'payMultipleInstallments'])
+    router.post('/fees/pay/extra/installments', [FeesController, 'payMultipleInstallmentsForExtraFees'])
     router.put('/transaction/:transaction_id', [FeesController, 'updateFeesStatus'])
 
     /**concessions */

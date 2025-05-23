@@ -325,7 +325,8 @@ export default class TimeTableController {
      * 4 . if the period is free , validate , can not have more then 2 free periods in a day
      * 5 . if the period is break , validate , can not have more then 2 breaks in a day
      * 6 . if the period is pt , validate , can not have more then 2 pt in a day
-     * 7.  validation for teacher , techer should not have more then 5 periods in a day , and should not hae more then 16 periods in a week
+     * 7.  validation for teacher , techer should not have more then 5 periods in a
+     *  day , and should not hae more then 16 periods in a week
      *  
      * 
      *  */

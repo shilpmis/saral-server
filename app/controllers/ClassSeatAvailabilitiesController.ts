@@ -28,17 +28,17 @@ export default class ClassSeatAvailabilitiesController {
       return ctx.response.notFound({ error: `Class ID ${class_id} not found` })
     }
 
-    console.log(
-      'classData.seat_availability',
-      academic_session_id,
-      classData.seat_availability,
-      class_id
-    )
+    // console.log(
+    //   'classData.seat_availability',
+    //   academic_session_id,
+    //   classData.seat_availability,
+    //   class_id
+    // )
 
     let exsiting_seats = await ClassSeatAvailability.query()
       .where('class_id', class_id)
       .where('academic_session_id', academic_session_id)
-      .first()
+      .first()  
 
     // Check if seat availability already exists
     if (exsiting_seats) {
@@ -67,8 +67,14 @@ export default class ClassSeatAvailabilitiesController {
    * Get all classes seat availability
    */
   public async getAllClassesSeatAvailability(ctx: HttpContext) {
+    let acadamic_session_id = ctx.request.input('acadamic_session')
+    if (!acadamic_session_id) {
+      return ctx.response.badRequest({
+        error: 'Academic session ID is required',
+      })
+    }
     let academic_session = await AcademicSession.query()
-      .where('is_active', true)
+      .where('id', acadamic_session_id)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
 
@@ -86,9 +92,9 @@ export default class ClassSeatAvailabilitiesController {
       })
       .where('academic_session_id', academic_session.id)
 
-    if (!classSeatAvailabilities.length) {
-      return ctx.response.notFound({ error: 'No seat availability data found' })
-    }
+    // if (!classSeatAvailabilities.length) {
+    //   return ctx.response.notFound({ error: 'No seat availability data found' })
+    // }
 
     return ctx.response.ok(classSeatAvailabilities)
   }

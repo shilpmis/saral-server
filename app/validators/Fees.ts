@@ -256,20 +256,6 @@ export const UpdateValidationForAppliedConcessionToStudent = vine.compile(
 export const CreateValidationForApplyExtraFeesToStudent = vine.compile(
   vine.object({
 
-    // student_id : vine.number(),
-    // academic_session_id: vine.number(),
-    // fees_type_id: vine.number(),
-    // fees_plan_id: vine.number(),
-    // total_amount : vine.number().max(1000000).min(100),
-    // paid_amount : vine.number().max(1000000).min(100),
-    // installment_breakdown : vine.array(
-    //   vine.object({
-    //     installment_no: vine.number(),
-    //     amount: vine.number(),
-    //     due_date: vine.date(),
-    //   })
-    // ).minLength(1)
-
     student_id : vine.number(),
     academic_session_id: vine.number(),
     fees_type_id: vine.number(),
@@ -294,4 +280,45 @@ export const CreateValidationForApplyExtraFeesToStudent = vine.compile(
   })
 )
 
-
+export const CreateValidationForPayMultipleInstallmentsOfExtraFees = vine.compile(
+  vine.object({
+    student_id: vine.number(),
+    student_fees_master_id: vine.number(),
+    student_fees_type_masters_id : vine.number(), 
+    installments: vine
+      .array(
+        vine.object({
+          installment_id: vine.number(),
+          paid_amount: vine.number(),
+          remaining_amount: vine.number(),
+          discounted_amount: vine.number(),
+          amount_paid_as_carry_forward: vine.number().nullable(),
+          payment_mode: vine.enum([
+            'Cash',
+            'Online',
+            'Bank Transfer',
+            'Cheque',
+            'UPI',
+            'Full Discount',
+          ]),
+          transaction_reference: vine.string().nullable(),
+          payment_date: vine.date(),
+          remarks: vine.string().nullable(),
+          paid_as_refund: vine.boolean(),
+          refunded_amount: vine.number(),
+          repaid_installment: vine.boolean(),
+          applied_concessions: vine
+            .array(
+              vine.object({
+                concession_id: vine.number(),
+                // concession_amount: vine.number().max(1000000).min(10).nullable(),
+                applied_amount: vine.number().max(1000000).min(10).nullable(),
+              })
+            )
+            .minLength(1)
+            .nullable(),
+        })
+      )
+      .minLength(1),
+  })
+)

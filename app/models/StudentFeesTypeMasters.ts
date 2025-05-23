@@ -4,7 +4,7 @@ import Base from '#models/base'
 import { column, hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import StudentFeesTypeInstallmentBreakdowns from './StudentFeesTypeInstallmentBreakdowns.js'
-import StudentExtraFeesInstallments from './StudentExtraFeesInstallments.js'
+import StudentExtraFeesInstallments from './StudentExtraFeesInstallment.js'
 
 export default class StudentFeesTypeMasters extends Base {
 

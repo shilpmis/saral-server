@@ -1,11 +1,14 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'student_enrollments'
+  protected tableName = 'students'
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.enum('status', ['pursuing', 'permoted' ,'promoted', 'failed', 'drop' , 'migrated' , 'completed' , 'transfered' , 'suspended', 'onboarded' , 'admission_cancel']).alter()
+      table
+        .integer('gr_no')
+        .unsigned()
+        .nullable().alter({ alterNullable: true })
     })
   }
 
@@ -13,4 +16,3 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-

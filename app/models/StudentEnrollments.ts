@@ -23,7 +23,7 @@ export default class StudentEnrollments extends Base {
   declare quota_id: number | null
 
   @column()
-  declare status: 'pursuing' | 'permoted' | 'failed' | 'drop' | 'migrated' | 'completed' | 'transfered' | 'suspended'
+  declare status: 'pursuing' | 'permoted' | 'failed' | 'drop' | 'migrated' | 'completed' | 'transfered' | 'suspended'| 'onboarded' | 'admission_cancel'
 
   @column()
   declare remarks: string

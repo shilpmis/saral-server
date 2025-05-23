@@ -7,7 +7,7 @@ import db from '@adonisjs/lucid/services/db'
 import { CreateValidatorForInquiry, UpdateValidatorForInquiry } from '#validators/Inquiry'
 import AcademicSession from '#models/AcademicSession'
 import ClassSeatAvailability from '#models/ClassSeatAvailability'
-import { CreateValidatorStundet } from '#validators/Students'
+import { createStudentValidatorForOnBoarding } from '#validators/Students'
 import QuotaAllocation from '#models/QuotaAllocation'
 import StudentMeta from '#models/StudentMeta'
 export default class InquiriesController {
@@ -188,8 +188,11 @@ export default class InquiriesController {
    * Convert an Admission Inquiry into a Student & Student Enrollment
    */
   public async convertInquiryToStudent(ctx: HttpContext) {
-    let school_id = ctx.auth.user!.school_id
-    let inquiry_id = ctx.params.inquiry_id
+    let school_id = ctx.auth.user!.school_id;
+    let inquiry_id = ctx.params.inquiry_id;
+
+    const payload = await createStudentValidatorForOnBoarding.validate(ctx.request.body());
+
     const trx = await db.transaction()
 
     try {
@@ -197,6 +200,7 @@ export default class InquiriesController {
       const inquiry = await AdmissionInquiry.query()
         .where('id', inquiry_id)
         .andWhere('school_id', school_id)
+        .andWhere('academic_session_id', payload.academic_session_id)
         .first()
 
       if (!inquiry) {
@@ -215,7 +219,6 @@ export default class InquiriesController {
       // const admissionNumber = await this.generateAdmissionNumber()
       const enrollmentCode = `EN-${inquiry.school_id}-${Date.now()}`
 
-      const payload = await CreateValidatorStundet.validate(ctx.request.body())
 
       // Create Student Record
       const student = await Students.create(
@@ -223,22 +226,22 @@ export default class InquiriesController {
           school_id: school_id,
           enrollment_code: enrollmentCode,
           admission_number: inquiry_id,
-          gr_no: payload.students_data.gr_no,
-          first_name: payload.students_data.first_name,
-          middle_name: payload.students_data.middle_name,
-          last_name: payload.students_data.last_name,
-          first_name_in_guj: payload.students_data.first_name_in_guj,
-          middle_name_in_guj: payload.students_data.middle_name_in_guj,
-          last_name_in_guj: payload.students_data.last_name_in_guj,
-          gender: payload.students_data.gender,
-          birth_date: payload.students_data.birth_date,
-          primary_mobile: payload.students_data.primary_mobile,
-          father_name: payload.students_data.father_name,
-          father_name_in_guj: payload.students_data.father_name_in_guj,
-          mother_name: payload.students_data.mother_name,
-          mother_name_in_guj: payload.students_data.mother_name_in_guj,
-          roll_number: payload.students_data.roll_number,
-          aadhar_no: payload.students_data.aadhar_no,
+          gr_no: null,
+          first_name: payload.first_name,
+          middle_name: payload.middle_name ?? null,
+          last_name: payload.last_name,
+          first_name_in_guj: null,
+          middle_name_in_guj: null,
+          last_name_in_guj: null,
+          gender: payload.gender,
+          birth_date: payload.birth_date,
+          primary_mobile: payload.primary_mobile,
+          father_name: payload.father_name ?? null,
+          father_name_in_guj: null,
+          mother_name: null,
+          mother_name_in_guj: null,
+          roll_number: null,
+          aadhar_no: null,
           is_active: true,
           // ...payload.students_data,
         },
@@ -248,7 +251,7 @@ export default class InquiriesController {
       await StudentMeta.create(
         {
           student_id: student.id,
-          ...payload.student_meta_data,
+          // ...payload.student_meta_data,
         },
         { client: trx }
       )
@@ -296,10 +299,10 @@ export default class InquiriesController {
       await StudentEnrollments.create(
         {
           student_id: student.id,
-          division_id: payload.students_data.class_id,
+          division_id: payload.division_id,
           academic_session_id: inquiry.academic_session_id,
           quota_id: quotaId ?? null,
-          status: 'pursuing',
+          status: 'onboarded',
           remarks: 'Converted from Inquiry',
           is_new_admission: true,
         },
@@ -328,37 +331,4 @@ export default class InquiriesController {
     }
   }
 
-  /**
-   * Generate a Unique Admission Number
-   */
-  // private async generateAdmissionNumber(): Promise<string> {
-  //   const latestStudent = await Students.query().orderBy('id', 'desc').first()
-  //   const lastAdmissionNumber =
-  //     latestStudent && latestStudent.admission_number
-  //       ? parseInt(latestStudent.admission_number)
-  //       : 1000
-  //   return String(lastAdmissionNumber + 1)
-  // }
-
-  /**
-   * Generate a Unique General Register (GR) Number
-   */
-  // private async generateGrNo(): Promise<number> {
-  //   const latestStudent = await Students.query().orderBy('id', 'desc').first()
-  //   return latestStudent ? latestStudent.gr_no + 1 : 1000
-  // }
-
-  // /**
-  //  * Generate a Roll Number for the Given Class
-  //  */
-  // private async generateRollNumber(classId: number): Promise<number> {
-  //   const studentsInClass = await StudentEnrollments.query()
-  //     .where('class_id', classId)
-  //     .count('* as total')
-
-  //   // Ensure the count is retrieved properly
-  //   const totalStudents = (studentsInClass[0] as unknown as { total: number })?.total || 0
-
-  //   return totalStudents + 1
-  // }
 }

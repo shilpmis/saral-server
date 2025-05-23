@@ -10,7 +10,7 @@ export default class extends BaseSchema {
       table.integer('student_fees_type_masters_id').unsigned().references('id').inTable('student_fees_type_masters').onDelete('CASCADE').withKeyName('fk_student_fees_type_masters_id')
       table.integer('installment_id').unsigned().references('id').inTable('student_fees_types_installments_breakdowns').onDelete('CASCADE').withKeyName('fk_student_fees_types_installment_id')
       table.decimal('paid_amount', 10, 2).defaultTo(0)
-      table.decimal('discounted_amount', 10, 2).nullable().defaultTo(0)
+      table.decimal('discounted_amount', 10, 2).nullable().defaultTo(0) 
       table.decimal('remaining_amount', 10, 2)  //.computed('installment_amount - paid_amount')
       table.string('transaction_reference', 100).nullable()
       table.date('payment_date').notNullable()

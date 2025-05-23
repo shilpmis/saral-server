@@ -21,7 +21,7 @@ export const ValidatioinStatusForComplete = vine.compile(
   })
 )
 
-export const ValidatioinStatusForSuspended = vine.compile(
+export const ValidatioinStatusForSuspended   = vine.compile(
   vine.object({
     reason: vine.string(),
     status : vine.enum(['suspended', 'remove_suspension']),

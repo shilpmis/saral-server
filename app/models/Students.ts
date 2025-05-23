@@ -42,7 +42,7 @@ export default class Students extends Base {
   declare birth_date: Date | null
 
   @column()
-  declare gr_no: number
+  declare gr_no: number | null
 
   @column()
   declare primary_mobile: number | null

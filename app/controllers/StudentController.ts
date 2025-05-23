@@ -59,7 +59,7 @@ async function generateUniqueEnrollmentCode({
 
 export default class StundetsController {
   async indexClassStudents(ctx: HttpContext) {
-    const division_id = ctx.params.class_id
+    const division_id = ctx.params.division_id
     const academic_session_id = ctx.params.academic_session_id
     const page = ctx.request.input('page', 1)
     const is_meta_req = ctx.request.input('student_meta', false) === 'true'
@@ -101,7 +101,8 @@ export default class StundetsController {
         data: students.map((student) => {
           return {
             ...student.student.serialize(),
-            class_id: student.id,
+            // acadamic_class: student.,
+            class_id: division?.class_id,
           }
         }),
         meta: pageMeta,
@@ -118,6 +119,12 @@ export default class StundetsController {
   async fetchStudent(ctx: HttpContext) {
     const student_id = ctx.params.student_id
     const school_id = ctx.auth.user!.school_id
+    let acadamic_session_id = ctx.request.qs().academic_session;
+
+    if(!acadamic_session_id){
+      return ctx.response.status(400).json({ message: 'Academic session is required' })
+    }
+    
     const is_meta_req = ctx.request.input('student_meta', false) === 'true'
 
     if (school_id !== ctx.auth.user?.school_id) {
@@ -127,19 +134,23 @@ export default class StundetsController {
     }
 
     let active_session = await AcademicSession.query()
-      .where('is_active', true)
+      .where('id', acadamic_session_id)
       .andWhere('school_id', school_id)
       .first()
-
-    if (!active_session) {
+    
+    if(!active_session){
       return ctx.response.status(404).json({ message: 'No active academic session found!' })
     }
+
+    // if (!active_session) {
+    //   return ctx.response.status(404).json({ message: 'No active academic session found!' })
+    // }
 
     try {
       // Fetch the student enrollment record
       const studentEnrollment = await StudentEnrollments.query()
         .where('student_id', student_id)
-        .andWhere('academic_session_id', active_session.id)
+        .andWhere('academic_session_id', acadamic_session_id)
         .first()
 
       if (!studentEnrollment) {
