@@ -1,4 +1,5 @@
 import vine from '@vinejs/vine'
+import exp from 'constants'
 
 /**
  * Validates the post's creation action
@@ -8,6 +9,7 @@ export const CreateValidatorForFeesType = vine.compile(
     // add here
     name: vine.string().trim().minLength(2).maxLength(50),
     description: vine.string().trim().minLength(2).maxLength(50),
+    applicable_to: vine.enum(['student', 'plan']),
     academic_session_id: vine.number(),
   })
 )
@@ -29,7 +31,7 @@ export const CreateValidatorForFeesPlan = vine.compile(
     fees_plan: vine.object({
       name: vine.string().trim().minLength(2).maxLength(50).optional(),
       description: vine.string().trim().minLength(2).maxLength(50).optional(),
-      division_id: vine.number(),
+      class_id: vine.number(),
     }),
     plan_details: vine
       .array(
@@ -248,5 +250,75 @@ export const UpdateValidationForAppliedConcessionToStudent = vine.compile(
     amount: vine.number().max(1000000).min(100).nullable().optional(),
     percentage: vine.number().max(100).min(1).nullable().optional(),
     status: vine.enum(['Active', 'Inactive']).optional(),
+  })
+)
+
+export const CreateValidationForApplyExtraFeesToStudent = vine.compile(
+  vine.object({
+
+    student_id : vine.number(),
+    academic_session_id: vine.number(),
+    fees_type_id: vine.number(),
+    fees_plan_id: vine.number(),
+    installment_type: vine.enum([
+      'Admission',
+      'Monthly',
+      'Quarterly',
+      'Half Yearly',
+      'Yearly',
+    ]),
+    total_amount: vine.number().max(100000).min(100),
+    installment_breakDowns: vine
+      .array(
+        vine.object({
+          installment_no: vine.number(),
+          installment_amount: vine.number(),
+          due_date: vine.date(),
+        })
+      )
+      .minLength(1),
+  })
+)
+
+export const CreateValidationForPayMultipleInstallmentsOfExtraFees = vine.compile(
+  vine.object({
+    student_id: vine.number(),
+    student_fees_master_id: vine.number(),
+    student_fees_type_masters_id : vine.number(), 
+    installments: vine
+      .array(
+        vine.object({
+          installment_id: vine.number(),
+          paid_amount: vine.number(),
+          remaining_amount: vine.number(),
+          discounted_amount: vine.number(),
+          amount_paid_as_carry_forward: vine.number().nullable(),
+          payment_mode: vine.enum([
+            'Cash',
+            'Online',
+            'Bank Transfer',
+            'Cheque',
+            'UPI',
+            'Full Discount',
+          ]),
+          transaction_reference: vine.string().nullable(),
+          payment_date: vine.date(),
+          remarks: vine.string().nullable(),
+          paid_as_refund: vine.boolean(),
+          refunded_amount: vine.number(),
+          repaid_installment: vine.boolean(),
+          applied_concessions: vine
+            .array(
+              vine.object({
+                concession_id: vine.number(),
+                // concession_amount: vine.number().max(1000000).min(10).nullable(),
+                applied_amount: vine.number().max(1000000).min(10).nullable(),
+              })
+            )
+            .minLength(1)
+            .nullable(),
+        })
+      )
+      .minLength(1),
   })
 )

@@ -10,7 +10,7 @@ export default class StudentFeesInstallments extends Base {
   declare student_fees_master_id: number
 
   @column()
-  declare installment_id: number
+  declare installment_id: number   
 
   @column()
   declare paid_amount: number

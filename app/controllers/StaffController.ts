@@ -12,91 +12,102 @@ import ExcelJS from 'exceljs'
 import User from '#models/User'
 
 export default class StaffController {
+  /**
+   * List staff with optional filters and pagination
+   */
   async indexStaff(ctx: HttpContext) {
-    let type = ctx.request.input('type', 'all')
-    let academic_session_id = ctx.request.input('academic_sessions')
-    let page = ctx.request.input('page', 'all')
-    let school_id = ctx.auth.user!.school_id
+    const type = ctx.request.input('type', 'all')
+    const academic_session_id = ctx.request.input('academic_sessions')
+    const page = ctx.request.input('page', 1)
+    const perPage = 10
+    const alldata = ctx.request.input('alldata', false)
+    const school_id = ctx.auth.user!.school_id
 
-
-    if(!academic_session_id){
-      return ctx.response.status(400).json({ message: 'Please provide academic session id.' });   
+    if (!academic_session_id) {
+      return ctx.response.status(400).json({ message: 'Please provide academic session id.' })
     }
-    console.log('type', type)
 
-    let staff: Staff[] = []
+    let staffQuery = db.query()
+      .from ('staff as staff')
+      .where('staff.school_id', school_id)
 
+    // Join and filter based on type
     if (type === 'teaching') {
-      if (academic_session_id === 0) {
-        staff = await db
-          .query()
-          .from('staff as s')
-          .join('staff_enrollments as se', 's.staff_id', 'se.staff_id')
-          .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
-          .where('s.school_id', school_id)
-          .andWhere('sm.is_teaching', 1)
-          .select(['s.*', 'sm.role', 'sm.working_hours'])
-          .paginate(page, 10)
-      } else {
-        staff = await db
-          .query()
-          .from('staff as s')
-          .join('staff_enrollments as se', 's.id', 'se.staff_id')
-          .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
-          .where('s.school_id', school_id)
-          .andWhere('se.academic_session_id', academic_session_id)
-          .andWhere('sm.is_teaching_role', 1)
-          .select(['s.*', 'sm.role', 'sm.working_hours'])
-          .paginate(page, 10)
-      }
-
-      return ctx.response.status(200).json(staff)
+      staffQuery
+        .join('staff_enrollments as se', 'staff.id', 'se.staff_id')
+        .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
+        .where('sm.is_teaching_role', 1)
+        .where('se.academic_session_id', academic_session_id)
+        .select([
+          'staff.*',
+          'se.id as staff_enrollment_id',
+          // 'se.staff_id',
+          'se.status',
+          'se.academic_session_id',
+          'sm.role',
+          'sm.working_hours',
+        ])
     } else if (type === 'other') {
-      if (academic_session_id === 0) {
-        staff = await db
-          .query()
-          .from('staff as s')
-          .join('staff_enrollments as se', 's.staff_id', 'se.staff_id')
-          .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
-          .where('s.school_id', school_id)
-          .where('sm.is_teaching', 0)
-          .select(['s.*', 'sm.role', 'sm.working_hours'])
-          .paginate(page, 10)
-      } else {
-        staff = await db
-          .query()
-          .from('staff as s')
-          .join('staff_enrollments as se', 's.id', 'se.staff_id')
-          .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
-          .where('s.school_id', school_id)
-          .where('se.academic_session_id', academic_session_id)
-          .where('sm.is_teaching_role', 0)
-          .select(['s.*', 'sm.role as role', 'sm.working_hours as working_hours'])
-          .paginate(page, 10)
-      }
-      return ctx.response.status(200).json(staff)
+      staffQuery
+        .join('staff_enrollments as se', 'staff.id', 'se.staff_id')
+        .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
+        .where('sm.is_teaching_role', 0)
+        .where('se.academic_session_id', academic_session_id)
+        .select([
+          'staff.*',
+          'sm.role as role',
+          'se.id as staff_enrollment_id',
+          // 'se.staff_id',
+          'se.status',
+          'se.academic_session_id',
+          'sm.working_hours as working_hours',
+        ])
     } else if (type === 'non-activeuser') {
-      let onBoardedUser = await User.query()
+      // Find users who are already onboarded
+      const onBoardedUser = await User.query()
         .where('school_id', school_id)
         .andWhere('role_id', 6)
         .andWhereNotNull('staff_id')
 
-      staff = await db        
-          .from('staff as s')
-          .join('staff_enrollments as se', 's.id', 'se.staff_id')
-          .join('staff_role_master as sm', 's.staff_role_id', 'sm.id')
-          .where('s.school_id', school_id)
-          .andWhere('se.academic_session_id', academic_session_id)
-          .andWhere('sm.is_teaching_role', 1)
-          .select([
-            's.*',
-            'sm.role as role',
-            's.*', 'sm.role', 'sm.working_hours'
-          ])
-          .whereNotIn('s.id', [...onBoardedUser.map((user) => Number(user.staff_id))])
-          // .paginate(page, 10)
+      const onboardedStaffIds = onBoardedUser.map((user) => Number(user.staff_id))
 
-      return ctx.response.status(200).json(staff)
+      staffQuery
+        .join('staff_enrollments as se', 'staff.id', 'se.staff_id')
+        .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
+        .where('sm.is_teaching_role', 1)
+        .where('se.academic_session_id', academic_session_id)
+        .whereNotIn('staff.id', onboardedStaffIds)
+        .select([
+          'staff.*',
+          'se.id as staff_enrollment_id',
+          // 'se.staff_id',
+          'se.status',
+          'se.academic_session_id',
+          'sm.role as role',
+          'sm.working_hours',
+        ])
+    } else {
+      // Default: all staff for the session
+      staffQuery
+        .join('staff_enrollments as se', 'staff.id', 'se.staff_id')
+        .join('staff_role_master as sm', 'staff.staff_role_id', 'sm.id')
+        .where('se.academic_session_id', academic_session_id)
+        .select([
+          'staff.*',
+          'sm.role as role',
+          'se.id as staff_enrollment_id',
+          // 'se.staff_id',
+          'se.status',
+          'se.academic_session_id',
+          'sm.working_hours as working_hours',
+        ])
+    }
+
+    let staff
+    if (alldata) {
+      staff = await staffQuery
+    } else {
+      staff = await staffQuery.paginate(page, perPage)
     }
 
     return ctx.response.status(200).json(staff)
@@ -109,7 +120,7 @@ export default class StaffController {
     try {
       const staffId = ctx.params.id;
       const school_id = ctx.auth.user!.school_id;
-      
+
       // Always preload all relationships for complete data
       const staffQuery = Staff.query()
         .where('id', staffId)
@@ -120,7 +131,7 @@ export default class StaffController {
             divisionQuery.preload('class')
           })
         });
-        
+
       const staff = await staffQuery.first();
 
       if (!staff) {
@@ -228,18 +239,7 @@ export default class StaffController {
       let staff = await Staff.query().where('id', staff_id).andWhere('school_id', school_id).first()
 
       if (staff) {
-        // if (payload.staff_role_id && payload.staff_role_id !== staff.staff_role_id) {
-        //   let role = await StaffMaster.query({ client: trx })
-        //     .where('school_id', school_id)
-        //     .andWhere('id', payload.staff_role_id)
-        //     .andWhere('is_teaching_role', true)
-
-        //   if (!role) {
-        //     return ctx.response.status(404).
-        //       json({ message: "This role is not available for your school !" });
-        //   }
-        // }
-        ;(await staff.merge(payload).save()).useTransaction(trx)
+        ; (await staff.merge(payload).save()).useTransaction(trx)
 
         await trx.commit()
         return ctx.response.status(200).json(staff)
@@ -388,8 +388,8 @@ export default class StaffController {
 
       // Validate required parameters
       if (!school_id || fields.length === 0 || !staff_type) {
-        return ctx.response.badRequest({ 
-          error: 'School ID, staff type, and at least one field are required' 
+        return ctx.response.badRequest({
+          error: 'School ID, staff type, and at least one field are required'
         })
       }
 
@@ -400,8 +400,8 @@ export default class StaffController {
 
       // Authorization check
       if (school_id !== ctx.auth.user!.school_id) {
-        return ctx.response.forbidden({ 
-          message: 'You are not authorized to perform this action' 
+        return ctx.response.forbidden({
+          message: 'You are not authorized to perform this action'
         })
       }
 
@@ -475,9 +475,9 @@ export default class StaffController {
       return ctx.response.send(buffer)
     } catch (error) {
       console.error('Error generating Excel export:', error)
-      return ctx.response.internalServerError({ 
+      return ctx.response.internalServerError({
         error: 'Failed to generate Excel export',
-        message: error.message 
+        message: error.message
       })
     }
   }

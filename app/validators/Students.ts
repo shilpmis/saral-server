@@ -409,3 +409,19 @@ export const ValidationForExportStudents = vine.compile(
       .minLength(1),
   })
 )
+
+
+export const createStudentValidatorForOnBoarding = vine.compile(
+  vine.object({
+      // class_id: vine.number(),
+      first_name: vine.string().trim().minLength(2).maxLength(50),
+      middle_name: vine.string().trim().minLength(2).maxLength(50).nullable().optional(),
+      last_name: vine.string().trim().minLength(2).maxLength(50),
+      birth_date : vine.date().nullable().optional(),
+      class_id : vine.number(),
+      division_id : vine.number(),
+      gender: vine.enum(['Male', 'Female']),
+      primary_mobile : vine.number(),
+      father_name: vine.string().trim().minLength(3).maxLength(50).nullable().optional(),
+      academic_session_id : vine.number(),
+  }))

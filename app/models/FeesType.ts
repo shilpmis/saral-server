@@ -18,6 +18,9 @@ export default class FeesType extends Base {
   declare description: string
 
   @column()
+  declare applicable_to: 'student' | 'plan'
+
+  @column()
   declare status: string
 
 }
