@@ -23,22 +23,36 @@ export default class InquiriesController {
         message: 'Academic session ID is required',
       })
     }
+
     const inquiries = await AdmissionInquiry.query()
       .where('school_id', school_id)
       .andWhere('academic_session_id', academic_session_id)
       .preload('quota', (query) => {
-        // Load all details of quota
         query.select('*')
       })
       .preload('class_seat_availability', (query) => {
-        // Load class details with all attributes
         query.select('*')
       })
       .preload('created_by_user')
       .orderBy('created_at', 'desc')
       .paginate(page, 10)
 
-    return ctx.response.status(200).json(inquiries)
+    // Fetch student_enrollment only if student_enrollments_id is not null
+    const result = inquiries.serialize().data.map(async (inquiry: any) => {
+      if (inquiry.student_enrollments_id) {
+        const enrollment = await StudentEnrollments.find(inquiry.student_enrollments_id)
+        return { ...inquiry, student_enrollment: enrollment }
+      } else {
+        return { ...inquiry, student_enrollment: null }
+      }
+    })
+
+    const data = await Promise.all(result)
+
+    return ctx.response.status(200).json({
+      ...inquiries.toJSON(),
+      data,
+    })
   }
 
   /**
@@ -102,6 +116,7 @@ export default class InquiriesController {
         ...payload,
         created_by: ctx.auth.user!.id,
         school_id: ctx.auth.user!.school_id,
+        student_enrollments_id : null,
         // class_applying_for : payload.inquiry_for_class,
       })
 
@@ -296,7 +311,7 @@ export default class InquiriesController {
       }
 
       // Create Student Enrollment Record
-      await StudentEnrollments.create(
+      let student_enrollments = await StudentEnrollments.create(
         {
           student_id: student.id,
           division_id: payload.division_id,
@@ -311,6 +326,7 @@ export default class InquiriesController {
 
       // Mark Inquiry as Converted
       inquiry.is_converted_to_student = true
+      inquiry.student_enrollments_id = student_enrollments.id
       inquiry.status = 'enrolled'
       await inquiry.save()
 
