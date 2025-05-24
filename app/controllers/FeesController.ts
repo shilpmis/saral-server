@@ -119,7 +119,7 @@ export default class FeesController {
           message: 'No active academic year found for this school',
         })
       }
-      let division_id = ctx.request.input('value')
+      let class_id = ctx.request.input('value')
 
       let fees_types = await db
         .query()
@@ -128,7 +128,7 @@ export default class FeesController {
         .join('fees_types as ft', 'fpd.fees_type_id', 'ft.id')
         .where('fp.academic_session_id', academic_session_id)
         .andWhere('ft.applicable_to', 'plan')
-        .andWhere('fp.division_id', division_id)
+        .andWhere('fp.class_id', class_id)
         .distinct()
         .select('ft.*')
 
@@ -835,7 +835,7 @@ export default class FeesController {
       .preload('division')
       .where('student_id', student_id)
       .andWhere('academic_session_id', academicSession.id)
-      .andWhereIn('status', ['pursuing' , 'onboarded'])
+      .andWhereIn('status', ['pursuing', 'onboarded'])
       .first()
 
     if (!student_enrollment) {
@@ -2628,10 +2628,12 @@ export default class FeesController {
 
     // check fees plan for class 
 
+    console.log("Checking fees plan for class", payload.fees_plan_id, payload.academic_session_id, academic_enrollment.division.class_id)
+
     let fees_paln = await FeesPlan.query()
       .where('id', payload.fees_plan_id)
       .andWhere('academic_session_id', payload.academic_session_id)
-      .andWhere('division_id', academic_enrollment.division.class_id)
+      .andWhere('class_id', academic_enrollment.division.class_id)
       .first()
 
     if (!fees_paln) {
@@ -2735,150 +2737,415 @@ export default class FeesController {
 
   }
 
-async payMultipleInstallmentsForExtraFees(ctx: HttpContext) {
-  const payload = await CreateValidationForPayMultipleInstallmentsOfExtraFees.validate(ctx.request.body())
+  async payMultipleInstallmentsForExtraFees(ctx: HttpContext) {
+    const payload = await CreateValidationForPayMultipleInstallmentsOfExtraFees.validate(ctx.request.body())
 
-  const { student_id, student_fees_master_id, student_fees_type_masters_id, installments } = payload
+    const { student_id, student_fees_master_id, student_fees_type_masters_id, installments } = payload
 
-  // Get active academic session for user
-  const academicSession = await AcademicSession.query()
-    .where('is_active', 1)
-    .andWhere('school_id', ctx.auth.user!.school_id)
-    .first()
+    // Get active academic session for user
+    const academicSession = await AcademicSession.query()
+      .where('is_active', 1)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
 
-  if (!academicSession) {
-    return ctx.response.status(404).json({ message: 'No active academic year found for this school' })
-  }
-
-  // Get student enrollment
-  const student_enrollment = await StudentEnrollments.query()
-    .where('student_id', student_id)
-    .andWhere('academic_session_id', academicSession.id)
-    .first()
-
-  if (!student_enrollment) {
-    return ctx.response.status(404).json({ message: 'No student enrollment found for this student' })
-  }
-
-  // Get StudentFeesTypeMasters for this student and extra fees type
-  const feesTypeMaster = await StudentFeesTypeMasters.query()
-    .where('student_enrollments_id', student_enrollment.id)
-    .andWhere('id', student_fees_type_masters_id)
-    .andWhere('status', 'Active')
-    .first()
-
-  if (!feesTypeMaster) {
-    return ctx.response.status(404).json({ message: 'No extra fees found for this student' })
-  }
-
-  let trx = await db.transaction()
-  try {
-    // Fetch all breakdowns for this fees type
-    const breakdowns = await StudentFeesTypeInstallmentBreakdowns.query()
-      .where('student_fees_type_masters_id', feesTypeMaster.id)
-
-    for (const inst of installments) {
-      // Validate breakdown exists
-      const breakdown = breakdowns.find(b => b.id === inst.installment_id)
-      if (!breakdown) {
-        await trx.rollback()
-        return ctx.response.status(404).json({ message: `No installment breakdown found for id ${inst.installment_id}` })
-      }
-
-      // Check if already paid
-      const alreadyPaid = await StudentExtraFeesInstallment.query()
-        .where('student_fees_type_masters_id', feesTypeMaster.id)
-        .andWhere('installment_id', inst.installment_id)
-        .first()
-
-      if (alreadyPaid && !inst.repaid_installment) {
-        await trx.rollback()
-        return ctx.response.status(400).json({ message: `Installment ${inst.installment_id} already paid` })
-      }
-
-      // Validate paid_amount + discounted_amount + remaining_amount == installment_amount
-      if (
-        Number(breakdown.installment_amount) !==
-        Number(inst.paid_amount) + Number(inst.discounted_amount) + Number(inst.remaining_amount)
-      ) {
-        await trx.rollback()
-        return ctx.response.status(400).json({ message: `Paid amount for installment ${inst.installment_id} does not match installment amount` })
-      }
-
-      // Insert payment record
-      await StudentExtraFeesInstallment.create(
-        {
-          student_fees_master_id: student_fees_master_id, // Not linked to StudentFeesMaster
-          student_fees_type_masters_id: feesTypeMaster.id,
-          installment_id: breakdown.id,
-          paid_amount: Number(inst.paid_amount),
-          discounted_amount: Number(inst.discounted_amount),
-          remaining_amount: Number(inst.remaining_amount),
-          amount_paid_as_carry_forward: inst.amount_paid_as_carry_forward ?? 0,
-          paid_as_refund: inst.paid_as_refund,
-          refunded_amount: inst.refunded_amount,
-          payment_mode: inst.payment_mode,
-          transaction_reference: inst.transaction_reference,
-          payment_date: inst.payment_date,
-          remarks: inst.remarks,
-          status: breakdown.due_date < new Date() ? 'Overdue' : (Number(inst.remaining_amount) === 0 ? 'Paid' : 'Partially Paid'),
-        },
-        { client: trx }
-      )
-
-      // Optionally, handle applied_concessions here if needed
-      // inst.applied_concessions (array of concessions for this installment)
+    if (!academicSession) {
+      return ctx.response.status(404).json({ message: 'No active academic year found for this school' })
     }
 
-    // Update StudentFeesTypeMasters summary
-    const allPaid = await StudentExtraFeesInstallment.query()
-      .where('student_fees_type_masters_id', feesTypeMaster.id)
-
-    const total_paid = allPaid.reduce((acc, p) => acc + Number(p.paid_amount), 0)
-    const total_discounted = allPaid.reduce((acc, p) => acc + Number(p.discounted_amount), 0)
-
-    await feesTypeMaster
-      .merge({
-        paid_amount: total_paid,
-        status:
-          Number(feesTypeMaster.total_amount) - (Number(total_paid) + Number(total_discounted)) === 0
-            ? 'Inactive'
-            : 'Active',
-      })
-      .useTransaction(trx)
-      .save()
-
-
-    // Update StudentFeesMaster summary
-    const studentFeesMaster = await StudentFeesMaster.query()
-      .where('id', student_fees_master_id)
-      .andWhere('student_id', student_id)
+    // Get student enrollment
+    const student_enrollment = await StudentEnrollments.query()
+      .where('student_id', student_id)
       .andWhere('academic_session_id', academicSession.id)
       .first()
-    if (!studentFeesMaster) {
+
+    if (!student_enrollment) {
+      return ctx.response.status(404).json({ message: 'No student enrollment found for this student' })
+    }
+
+    // Get StudentFeesTypeMasters for this student and extra fees type
+    const feesTypeMaster = await StudentFeesTypeMasters.query()
+      .where('student_enrollments_id', student_enrollment.id)
+      .andWhere('id', student_fees_type_masters_id)
+      .andWhere('status', 'Active')
+      .first()
+
+    if (!feesTypeMaster) {
+      return ctx.response.status(404).json({ message: 'No extra fees found for this student' })
+    }
+
+    let trx = await db.transaction()
+    try {
+      // Fetch all breakdowns for this fees type
+      const breakdowns = await StudentFeesTypeInstallmentBreakdowns.query()
+        .where('student_fees_type_masters_id', feesTypeMaster.id)
+
+      for (const inst of installments) {
+        // Validate breakdown exists
+        const breakdown = breakdowns.find(b => b.id === inst.installment_id)
+        if (!breakdown) {
+          await trx.rollback()
+          return ctx.response.status(404).json({ message: `No installment breakdown found for id ${inst.installment_id}` })
+        }
+
+        // Check if already paid
+        const alreadyPaid = await StudentExtraFeesInstallment.query()
+          .where('student_fees_type_masters_id', feesTypeMaster.id)
+          .andWhere('installment_id', inst.installment_id)
+          .first()
+
+        if (alreadyPaid && !inst.repaid_installment) {
+          await trx.rollback()
+          return ctx.response.status(400).json({ message: `Installment ${inst.installment_id} already paid` })
+        }
+
+        // Validate paid_amount + discounted_amount + remaining_amount == installment_amount
+        if (
+          Number(breakdown.installment_amount) !==
+          Number(inst.paid_amount) + Number(inst.discounted_amount) + Number(inst.remaining_amount)
+        ) {
+          await trx.rollback()
+          return ctx.response.status(400).json({ message: `Paid amount for installment ${inst.installment_id} does not match installment amount` })
+        }
+
+        // Insert payment record
+        await StudentExtraFeesInstallment.create(
+          {
+            student_fees_master_id: student_fees_master_id, // Not linked to StudentFeesMaster
+            student_fees_type_masters_id: feesTypeMaster.id,
+            installment_id: breakdown.id,
+            paid_amount: Number(inst.paid_amount),
+            discounted_amount: Number(inst.discounted_amount),
+            remaining_amount: Number(inst.remaining_amount),
+            amount_paid_as_carry_forward: inst.amount_paid_as_carry_forward ?? 0,
+            paid_as_refund: inst.paid_as_refund,
+            refunded_amount: inst.refunded_amount,
+            payment_mode: inst.payment_mode,
+            transaction_reference: inst.transaction_reference,
+            payment_date: inst.payment_date,
+            remarks: inst.remarks,
+            status: breakdown.due_date < new Date() ? 'Overdue' : (Number(inst.remaining_amount) === 0 ? 'Paid' : 'Partially Paid'),
+          },
+          { client: trx }
+        )
+
+        // Optionally, handle applied_concessions here if needed
+        // inst.applied_concessions (array of concessions for this installment)
+      }
+
+      // Update StudentFeesTypeMasters summary
+      const allPaid = await StudentExtraFeesInstallment.query()
+        .where('student_fees_type_masters_id', feesTypeMaster.id)
+
+      const total_paid = allPaid.reduce((acc, p) => acc + Number(p.paid_amount), 0)
+      const total_discounted = allPaid.reduce((acc, p) => acc + Number(p.discounted_amount), 0)
+
+      await feesTypeMaster
+        .merge({
+          paid_amount: total_paid,
+          status:
+            Number(feesTypeMaster.total_amount) - (Number(total_paid) + Number(total_discounted)) === 0
+              ? 'Inactive'
+              : 'Active',
+        })
+        .useTransaction(trx)
+        .save()
+
+
+      // Update StudentFeesMaster summary
+      const studentFeesMaster = await StudentFeesMaster.query()
+        .where('id', student_fees_master_id)
+        .andWhere('student_id', student_id)
+        .andWhere('academic_session_id', academicSession.id)
+        .first()
+      if (!studentFeesMaster) {
+        await trx.rollback()
+        return ctx.response.status(404).json({ message: 'No student fees master found for this student' })
+      }
+
+      studentFeesMaster.merge({
+        paid_amount: Number(studentFeesMaster.paid_amount) + Number(total_paid),
+        discounted_amount: Number(studentFeesMaster.discounted_amount) + Number(total_discounted),
+      })
+      if (Number(studentFeesMaster.total_amount) - (Number(studentFeesMaster.paid_amount) + Number(studentFeesMaster.discounted_amount)) === 0) {
+        studentFeesMaster.status = 'Paid'
+      }
+      await studentFeesMaster.useTransaction(trx).save()
+
+
+      await trx.commit()
+      return ctx.response.status(201).json({ message: 'Extra fees installments paid successfully' })
+    } catch (error) {
       await trx.rollback()
-      return ctx.response.status(404).json({ message: 'No student fees master found for this student' })
+      return ctx.response.status(500).json({
+        message: 'Internal Server Error',
+        error: error.message || error,
+      })
     }
-
-    studentFeesMaster.merge({
-      paid_amount: Number(studentFeesMaster.paid_amount) + Number(total_paid),
-      discounted_amount: Number(studentFeesMaster.discounted_amount) + Number(total_discounted),
-    })
-    if (Number(studentFeesMaster.total_amount) - (Number(studentFeesMaster.paid_amount) + Number(studentFeesMaster.discounted_amount)) === 0) {
-      studentFeesMaster.status = 'Paid'
-    }
-    await studentFeesMaster.useTransaction(trx).save()
-    
-
-    await trx.commit()
-    return ctx.response.status(201).json({ message: 'Extra fees installments paid successfully' })
-  } catch (error) {
-    await trx.rollback()
-    return ctx.response.status(500).json({
-      message: 'Internal Server Error',
-      error: error.message || error,
-    })
   }
-}
+
+  // report
+
+  async fetchFeesTyesWithInstallmentsForClass(ctx: HttpContext) {
+    let division_id = ctx.params.division_id
+
+    let academic_session_id = ctx.request.input('academic_session')
+    let academic_session = await AcademicSession.query()
+      .where('id', academic_session_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+    if (!academic_session) {
+      return ctx.response.status(404).json({
+        message: 'No active academic year found for this school',
+      })
+    }
+    let division = await Divisions.query()
+      .where('id', division_id)
+      // .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+    if (!division) {
+      return ctx.response.status(404).json({
+        message: 'Division not found',
+      })
+    }
+    let class_fees_plan = await FeesPlan.query()
+      .preload('fees_detail', (query) => {
+        query.preload('installments_breakdown')
+      })
+      .where('academic_session_id', academic_session_id)
+      .andWhere('class_id', division!.class_id)
+      .andWhere('status', 'Active')
+      .first()
+    if (!class_fees_plan) {
+      return ctx.response.status(404).json({
+        message: 'Fees plan not found for this class',
+      })
+    }
+
+    return ctx.response.status(200).json(class_fees_plan)
+
+  }
+
+  async installmentWiseReportClass(ctx: HttpContext) {
+
+    let division_id = ctx.params.division_id
+    let fees_type_id = ctx.params.fees_type_id
+    let installment_id = ctx.params.installment_id
+    let academic_session_id = ctx.request.input('academic_session')
+
+    let academic_session = await AcademicSession.query()
+      .where('id', academic_session_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+    if (!academic_session) {
+      return ctx.response.status(404).json({
+        message: 'No active academic year found for this school',
+      })
+    }
+
+
+    let division = await Divisions.query()
+      .where('id', division_id)
+      // .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+    if (!division) {
+      return ctx.response.status(404).json({
+        message: 'Division not found',
+      })
+    }
+
+    let class_fees_plan = await FeesPlan.query()
+      .where('academic_session_id', academic_session_id)
+      .andWhere('class_id', division!.class_id)
+      .first()
+
+    if (!class_fees_plan) {
+      return ctx.response.status(404).json({
+        message: 'Fees plan not found for this class',
+      })
+    }
+
+    let fees_type_details = await FeesPlanDetails.query()
+      // .where('academic_session_id', academic_session_id)
+      .where('fees_plan_id', class_fees_plan.id)
+      .andWhere('fees_type_id', fees_type_id)
+      .first()
+
+    if (!fees_type_details) {
+      return ctx.response.status(404).json({
+        message: 'Fees type details not found for this fees type',
+      })
+    }
+
+    let installment = await InstallmentBreakDowns.query()
+      .where('id', installment_id)
+      .andWhere('fee_plan_details_id', fees_type_details.id)
+      .first()
+
+    if (!installment) {
+      return ctx.response.status(404).json({
+        message: 'Installment not found',
+      })
+    }
+
+    let stundent_enrollment = await db.query()
+      .from('student_enrollments as se')
+      .leftJoin('students as s', 's.id', 'se.student_id')
+      .leftJoin('student_fees_master as sfm', function () {
+        this.on('sfm.student_id', '=', 's.id')
+          .andOn('sfm.academic_session_id', '=', 'se.academic_session_id')
+      })
+      .leftJoin('student_fees_installments as sfi', function () {
+        this.on('sfi.student_fees_master_id', '=', 'sfm.id')
+        this.andOnVal('sfi.installment_id', '=', installment_id)
+      })
+      .where('se.academic_session_id', academic_session_id)
+      .andWhere('se.division_id', division_id)
+      .groupBy(
+        's.id',
+        's.enrollment_code',
+        's.first_name',
+        's.middle_name',
+        's.last_name',
+        's.gr_no',
+        'sfi.installment_id',
+        'sfm.id' // Add sfm.id to GROUP BY to satisfy ONLY_FULL_GROUP_BY
+      )
+      .select([
+        's.id',
+        's.enrollment_code',
+        's.first_name',
+        's.middle_name',
+        's.last_name',
+        's.gr_no',
+        'sfi.installment_id',
+        // db.raw(`COALESCE(
+        //   (SELECT sfi2.status FROM student_fees_installments sfi2
+        //   WHERE sfi2.student_fees_master_id = sfm.id
+        //     AND sfi2.installment_id = sfi.installment_id
+        //   ORDER BY sfi2.payment_date DESC, sfi2.id DESC
+        //   LIMIT 1
+        //   ), sfi.status
+        // ) as status`),
+        db.raw('COALESCE(SUM(sfi.paid_amount), 0) as total_paid_amount'),
+        db.raw('COALESCE(SUM(sfi.discounted_amount), 0) as total_discounted_amount'),
+        db.raw('COALESCE(SUM(sfi.remaining_amount), 0) as total_remaining_amount'),
+        db.raw('MIN(sfi.payment_date) as first_payment_date'),
+        db.raw('MAX(sfi.payment_date) as last_payment_date'),
+        db.raw('COUNT(sfi.id) as payment_count')
+      ])
+
+    // .andWhere('status', 'Active')
+
+    return ctx.response.status(200).json({
+      message: 'Installment report',
+      data: stundent_enrollment,
+      fees_type_details: fees_type_details,
+      installment: installment
+    })
+
+  }
+
+  async feesTypesWiseReportClass(ctx: HttpContext) {
+    let division_id = ctx.params.division_id
+    let fees_type_id = ctx.params.fees_type_id
+    let academic_session_id = ctx.request.input('academic_session')
+
+    let academic_session = await AcademicSession.query()
+      .where('id', academic_session_id)
+      .andWhere('school_id', ctx.auth.user!.school_id)
+      .first()
+
+    if (!academic_session) {
+      return ctx.response.status(404).json({
+        message: 'No active academic year found for this school',
+      })
+    }
+
+    let division = await Divisions.query()
+      .where('id', division_id)
+      .first()
+    // .andWhere('school_id', ctx.auth.user!.school_id)
+
+    if (!division) {
+      return ctx.response.status(404).json({
+        message: 'Division not found',
+      })
+    }
+
+    let class_fees_plan = await FeesPlan.query()
+      .where('academic_session_id', academic_session_id)
+      .andWhere('class_id', division!.class_id)
+      .andWhere('status', 'Active')
+      .first()
+
+    if (!class_fees_plan) {
+      return ctx.response.status(404).json({
+        message: 'Fees plan not found for this class',
+      })
+    }
+
+    let fees_type_details = await FeesPlanDetails.query()
+      .where('fees_plan_id', class_fees_plan.id)
+      .andWhere('fees_type_id', fees_type_id)
+      .andWhere('status', 'Active')
+      .first()
+    if (!fees_type_details) {
+      return ctx.response.status(404).json({
+        message: 'Fees type details not found for this fees type',
+      })
+    }
+
+    // let stundent_enrollment = await db.query()
+    //   .from('student_enrollments as se')
+    //   .leftJoin('students as s', 's.id', 'se.student_id')
+    //   .leftJoin('student_fees_master as sfm', function () {
+    //     this.on('sfm.student_id', '=', 's.id')
+    //       .andOn('sfm.academic_session_id', '=', 'se.academic_session_id')
+    //   })
+    //   .leftJoin('student_fees_plan_masters as sfpm', function () {
+    //     this.on('sfpm.student_fees_master_id', '=', 'sfm.id')
+    //       .andOn('sfpm.fees_plan_details_id', '=', fees_type_details.id.toString())
+    //   })
+    //   .where('se.academic_session_id', academic_session_id)
+    //   .andWhere('se.division_id', division_id)
+    //   .select([
+    //     's.id',
+    //     's.enrollment_code',
+    //     's.first_name',
+    //     's.middle_name',
+    //     's.last_name',
+    //     's.gr_no',
+    //     'sfpm.*',
+    //   ])
+
+    let student_enrollment = await db.query()
+      .from('student_enrollments as se')
+      .leftJoin('students as s', 's.id', 'se.student_id')
+      .leftJoin('student_fees_master as sfm', 'sfm.student_id', 's.id')
+      .join('student_fees_plan_masters as sfpm', function () {
+        this.on('sfpm.student_fees_master_id', '=', 'sfm.id')
+          .andOnVal('sfpm.fees_plan_details_id', '=', fees_type_details.id)
+      })
+      .where('se.academic_session_id', academic_session_id)
+      .andWhere('se.division_id', division_id)
+      .select([
+        's.id',
+        's.enrollment_code',
+        's.first_name',
+        's.middle_name',
+        's.last_name',
+        's.gr_no',
+        'sfpm.*',
+      ])
+
+    return ctx.response.status(200).json({
+      message: 'Fees types report',
+      data: student_enrollment,
+      fees_type_details: fees_type_details,
+    })
+
+  }
 
 }

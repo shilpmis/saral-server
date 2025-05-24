@@ -242,6 +242,11 @@ router
     router.post('/fees/pay/extra/installments', [FeesController, 'payMultipleInstallmentsForExtraFees'])
     router.put('/transaction/:transaction_id', [FeesController, 'updateFeesStatus'])
 
+    router.get('/feesplan/installments/:division_id', [FeesController, 'fetchFeesTyesWithInstallmentsForClass'])
+
+    router.get('/fees/report/installmentwisereport/:division_id/:fees_type_id/:installment_id', [FeesController, 'installmentWiseReportClass'])
+    router.get('/fees/report/feestypewiseReport/:division_id/:fees_type_id/', [FeesController, 'feesTypesWiseReportClass'])
+
     /**concessions */
     router.get('/concessions', [FeesController, 'indexConcessionType'])
     router.get('/concessions/all', [FeesController, 'indexAllConcessionType'])
