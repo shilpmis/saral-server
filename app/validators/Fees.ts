@@ -284,10 +284,10 @@ export const CreateValidationForPayMultipleInstallmentsOfExtraFees = vine.compil
   vine.object({
     student_id: vine.number(),
     student_fees_master_id: vine.number(),
-    student_fees_type_masters_id : vine.number(), 
     installments: vine
-      .array(
-        vine.object({
+    .array(
+      vine.object({
+          student_fees_type_masters_id : vine.number(), 
           installment_id: vine.number(),
           paid_amount: vine.number(),
           remaining_amount: vine.number(),
