@@ -212,28 +212,29 @@ export default class InquiriesController {
 
     try {
       // Fetch Inquiry Data
-      const inquiry = await AdmissionInquiry.query()
+      const inquiry = await AdmissionInquiry.query({ client: trx })
         .where('id', inquiry_id)
         .andWhere('school_id', school_id)
         .andWhere('academic_session_id', payload.academic_session_id)
+        .forUpdate()
         .first()
 
       if (!inquiry) {
+        await trx.rollback()
         return ctx.response.notFound({
           error: 'Inquiry not found',
         })
       }
 
       if (inquiry.is_converted_to_student) {
+        await trx.rollback()
         return ctx.response.badRequest({
           error: 'This inquiry has already been converted into a student.',
         })
       }
 
       // Generate Unique Admission Number & Enrollment Code
-      // const admissionNumber = await this.generateAdmissionNumber()
       const enrollmentCode = `EN-${inquiry.school_id}-${Date.now()}`
-
 
       // Create Student Record
       const student = await Students.create(
@@ -258,7 +259,6 @@ export default class InquiriesController {
           roll_number: null,
           aadhar_no: null,
           is_active: true,
-          // ...payload.students_data,
         },
         { client: trx }
       )
@@ -266,7 +266,6 @@ export default class InquiriesController {
       await StudentMeta.create(
         {
           student_id: student.id,
-          // ...payload.student_meta_data,
         },
         { client: trx }
       )
@@ -276,38 +275,42 @@ export default class InquiriesController {
 
       // Check if Quota is Available
       if (quotaId) {
-        const quota_allocation = await QuotaAllocation.query()
+        const quota_allocation = await QuotaAllocation.query({ client: trx })
           .where('quota_id', quotaId)
           .andWhere('class_id', inquiry.inquiry_for_class)
           .andWhere('academic_session_id', inquiry.academic_session_id)
+          .forUpdate()
           .first()
 
         if (!quota_allocation) {
+          await trx.rollback()
           return ctx.response.badRequest({
             error: 'Quota Allocation for inquiry class is not yet defined by admin .',
           })
         }
 
-        const clasSeatAvailability = await ClassSeatAvailability.query()
+        const clasSeatAvailability = await ClassSeatAvailability.query({ client: trx })
           .where('class_id', inquiry.inquiry_for_class)
           .andWhere('academic_session_id', inquiry.academic_session_id)
+          .forUpdate()
           .first()
 
         if (!clasSeatAvailability) {
+          await trx.rollback()
           return ctx.response.badRequest({
             error: 'Class Seat Availability for inquiry class is not yet defined by admin .',
           })
         }
 
-        quota_allocation.filled_seats += 1
-        ;(await quota_allocation.save()).useTransaction(trx)
+        quota_allocation.filled_seats += 1;
+        await quota_allocation.save()
 
         clasSeatAvailability.merge({
           filled_seats: (clasSeatAvailability.filled_seats += 1),
           quota_allocated_seats: (clasSeatAvailability.quota_allocated_seats -= 1),
           remaining_seats: (clasSeatAvailability.remaining_seats -= 1),
         })
-        ;(await clasSeatAvailability.save()).useTransaction(trx)
+        await clasSeatAvailability.save()
       }
 
       // Create Student Enrollment Record

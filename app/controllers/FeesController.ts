@@ -1220,7 +1220,7 @@ export default class FeesController {
 
   async payMultipleInstallments(ctx: HttpContext) {
     const payload = await CreateValidationForMultipleInstallments.validate(ctx.request.body())
-
+    let academic_session_id = ctx.request.input('academic_session')
     let student_id = payload.student_id
 
     if (!student_id) {
@@ -1229,22 +1229,31 @@ export default class FeesController {
       })
     }
 
-    let academicSession = await AcademicSession.query()
-      .where('is_active', 1)
-      .andWhere('school_id', ctx.auth.user!.school_id)
-      .first()
+    let academicSession: AcademicSession | null = null
+    if (!academic_session_id) {
+      academicSession = await AcademicSession.query()
+        .where('is_active', 1)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+    } else {
+      academicSession = await AcademicSession.query()
+        .where('id', academic_session_id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+    }
+
 
     if (!academicSession) {
       return ctx.response.status(404).json({
         message: 'No active academic year found for this school',
       })
     }
-
+    
     let student_enrollment = await StudentEnrollments.query()
       .preload('division')
       .where('student_id', student_id)
-      .andWhere('academic_session_id', academicSession.id)
-      .andWhere('status', 'pursuing')
+      .andWhere('academic_session_id', academic_session_id)
+      .andWhereIn('status', ['pursuing', 'onboarded'])
       .first()
 
     if (!student_enrollment) {
@@ -2743,13 +2752,25 @@ export default class FeesController {
   async payMultipleInstallmentsForExtraFees(ctx: HttpContext) {
     const payload = await CreateValidationForPayMultipleInstallmentsOfExtraFees.validate(ctx.request.body())
 
+    let acadaemic_session_id = ctx.request.input('academic_session')
+
     const { student_id, student_fees_master_id, installments } = payload
 
     // Get active academic session for user
-    const academicSession = await AcademicSession.query()
-      .where('is_active', 1)
-      .andWhere('school_id', ctx.auth.user!.school_id)
-      .first()
+
+    
+let academicSession: AcademicSession | null = null
+    if (!acadaemic_session_id) {
+      academicSession = await AcademicSession.query()
+        .where('is_active', 1)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+    } else {
+      academicSession = await AcademicSession.query()
+        .where('id', acadaemic_session_id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first()
+    }
 
     if (!academicSession) {
       return ctx.response.status(404).json({ message: 'No active academic year found for this school' })
@@ -2880,7 +2901,7 @@ export default class FeesController {
           .andWhere('status', 'Active')
           .first()
 
-        if(!feesTypeMaster){
+        if (!feesTypeMaster) {
           await trx.rollback()
           return ctx.response.status(404).json({ message: 'No extra fees found for this student' })
         }
