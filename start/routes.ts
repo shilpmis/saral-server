@@ -320,6 +320,8 @@ router
     router.get('timetable/:division_id', [TimeTableController ,'fetchTimeTableForDivision'])
     router.post('timetable/config/period', [TimeTableController ,'createTimeTableForDivisionForADay'])    
     router.post('timetable/verify/config/period', [TimeTableController ,'checkAvailabilityForConfiguredPeriod'])
+    router.post('timetable/auto-generate/:division_id', [TimeTableController ,'generateWeeklyTimeTableForClass'])
+
 
     router.post('staff-attendance/check-in', [StaffAttendanceController, 'checkIn'])
     router.post('staff-attendance/check-out', [StaffAttendanceController, 'checkOut'])
