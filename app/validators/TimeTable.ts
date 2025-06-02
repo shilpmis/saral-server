@@ -45,6 +45,13 @@ export const CreateValidatorForLabConfig = vine.compile(
   })
 )
 
+export const UpdateValidatorForLabConfig = vine.compile(vine.object({
+  name: vine.string().optional(),
+  // type: vine.string(), // e.g. "science", "computer"
+  max_capacity: vine.number().optional(), // in term of class
+  availability_per_day: vine.number().nullable().optional(), // optional
+}))
+
 export const CreateValidatorForClassDayConfig = vine.compile(
   vine.object({
     // add here
@@ -52,6 +59,17 @@ export const CreateValidatorForClassDayConfig = vine.compile(
     class_id: vine.number(),
     day: vine.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat']),
     allowed_durations: vine.array(vine.number()),
+    max_consecutive_periods: vine.number().optional(),
+    total_breaks: vine.number().optional(),
+    break_durations: vine.array(vine.number()).optional(),
+    day_start_time: vine.string().optional(), // optional
+    day_end_time: vine.string().optional(), // optional    
+  })
+)
+
+export const UpdateValidatorForClassDayConfig = vine.compile(
+  vine.object({
+    allowed_durations: vine.array(vine.number()).optional(),
     max_consecutive_periods: vine.number().optional(),
     total_breaks: vine.number().optional(),
     break_durations: vine.array(vine.number()).optional(),
@@ -77,6 +95,28 @@ export const CreateValidatorForPeriodConfig = vine.compile(
         lab_id: vine.number().nullable(), // optional
         is_pt: vine.boolean(),
         is_free_period: vine.boolean(),
+      })
+    )
+  })
+)
+
+
+export const UpdateValidatorForPeriodConfig = vine.compile(
+  vine.object({
+    // add here
+    class_day_config_id: vine.number(),
+    division_id: vine.number(),
+    periods: vine.array(
+      vine.object({
+        id : vine.number(), // optional, for updating existing periods 
+        start_time: vine.string().optional(), // e.g. "08:00" 
+        end_time: vine.string().optional(),   // e.g. "08:30"
+        is_break: vine.boolean().optional(),
+        subjects_division_masters_id: vine.number().nullable().optional(), // optional
+        staff_enrollment_id: vine.number().nullable().optional(),
+        lab_id: vine.number().nullable().optional(), // optional
+        is_pt: vine.boolean().optional(),
+        is_free_period: vine.boolean().optional(),
       })
     )
   })
