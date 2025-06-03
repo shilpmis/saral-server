@@ -318,9 +318,11 @@ router
     ])
     router.post('timetable/config/class/day', [TimeTableController ,'createClassDayConfig'])
     router.get('timetable/:division_id', [TimeTableController ,'fetchTimeTableForDivision'])
-    router.post('timetable/config/period', [TimeTableController ,'createTimeTableForDivisionForADay'])    
     router.post('timetable/verify/config/period', [TimeTableController ,'checkAvailabilityForConfiguredPeriod'])
     router.post('timetable/auto-generate/:division_id', [TimeTableController ,'generateWeeklyTimeTableForClass'])
+    router.post('timetable/config/period', [TimeTableController ,'createTimeTableForDivisionForADay'])    
+    router.put('timetable/config/period', [TimeTableController ,'updateTimeTableForDivisionForADay'])        
+    router.delete('timetable/config/:school_timetable_config_id/:division_id', [TimeTableController ,'deleteTimeTableForDivision'])
 
 
     router.post('staff-attendance/check-in', [StaffAttendanceController, 'checkIn'])

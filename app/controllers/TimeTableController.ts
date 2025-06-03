@@ -380,9 +380,9 @@ export default class TimeTableController {
     return ctx.response.ok(classDayConfig);
   }
 
-  async deleteClassCoonfigForWeek(ctx: HttpContext) {
+  // async deleteClassConfigForWeek(ctx: HttpContext) {
 
-  }
+  // }
 
   async fetchTimeTableForDivision(ctx: HttpContext) {
     let { division_id } = ctx.params
@@ -567,26 +567,26 @@ export default class TimeTableController {
           .query()
           .where('id', period.id)
           .andWhere('division_id', division_id)
-          .andWhere('class_day_config_id' , class_day_config_id)
+          .andWhere('class_day_config_id', class_day_config_id)
           .first()
 
         if (!check_period_config) {
           return ctx.response.badRequest({ message: `Periods for id ${period.id} does not exists !` })
         }
 
-        let payload_to_update : Partial<PeriodsConfig> = {}
+        let payload_to_update: Partial<PeriodsConfig> = {}
 
-        if(period.start_time){
+        if (period.start_time) {
           payload_to_update.start_time = period.start_time
           payload_to_update.end_time = period.end_time
         }
 
-        if(period.subjects_division_masters_id) payload_to_update.subjects_division_masters_id = period.subjects_division_masters_id
-        if(period.staff_enrollment_id) payload_to_update.staff_enrollment_id = period.staff_enrollment_id
-        if(period.lab_id) payload_to_update.lab_id = period.lab_id
-        if(period.is_pt !== undefined) payload_to_update.is_pt = period.is_pt
-        if(period.is_free_period !== undefined) payload_to_update.is_free_period = period.is_free_period
-        if(period.is_break !== undefined) {
+        if (period.subjects_division_masters_id) payload_to_update.subjects_division_masters_id = period.subjects_division_masters_id
+        if (period.staff_enrollment_id) payload_to_update.staff_enrollment_id = period.staff_enrollment_id
+        if (period.lab_id) payload_to_update.lab_id = period.lab_id
+        if (period.is_pt !== undefined) payload_to_update.is_pt = period.is_pt
+        if (period.is_free_period !== undefined) payload_to_update.is_free_period = period.is_free_period
+        if (period.is_break !== undefined) {
           payload_to_update.is_break = period.is_break
           payload_to_update.subjects_division_masters_id = null
           payload_to_update.staff_enrollment_id = null
@@ -607,6 +607,41 @@ export default class TimeTableController {
     }
 
 
+  }
+
+  async deleteTimeTableForDivision(ctx: HttpContext) {
+    let division_id = ctx.params.division_id;
+    let school_timetable_config_id = ctx.params.school_timetable_config_id;
+    let division = await Divisions.query()
+      .where('id', division_id)
+      .first()
+
+    if (!division) {
+      return ctx.response.badRequest({ message: 'Division not found' })
+    }
+
+    let clas = await Classes
+    .query()
+    .where('id', division.class_id)
+    .andWhere('school_id', ctx.auth.user!.school_id)
+    .first();
+
+    if(!clas){
+      return ctx.response.badRequest({ message: 'Class not found for this division' })
+    }
+
+    let class_day_configs = await ClassDayConfig
+      .query()
+      .where('class_id', division.class_id)
+      .andWhere('school_timetable_config_id', school_timetable_config_id);
+
+    let remove_periods = await PeriodsConfig.query().where('division_id', division_id)
+      .whereIn('class_day_config_id', class_day_configs.map(c => c.id)).delete();
+
+    return ctx.response.status(200).json({
+      message: 'Time table for division deleted successfully',
+      removed_periods: remove_periods
+    })
   }
 
   async checkAvailabilityForConfiguredPeriod(ctx: HttpContext) {
@@ -851,9 +886,22 @@ export default class TimeTableController {
    * Input: ctx, class_id, division_id, academic_session_id
    */
   async generateWeeklyTimeTableForClass(ctx: HttpContext) {
-    // let class_id = ctx.params.class_id;
-    let division_id = ctx.params.division_id;
-    let academic_session_id = ctx.request.input('academic_session');
+    const division_id = ctx.params.division_id;
+    const academic_session_id = ctx.request.input('academic_session');
+    const {
+      free_periods_count = 2,
+      max_consecutive_periods = 2,
+      include_pt_periods = false,
+      selected_labs = [],
+      subject_preferences = [],
+      max_periods_per_day,
+      default_period_duration,
+      lab_enabled,
+      pt_enabled,
+    } = ctx.request.body();
+
+    console.log("ctx.request.body()" ,ctx.request.body())
+
     // 1. Validate session, class, division, user
     const academic_session = await AcademicSession.query()
       .where('id', academic_session_id)
@@ -881,6 +929,7 @@ export default class TimeTableController {
     if (division.class_id !== clas?.id) {
       return ctx.response.badRequest({ message: 'Division does not belong to class' });
     }
+
     // 2. Fetch configs
     const school_timetable_config = await SchoolTimeTableConfig.query()
       .preload('lab_config')
@@ -893,7 +942,13 @@ export default class TimeTableController {
       return ctx.response.badRequest({ message: 'School Time Table Config not found' });
     }
     const class_day_configs = school_timetable_config.class_day_config;
-    const lab_configs = school_timetable_config.lab_config;
+    let lab_configs : LabConfig[] = school_timetable_config.lab_config;
+
+    // Only use labs selected by user
+    if (selected_labs && selected_labs.length > 0) {
+      lab_configs = lab_configs.filter(lab => selected_labs.includes(lab.id));
+    }
+
     // 2.1. Fetch subject-division mappings and staff assignments
     const subjectDivisionMasters = await SubjectDivisionMaster.query()
       .preload('subject_staff_divisioin_master')
@@ -912,31 +967,52 @@ export default class TimeTableController {
           .map((ssm) => ssm.staff_enrollment_id),
       };
     }
-    // Now subjectTeacherMap can be used for random assignment in the timetable loop.
-    // TODO: Fetch subject mappings, teacher assignments, etc.
+
+    // Build subject preference map: subject_id -> { periods_per_week, priority }
+    const subjectPrefMap: Record<number, { periods_per_week: number, priority: number }> = {};
+    for (const pref of subject_preferences) {
+      subjectPrefMap[pref.subject_id] = { periods_per_week: pref.periods_per_week, priority: pref.priority };
+    }
+
+    // Sort subjectDivisionIds by user priority (higher priority first)
+    let subjectDivisionIds = Object.keys(subjectTeacherMap).map(Number);
+    subjectDivisionIds.sort((a, b) => {
+      const aPriority = subjectPrefMap[subjectTeacherMap[a].subject.id]?.priority ?? 0;
+      const bPriority = subjectPrefMap[subjectTeacherMap[b].subject.id]?.priority ?? 0;
+      return bPriority - aPriority;
+    });
+
+    // Track subject assignment count for the whole week
+    let subjectWeekCount: Record<number, number> = {};
+    subjectDivisionIds.forEach(id => subjectWeekCount[id] = 0);
+
     // 3. For each day, generate periods
     let week_timetable: Array<{ class_day_config_id: number, periods: TypeForPeriodsConfig[] }> = [];
     let totalFreePeriods = 0;
-    let labDays: number[] = []; // store class_day_config_id for lab days
+    let labDays: number[] = [];
+    let ptPeriodsAssigned = 0;
 
     for (const dayConfig of class_day_configs) {
       let periods: TypeForPeriodsConfig[] = [];
       let allowedDurations = Array.isArray(dayConfig.allowed_durations)
         ? dayConfig.allowed_durations
         : JSON.parse(dayConfig.allowed_durations || '[]');
-      let numPeriods = school_timetable_config.max_periods_per_day;
+      let numPeriods = max_periods_per_day || school_timetable_config.max_periods_per_day;
       let startTime = dayConfig.day_start_time || '08:00';
-      let periodDuration = school_timetable_config.default_period_duration;
+      let periodDuration = default_period_duration || school_timetable_config.default_period_duration;
       let currentTime = startTime;
       let usedSubjects: Record<number, number> = {};
-      let subjectDivisionIds = Object.keys(subjectTeacherMap).map(Number);
+      let usedPeriods: Record<number, number> = {}; // subjectDivisionId -> count per day
+      let consecutiveSubject: { id: number | null, count: number } = { id: null, count: 0 };
+      let teacherPeriodsCount: Record<number, number> = {}; // staff_id -> count per day
 
       // Decide if this day will have a lab block (2 consecutive periods)
       let assignLabToday = false;
       if (
+        lab_enabled &&
         lab_configs.length > 0 &&
         labDays.length < 3 &&
-        (labDays.length < 2 || Math.random() < 0.5) // ensure at least 2 days, max 3
+        (labDays.length < 2 || Math.random() < 0.5)
       ) {
         assignLabToday = true;
         labDays.push(dayConfig.id);
@@ -947,16 +1023,39 @@ export default class TimeTableController {
         let assigned = false;
         let attempt = 0;
 
+        // PT Period
+        if (pt_enabled && include_pt_periods && ptPeriodsAssigned < 2 && Math.random() < 0.15) {
+          let periodStart = currentTime;
+          let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
+          let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
+          periods.push({
+            class_day_config_id: dayConfig.id,
+            division_id: division_id,
+            period_order: i + 1,
+            start_time: periodStart,
+            end_time: periodEnd,
+            is_break: false,
+            subjects_division_masters_id: null,
+            staff_enrollment_id: null,
+            lab_id: null,
+            is_pt: true,
+            is_free_period: false,
+          });
+          currentTime = periodEnd;
+          ptPeriodsAssigned++;
+          i++;
+          continue;
+        }
+
         // LAB BLOCK: assign 2 consecutive periods if needed
         if (assignLabToday && i <= numPeriods - 2) {
-          // Pick a random lab and a random subject that requires lab
           let lab = lab_configs[Math.floor(Math.random() * lab_configs.length)];
-          // You may want to filter subjectDivisionIds for lab subjects only
-          let labSubjectDivisionIds = subjectDivisionIds; // TODO: filter for lab subjects if needed
+          let labSubjectDivisionIds = subjectDivisionIds; // You can filter for lab subjects if needed
           let randomSubjectDivisionId = labSubjectDivisionIds[Math.floor(Math.random() * labSubjectDivisionIds.length)];
           let subjectEntry = subjectTeacherMap[randomSubjectDivisionId];
-          if (subjectEntry && subjectEntry.teachers.length > 0) {
-            let randomTeacherId = subjectEntry.teachers[Math.floor(Math.random() * subjectEntry.teachers.length)];
+          let teacherList = subjectEntry.teachers;
+          if (subjectEntry && teacherList.length > 0) {
+            let randomTeacherId = teacherList[0];
             let periodStart = currentTime;
             let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
             let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
@@ -975,7 +1074,12 @@ export default class TimeTableController {
             };
             let teacherAvailable = await this.checkTeacherAvailability(periodConfig, dayConfig, school_timetable_config);
             let labAvailable = await this.checklabAvailability(periodConfig, dayConfig, school_timetable_config);
-            if (teacherAvailable.result && labAvailable.result) {
+            if (
+              teacherAvailable.result &&
+              labAvailable.result &&
+              (usedPeriods[randomSubjectDivisionId] || 0) < 4 &&
+              (teacherPeriodsCount[randomTeacherId] || 0) < 6
+            ) {
               // Assign two consecutive lab periods
               periods.push(periodConfig);
               // Second period
@@ -990,7 +1094,12 @@ export default class TimeTableController {
               };
               periods.push(periodConfig2);
               currentTime = nextPeriodEnd;
-              usedSubjects[randomSubjectDivisionId] = (usedSubjects[randomSubjectDivisionId] || 0) + 2;
+              usedPeriods[randomSubjectDivisionId] = (usedPeriods[randomSubjectDivisionId] || 0) + 2;
+              teacherPeriodsCount[randomTeacherId] = (teacherPeriodsCount[randomTeacherId] || 0) + 2;
+              consecutiveSubject = {
+                id: randomSubjectDivisionId,
+                count: 2,
+              };
               i += 2;
               continue;
             }
@@ -1002,54 +1111,54 @@ export default class TimeTableController {
         while (!assigned && attempt < 3) {
           let randomSubjectDivisionId = subjectDivisionIds[Math.floor(Math.random() * subjectDivisionIds.length)];
           let subjectEntry = subjectTeacherMap[randomSubjectDivisionId];
-          if (!subjectEntry || subjectEntry.teachers.length === 0) {
-            attempt++;
-            continue;
-          }
-          // Max 3 same subject per day
-          if ((usedSubjects[randomSubjectDivisionId] || 0) >= 3) {
-            attempt++;
-            continue;
-          }
-          // No more than 2 consecutive same subject
-          if (
-            periods.length >= 2 &&
-            periods[periods.length - 1].subjects_division_masters_id === randomSubjectDivisionId &&
-            periods[periods.length - 2].subjects_division_masters_id === randomSubjectDivisionId
-          ) {
-            attempt++;
-            continue;
-          }
-          let randomTeacherId = subjectEntry.teachers[Math.floor(Math.random() * subjectEntry.teachers.length)];
-          let periodStart = currentTime;
-          let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
-          let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
-          let periodConfig: TypeForPeriodsConfig = {
-            class_day_config_id: dayConfig.id,
-            division_id: division_id,
-            period_order: i + 1,
-            start_time: periodStart,
-            end_time: periodEnd,
-            is_break: false,
-            subjects_division_masters_id: randomSubjectDivisionId,
-            staff_enrollment_id: randomTeacherId,
-            lab_id: null,
-            is_pt: false,
-            is_free_period: false,
-          };
-          let teacherAvailable = await this.checkTeacherAvailability(periodConfig, dayConfig, school_timetable_config);
-          if (teacherAvailable.result) {
-            assigned = true;
-            periods.push(periodConfig);
-            currentTime = periodEnd;
-            usedSubjects[randomSubjectDivisionId] = (usedSubjects[randomSubjectDivisionId] || 0) + 1;
-          } else {
-            attempt++;
+          let teacherList = subjectEntry.teachers;
+          if (subjectEntry && teacherList.length > 0) {
+            let randomTeacherId = teacherList[0];
+            let periodStart = currentTime;
+            let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
+            let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
+            let periodConfig: TypeForPeriodsConfig = {
+              class_day_config_id: dayConfig.id,
+              division_id: division_id,
+              period_order: i + 1,
+              start_time: periodStart,
+              end_time: periodEnd,
+              is_break: false,
+              subjects_division_masters_id: randomSubjectDivisionId,
+              staff_enrollment_id: randomTeacherId,
+              lab_id: null,
+              is_pt: false,
+              is_free_period: false,
+            };
+            let teacherAvailable = await this.checkTeacherAvailability(periodConfig, dayConfig, school_timetable_config);
+            // When assigning a subject, add this check:
+            if (
+              subjectPrefMap[subjectEntry.subject.id]?.periods_per_week !== undefined &&
+              subjectWeekCount[randomSubjectDivisionId] >= subjectPrefMap[subjectEntry.subject.id].periods_per_week
+            ) {
+              attempt++;
+              continue;
+            }
+            if (teacherAvailable.result) {
+              assigned = true;
+              periods.push(periodConfig);
+              currentTime = periodEnd;
+              usedPeriods[randomSubjectDivisionId] = (usedPeriods[randomSubjectDivisionId] || 0) + 1;
+              teacherPeriodsCount[randomTeacherId] = (teacherPeriodsCount[randomTeacherId] || 0) + 1;
+              subjectWeekCount[randomSubjectDivisionId] = (subjectWeekCount[randomSubjectDivisionId] || 0) + 1;
+              if (consecutiveSubject.id === randomSubjectDivisionId) {
+                consecutiveSubject.count += 1;
+              } else {
+                consecutiveSubject = { id: randomSubjectDivisionId, count: 1 };
+              }
+            } else {
+              attempt++;
+            }
           }
         }
         if (!assigned) {
-          // Only 1 or 2 free periods allowed for the week
-          if (totalFreePeriods < 2) {
+          // Only up to free_periods_count free periods allowed for the week
+          if (totalFreePeriods < free_periods_count) {
             let periodStart = currentTime;
             let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
             let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
@@ -1068,11 +1177,13 @@ export default class TimeTableController {
             });
             currentTime = periodEnd;
             totalFreePeriods++;
+            consecutiveSubject = { id: null, count: 0 };
           } else {
             // If free period limit reached, assign a random valid subject/teacher ignoring constraints
             let randomSubjectDivisionId = subjectDivisionIds[Math.floor(Math.random() * subjectDivisionIds.length)];
             let subjectEntry = subjectTeacherMap[randomSubjectDivisionId];
-            let randomTeacherId = subjectEntry.teachers[Math.floor(Math.random() * subjectEntry.teachers.length)];
+            let teacherList = subjectEntry.teachers;
+            let randomTeacherId = teacherList[0];
             let periodStart = currentTime;
             let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
             let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
@@ -1090,6 +1201,7 @@ export default class TimeTableController {
               is_free_period: false,
             });
             currentTime = periodEnd;
+            consecutiveSubject = { id: randomSubjectDivisionId, count: 1 };
           }
         }
         i++;
@@ -1099,170 +1211,9 @@ export default class TimeTableController {
     return ctx.response.status(200).json({
       message: 'Weekly timetable generated successfully',
       timetable: week_timetable
-    })
+    });
   }
 
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// async generateWeeklyTimeTableForClass(ctx: HttpContext) {
-//     // let class_id = ctx.params.class_id;
-//     let division_id = ctx.params.division_id;
-//     let academic_session_id = ctx.request.input('academic_session');
-//     // 1. Validate session, class, division, user
-//     const academic_session = await AcademicSession.query()
-//       .where('id', academic_session_id)
-//       .andWhere('school_id', ctx.auth.user!.school_id)
-//       .first();
-//     if (!academic_session) {
-//       return ctx.response.badRequest({ message: 'Academic session not found' });
-//     }
-//     if (!academic_session.is_active) {
-//       return ctx.response.badRequest({ message: 'Academic session is not active' });
-//     }
-//     const division = await Divisions.query().where('id', division_id).first();
-//     if (!division) {
-//       return ctx.response.badRequest({ message: 'Division not found' });
-//     }
-//     let clas = await Classes.query()
-//       .where('id', division.class_id)
-//       .andWhere('school_id', ctx.auth.user!.school_id)
-//       .first();
-
-//     if (!clas) {
-//       return ctx.response.badRequest({ message: 'Class not found for provided Division' });
-//     }
-
-//     if (division.class_id !== clas?.id) {
-//       return ctx.response.badRequest({ message: 'Division does not belong to class' });
-//     }
-//     // 2. Fetch configs
-//     const school_timetable_config = await SchoolTimeTableConfig.query()
-//       .preload('lab_config')
-//       .preload('class_day_config', (query) => {
-//         query.where('class_id', clas.id);
-//       })
-//       .where('academic_session_id', academic_session_id)
-//       .first();
-//     if (!school_timetable_config) {
-//       return ctx.response.badRequest({ message: 'School Time Table Config not found' });
-//     }
-//     const class_day_configs = school_timetable_config.class_day_config;
-//     const lab_configs = school_timetable_config.lab_config;
-//     // 2.1. Fetch subject-division mappings and staff assignments
-//     const subjectDivisionMasters = await SubjectDivisionMaster.query()
-//       .preload('subject_staff_divisioin_master')
-//       .preload('subject')
-//       .where('division_id', division_id)
-//       .andWhere('academic_session_id', academic_session_id)
-//       .andWhere('status', 'Active');
-
-//     // Build a map: subjectDivisionId -> { subject, teachers: [staffEnrollmentId, ...] }
-//     const subjectTeacherMap: Record<number, { subject: any, teachers: number[] }> = {};
-//     for (const sdm of subjectDivisionMasters) {
-//       subjectTeacherMap[sdm.id] = {
-//         subject: sdm.subject,
-//         teachers: sdm.subject_staff_divisioin_master
-//           .filter((ssm) => ssm.status === 'Active')
-//           .map((ssm) => ssm.staff_enrollment_id),
-//       };
-//     }
-//     // Now subjectTeacherMap can be used for random assignment in the timetable loop.
-//     // TODO: Fetch subject mappings, teacher assignments, etc.
-//     // 3. For each day, generate periods
-//     let week_timetable: Array<{ class_day_config_id: number, periods: TypeForPeriodsConfig[] }> = [];
-//     for (const dayConfig of class_day_configs) {
-//       let periods: TypeForPeriodsConfig[] = [];
-//       let allowedDurations = Array.isArray(dayConfig.allowed_durations)
-//         ? dayConfig.allowed_durations
-//         : JSON.parse(dayConfig.allowed_durations || '[]');
-//       let numPeriods = school_timetable_config.max_periods_per_day;
-//       let startTime = dayConfig.day_start_time || '08:00';
-//       let periodDuration = school_timetable_config.default_period_duration;
-//       let currentTime = startTime;
-//       let usedSubjects: Record<number, number> = {};
-//       let subjectDivisionIds = Object.keys(subjectTeacherMap).map(Number);
-//       for (let i = 0; i < numPeriods; i++) {
-//         let assigned = false;
-//         let attempt = 0;
-//         while (!assigned && attempt < 3) {
-//           let randomSubjectDivisionId = subjectDivisionIds[Math.floor(Math.random() * subjectDivisionIds.length)];
-//           let subjectEntry = subjectTeacherMap[randomSubjectDivisionId];
-//           if (!subjectEntry || subjectEntry.teachers.length === 0) {
-//             attempt++;
-//             continue;
-//           }
-//           let randomTeacherId = subjectEntry.teachers[Math.floor(Math.random() * subjectEntry.teachers.length)];
-//           let periodStart = currentTime;
-//           let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
-//           let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
-//           let periodConfig: TypeForPeriodsConfig = {
-//             class_day_config_id: dayConfig.id,
-//             division_id: division_id,
-//             period_order: i + 1,
-//             start_time: periodStart,
-//             end_time: periodEnd,
-//             is_break: false,
-//             subjects_division_masters_id: randomSubjectDivisionId,
-//             staff_enrollment_id: randomTeacherId,
-//             lab_id: null,
-//             is_pt: false,
-//             is_free_period: false,
-//           };
-//           let teacherAvailable = await this.checkTeacherAvailability(periodConfig, dayConfig, school_timetable_config);
-//           if (teacherAvailable.result) {
-//             assigned = true;
-//             periods.push(periodConfig);
-//             currentTime = periodEnd;
-//             usedSubjects[randomSubjectDivisionId] = (usedSubjects[randomSubjectDivisionId] || 0) + 1;
-//           } else {
-//             attempt++;
-//           }
-//         }
-//         if (!assigned) {
-//           let periodStart = currentTime;
-//           let periodEndMinutes = this.timeToMinutes(periodStart) + periodDuration;
-//           let periodEnd = `${String(Math.floor(periodEndMinutes / 60)).padStart(2, '0')}:${String(periodEndMinutes % 60).padStart(2, '0')}`;
-//           periods.push({
-//             class_day_config_id: dayConfig.id,
-//             division_id: division_id,
-//             period_order: i + 1,
-//             start_time: periodStart,
-//             end_time: periodEnd,
-//             is_break: false,
-//             subjects_division_masters_id: null,
-//             staff_enrollment_id: null,
-//             lab_id: null,
-//             is_pt: false,
-//             is_free_period: true,
-//           });
-//           currentTime = periodEnd;
-//         }
-//       }
-//       week_timetable.push({ class_day_config_id: dayConfig.id, periods });
-//     }
-//     return ctx.response.status(200).json({
-//       message: 'Weekly timetable generated successfully',
-//       timetable: week_timetable
-//     })
-//   }
