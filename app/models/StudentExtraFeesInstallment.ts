@@ -1,5 +1,4 @@
-import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import {  column } from '@adonisjs/lucid/orm'
 import Base from './base.js'
 
 export default class StudentExtraFeesInstallment extends Base {

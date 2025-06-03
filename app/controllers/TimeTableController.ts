@@ -890,7 +890,7 @@ export default class TimeTableController {
     const academic_session_id = ctx.request.input('academic_session');
     const {
       free_periods_count = 2,
-      max_consecutive_periods = 2,
+      // max_consecutive_periods = 2,
       include_pt_periods = false,
       selected_labs = [],
       subject_preferences = [],
@@ -994,14 +994,14 @@ export default class TimeTableController {
 
     for (const dayConfig of class_day_configs) {
       let periods: TypeForPeriodsConfig[] = [];
-      let allowedDurations = Array.isArray(dayConfig.allowed_durations)
-        ? dayConfig.allowed_durations
-        : JSON.parse(dayConfig.allowed_durations || '[]');
+      // let allowedDurations = Array.isArray(dayConfig.allowed_durations)
+      //   ? dayConfig.allowed_durations
+      //   : JSON.parse(dayConfig.allowed_durations || '[]');
       let numPeriods = max_periods_per_day || school_timetable_config.max_periods_per_day;
       let startTime = dayConfig.day_start_time || '08:00';
       let periodDuration = default_period_duration || school_timetable_config.default_period_duration;
       let currentTime = startTime;
-      let usedSubjects: Record<number, number> = {};
+      // let usedSubjects: Record<number, number> = {};
       let usedPeriods: Record<number, number> = {}; // subjectDivisionId -> count per day
       let consecutiveSubject: { id: number | null, count: number } = { id: null, count: 0 };
       let teacherPeriodsCount: Record<number, number> = {}; // staff_id -> count per day
