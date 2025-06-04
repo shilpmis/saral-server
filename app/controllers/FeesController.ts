@@ -975,7 +975,7 @@ export default class FeesController {
         discounted_amount: 0.0,
         paid_amount: 0.0,
         total_amount: feesPlan_for_student[0].total_amount,
-        due_amount: feesPlan_for_student[0].total_amount,
+        due_amount: 0.00,
         status: 'Pending',
       }
     } else {
@@ -1196,8 +1196,6 @@ export default class FeesController {
       })
     }
 
-
-    console.log("extra_fees", student_enrollment.id, feesPlan_for_student[0].id)
 
     // fetch extra Fees applied for student
     let extra_fees = await StudentFeesTypeMasters.query()
