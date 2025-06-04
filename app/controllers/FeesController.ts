@@ -27,7 +27,6 @@ import {
   UpdateValidationForAppliedConcessionToPlan,
   UpdateValidationForAppliedConcessionToStudent,
   UpdateValidationForConcessionType,
-  UpdateValidationForInstallment,
   UpdateValidationFprPaidInstallment,
   UpdateValidatorForFeesPlan,
   UpdateValidatorForFeesType,
