@@ -28,6 +28,7 @@ import {
   UpdateValidationForAppliedConcessionToStudent,
   UpdateValidationForConcessionType,
   UpdateValidationForInstallment,
+  UpdateValidationFprPaidInstallment,
   UpdateValidatorForFeesPlan,
   UpdateValidatorForFeesType,
 } from '#validators/Fees'
@@ -875,6 +876,8 @@ export default class FeesController {
       .preload('fees_status', (query) => {
         query.preload('paid_fees', (query) => {
           query.preload('applied_concessions')
+          query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
+          query.andWhereNot('status', 'Reversed')
         })
         query.preload('paid_fees_details')
         query.where('fees_plan_id', feesPlan_for_student[0].id)
@@ -1199,7 +1202,10 @@ export default class FeesController {
 
     // fetch extra Fees applied for student
     let extra_fees = await StudentFeesTypeMasters.query()
-      .preload('paid_installment')
+      .preload('paid_installment', (query) => {
+        query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
+        query.andWhereNot('status', 'Reversed')
+      })
       .preload('installment_breakdown')
       .where('student_enrollments_id', student_enrollment.id)
       .andWhere('fees_plan_id', feesPlan_for_student[0].id)
@@ -1214,6 +1220,7 @@ export default class FeesController {
       installments: FeesStatusForStudent,
       detail: res,
     })
+
   }
 
   async payMultipleInstallments(ctx: HttpContext) {
@@ -1246,7 +1253,7 @@ export default class FeesController {
         message: 'No active academic year found for this school',
       })
     }
-    
+
     let student_enrollment = await StudentEnrollments.query()
       .preload('division')
       .where('student_id', student_id)
@@ -1280,9 +1287,18 @@ export default class FeesController {
 
     let student = await Students.query()
       .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
+      // .preload('fees_status', (query) => {
+      //   query.preload('paid_fees', (query) => {
+      //     query.preload('applied_concessions')
+      //   })
+      //   query.preload('paid_fees_details')
+      //   query.where('fees_plan_id', feesPlan_for_student[0].id)
+      // })
       .preload('fees_status', (query) => {
         query.preload('paid_fees', (query) => {
           query.preload('applied_concessions')
+          query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
+          query.andWhereNot('status', 'Reversed')
         })
         query.preload('paid_fees_details')
         query.where('fees_plan_id', feesPlan_for_student[0].id)
@@ -1513,12 +1529,12 @@ export default class FeesController {
             throw new Error(result_message)
           }
 
-          console.log(
-            'already_paid_installments[0].paid_amount',
-            installment.remaining_amount,
-            installment.amount_paid_as_carry_forward,
-            installment.remaining_amount == 0 ? 0 : installment.amount_paid_as_carry_forward
-          )
+          // console.log(
+          //   'already_paid_installments[0].paid_amount',
+          //   installment.remaining_amount,
+          //   installment.amount_paid_as_carry_forward,
+          //   installment.remaining_amount == 0 ? 0 : installment.amount_paid_as_carry_forward
+          // )
 
           await StudentFeesInstallments.create(
             {
@@ -1531,7 +1547,8 @@ export default class FeesController {
               transaction_reference: installment.transaction_reference,
               payment_date: installment.payment_date,
               remarks: installment.remarks,
-              status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid',
+              status: fees_installment.due_date < new Date() ? 'Paid Late' : 'Paid',
+              payment_status: (installment.payment_mode === 'Cash' || installment.payment_mode === 'Full Discount') ? 'Success' : 'In Progress',
               amount_paid_as_carry_forward:
                 installment.remaining_amount > 0 ? 0 : installment.amount_paid_as_carry_forward,
             },
@@ -1621,7 +1638,8 @@ export default class FeesController {
               transaction_reference: installment.transaction_reference,
               payment_date: installment.payment_date,
               remarks: installment.remarks,
-              status: fees_installment.due_date < new Date() ? 'Overdue' : 'Paid',
+              status: fees_installment.due_date < new Date() ? 'Paid Late' : 'Paid',
+              payment_status: (installment.payment_mode === 'Cash' || installment.payment_mode === 'Full Discount') ? 'Success' : 'In Progress',
               amount_paid_as_carry_forward: installment.amount_paid_as_carry_forward
                 ? Number(installment.amount_paid_as_carry_forward)
                 : 0.0,
@@ -1822,30 +1840,283 @@ export default class FeesController {
         error: error,
       })
     }
+
   }
 
-  async updateFeesStatus(ctx: HttpContext) {
-    let transaction_id = ctx.params.transaction_id
+  async updateStatusOfPaidInstallments(ctx: HttpContext) {
+    let transaction_id = ctx.params.transaction_id;
+    let stundet_fees_master_id = ctx.params.stundet_fees_master_id;
+    let is_extar_fees = ctx.request.input('is_extra_fees', false);
 
-    let transaction = await StudentFeesInstallments.query().where('id', transaction_id).first()
+    let transaction: StudentFeesInstallments | StudentExtraFeesInstallment | null = null
 
+    if (is_extar_fees) {
+      transaction = await StudentExtraFeesInstallment.query()
+        .where('id', transaction_id)
+        .andWhere('student_fees_master_id', stundet_fees_master_id)
+        .first();
+    } else {
+      transaction = await StudentFeesInstallments.query()
+        .where('id', transaction_id)
+        .andWhere('student_fees_master_id', stundet_fees_master_id)
+        .first();
+    }
     if (!transaction) {
       return ctx.response.status(404).json({
         message: 'Transaction not found',
-      })
+      });
     }
-    let payload = await UpdateValidationForInstallment.validate(ctx.request.body())
-    let trx = await db.transaction()
+    let payload = await UpdateValidationFprPaidInstallment.validate(ctx.request.body());
+    let trx = await db.transaction();
     try {
-      await transaction.merge(payload).useTransaction(trx).save()
-      await trx.commit()
-      return ctx.response.status(201).json(transaction)
-    } catch (error) {
-      await trx.rollback()
+      await transaction.merge(payload).useTransaction(trx).save();
+      await trx.commit();
+      return ctx.response.status(201).json(transaction);
+    }
+    catch (error) {
+      await trx.rollback();
       return ctx.response.status(500).json({
         message: 'Internal Server Error',
         error: error,
-      })
+      });
+    }
+  }
+
+  async reversePaidInstallments(ctx: HttpContext) {
+    let transaction_id = ctx.params.transaction_id;
+    let stundet_fees_master_id = ctx.params.stundet_fees_master_id;
+    let is_extar_fees = ctx.request.input('is_extra_fees', false);
+    let { remarks } = ctx.request.all();
+    if (!is_extar_fees) {
+      let transaction = await StudentFeesInstallments.query()
+        .preload('installment')
+        .preload('applied_concessions')
+        .where('id', transaction_id)
+        .andWhere('student_fees_master_id', stundet_fees_master_id)
+        .first();
+
+      if (!transaction) {
+        return ctx.response.status(404).json({
+          message: 'Transaction not found',
+        });
+      }
+
+      if (transaction.status !== 'Reversal Requested') {
+        return ctx.response.status(400).json({
+          message: 'Transaction is not in Reversal Requested status',
+        });
+      }
+
+      let student_fees_master = await StudentFeesMaster.query()
+        .where('id', stundet_fees_master_id)
+        .first();
+
+      if (!student_fees_master) {
+        return ctx.response.status(404).json({
+          message: 'Student Fees Master not found',
+        });
+      }
+
+      // check if student_fees_master belongs to the school's student or or not
+      let acadamic_session = await AcademicSession.query()
+        .where('id', student_fees_master.academic_session_id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first();
+      if (!acadamic_session) {
+        return ctx.response.status(404).json({
+          message: 'Academic session not found for this school',
+        });
+      }
+      // Now we need to reverse the transaction
+      /***
+       *  Update status of Installments
+       *  
+       *  student_fees_installments , update status to 'Reversal'
+       *  student_fees_plan_masters , paid_amount , discounted_amount , due_amount
+       *  student_fees_master , update paid_amount, due_amount, discounted_amount
+       *  concessions_installment_masters , update status to 'Reversal'
+       *  concessions_student_masters  , update applied_discount
+       */
+
+      let trx = await db.transaction();
+      try {
+        // upate status of installment
+        await transaction.merge({
+          status: 'Reversed',
+          remarks: remarks,
+        }).useTransaction(trx).save();
+
+        // update student_fees_plan_masters
+        let student_fees_plan_master = await StudentFeesPlanMaster.query()
+          .where('student_fees_master_id', stundet_fees_master_id)
+          .andWhere('fees_plan_details_id', transaction.installment.fee_plan_details_id)
+          .first();
+
+        if (!student_fees_plan_master) {
+          await trx.rollback();
+          return ctx.response.status(404).json({
+            message: 'Fees Plan Details not found for this transaction',
+          });
+        }
+
+        // console.log("paid" , Number(student_fees_plan_master.paid_amount) - (Number(transaction.paid_amount) + Number(transaction.amount_paid_as_carry_forward)))
+        // console.log("discounted_amount" , Number(student_fees_plan_master.discounted_amount) - Number(transaction.discounted_amount))
+        // console.log("due_amount" , (Number(student_fees_plan_master.due_amount) + Number(transaction.amount_paid_as_carry_forward)) - Number(transaction.remaining_amount))
+
+        await student_fees_plan_master.merge({
+          paid_amount: Number(student_fees_plan_master.paid_amount) - (Number(transaction.paid_amount) + Number(transaction.amount_paid_as_carry_forward)),  // 4000 - 750 
+          discounted_amount: Number(student_fees_plan_master.discounted_amount) - Number(transaction.discounted_amount), //  XXX - 500
+          due_amount: (Number(student_fees_plan_master.due_amount) - Number(transaction.remaining_amount)) + Number(transaction.amount_paid_as_carry_forward),
+        }).useTransaction(trx).save();
+
+        // update concessions_installment_masters
+        if (transaction.applied_concessions && transaction.applied_concessions.length > 0) {
+          for (let applied_concessions of transaction.applied_concessions) {
+
+            await applied_concessions.merge({
+              installment_status: 'Reversed',
+            }).useTransaction(trx).save();
+
+            // update concessions_student_masters
+            let concession_student_master = await ConcessionStudentMaster.query()
+              .where('concession_id', applied_concessions.concession_id)
+              .andWhere('student_id', student_fees_master.student_id)
+              .andWhere('academic_session_id', student_fees_master.academic_session_id)
+              .first();
+
+            if (!concession_student_master) {
+              await trx.rollback();
+              return ctx.response.status(404).json({
+                message: 'Concession Student Master not found for this transaction',
+              });
+            }
+
+            await concession_student_master.merge({
+              applied_discount: Number(concession_student_master.applied_discount) - Number(applied_concessions.applied_amount),
+            }).useTransaction(trx).save();
+          }
+        }
+
+        // console.log("paid 2" , Number(student_fees_master.paid_amount) - (Number(transaction.paid_amount) + Number(transaction.amount_paid_as_carry_forward)))
+
+        // update student_fees_master
+        await student_fees_master.merge({
+          paid_amount: Number(student_fees_master.paid_amount) - (Number(transaction.paid_amount) + Number(transaction.amount_paid_as_carry_forward)),
+          discounted_amount: Number(student_fees_master.discounted_amount) - Number(transaction.applied_concessions.reduce(
+            (acc: number, applied_concession: any) => acc + Number(applied_concession.applied_amount),
+            0
+          )),
+          due_amount: (Number(student_fees_master.due_amount) - Number(transaction.remaining_amount)) + Number(transaction.amount_paid_as_carry_forward),
+          status: student_fees_master.status === 'Paid' ? 'Partially Paid' : student_fees_master.status,
+        }).useTransaction(trx).save();
+
+        await trx.commit();
+        return ctx.response.status(201).json({
+          message: 'Transaction reversed successfully',
+          transaction: transaction,
+        });
+
+      } catch (error) {
+        await trx.rollback();
+        return ctx.response.status(500).json({
+          message: 'Internal Server Error',
+          error: error,
+        });
+      }
+
+    } else {
+      // IMPLEMENTATION FOR EXTAR FEES INSTALLMENTS
+
+      /**
+       * Need to reverse the transaction
+       * student_fees_type_mastersp
+       */
+      let transaction = await StudentExtraFeesInstallment.query()
+        .where('id', transaction_id)
+        .andWhere('student_fees_master_id', stundet_fees_master_id)
+        .first();
+
+      if (!transaction) {
+        return ctx.response.status(404).json({
+          message: 'Transaction not found',
+        });
+      }
+
+      if (transaction.status !== 'Reversal Requested') {
+        return ctx.response.status(400).json({
+          message: 'Transaction is not in Reversal Requested status',
+        });
+      }
+
+      let student_fees_master = await StudentFeesMaster.query()
+        .where('id', stundet_fees_master_id)
+        .first();
+
+      if (!student_fees_master) {
+        return ctx.response.status(404).json({
+          message: 'Student Fees Master not found',
+        });
+      }
+
+      // check if student_fees_master belongs to the school's student or or not
+      let acadamic_session = await AcademicSession.query()
+        .where('id', student_fees_master.academic_session_id)
+        .andWhere('school_id', ctx.auth.user!.school_id)
+        .first();
+      if (!acadamic_session) {
+        return ctx.response.status(404).json({
+          message: 'Academic session not found for this school',
+        });
+      }
+
+      let trx = await db.transaction();
+      try {
+        // Now we need to reverse the transaction
+        // upate status of installment
+
+        await transaction.merge({
+          status: 'Reversed',
+          remarks: remarks,
+        }).useTransaction(trx).save();
+
+        // update student_fees_type_masters
+        let student_fees_type_master = await StudentFeesTypeMasters.query()
+          // .where('student_enrollments_id', acadamic_session.id)
+          .where('id', transaction.student_fees_type_masters_id)
+          .first();
+        if (!student_fees_type_master) {
+          await trx.rollback();
+          return ctx.response.status(404).json({
+            message: 'Fees Type Master not found for this transaction',
+          });
+        }
+        await student_fees_type_master.merge({
+          paid_amount: Number(student_fees_type_master.paid_amount) - (Number(transaction.paid_amount) + Number(transaction.amount_paid_as_carry_forward)),  // 4000 - 750
+          // discounted_amount: Number(student_fees_type_master.discounted_amount) - Number(transaction.discounted_amount), //  XXX - 500
+          // due_amount: (Number(student_fees_type_master.due_amount) - Number(transaction.remaining_amount)) + Number(transaction.amount_paid_as_carry_forward),
+        }).useTransaction(trx).save();
+
+        // update student fees master
+        await student_fees_master.merge({
+          paid_amount: Number(student_fees_master.paid_amount) - (Number(transaction.paid_amount) + Number(transaction.amount_paid_as_carry_forward)),
+          discounted_amount: Number(student_fees_master.discounted_amount) - Number(transaction.discounted_amount),
+          due_amount: (Number(student_fees_master.due_amount) - Number(transaction.remaining_amount)) + Number(transaction.amount_paid_as_carry_forward),
+          status: student_fees_master.status === 'Paid' ? 'Partially Paid' : student_fees_master.status,
+        }).useTransaction(trx).save();
+
+        await trx.commit();
+        return ctx.response.status(201).json({
+          message: 'Transaction reversed successfully',
+          transaction: transaction,
+        });
+
+      } catch (error) {
+        await trx.rollback();
+        return ctx.response.status(500).json({
+          message: 'Internal Server Error',
+          error: error,
+        });
+      }
     }
   }
 
@@ -2756,8 +3027,8 @@ export default class FeesController {
 
     // Get active academic session for user
 
-    
-let academicSession: AcademicSession | null = null
+
+    let academicSession: AcademicSession | null = null
     if (!acadaemic_session_id) {
       academicSession = await AcademicSession.query()
         .where('is_active', 1)
@@ -2836,6 +3107,8 @@ let academicSession: AcademicSession | null = null
         const alreadyPaid = await StudentExtraFeesInstallment.query()
           .where('student_fees_type_masters_id', feesTypeMaster.id)
           .andWhere('installment_id', inst.installment_id)
+          .andWhereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
+          .andWhereNot('status', 'Reversed')
           .first()
 
         if (alreadyPaid && !inst.repaid_installment) {
@@ -2911,7 +3184,7 @@ let academicSession: AcademicSession | null = null
 
         await feesTypeMaster
           .merge({
-            paid_amount: feesTypeMaster.paid_amount + total_paid_amount,
+            paid_amount: Number(feesTypeMaster.paid_amount) + Number(total_paid_amount),
           })
           .useTransaction(trx)
           .save()
