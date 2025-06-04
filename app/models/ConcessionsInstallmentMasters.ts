@@ -20,4 +20,12 @@ export default class ConcessionsInstallmentMasters extends Base {
 
   @column()
   declare status: 'Active' | 'Inactive'
+
+  @column()
+  declare installment_status:
+    | 'Paid'                // Payment not made yet
+    | 'Failed'         // Part of the amount received
+    | 'In Process'                   // Fully paid
+    | 'Reversal Requested'
+    | 'Reversed'                // Past due date, not fully paid
 }

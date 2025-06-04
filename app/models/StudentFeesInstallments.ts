@@ -1,16 +1,18 @@
 //import { DateTime } from 'luxon'
 //import { column } from '@ioc:Adonis/Lucid/Orm'
 import Base from '#models/base'
-import { column, hasMany } from '@adonisjs/lucid/orm'
-import type { HasMany } from '@adonisjs/lucid/types/relations'
+import { column, hasMany, hasOne } from '@adonisjs/lucid/orm'
+import type { HasMany, HasOne } from '@adonisjs/lucid/types/relations'
 import ConcessionsInstallmentMasters from './ConcessionsInstallmentMasters.js'
+import StudentFeesPlanMaster from './StudentFeesPlanMasters.js'
+import InstallmentBreakDowns from './InstallmentBreakDowns.js'
 
 export default class StudentFeesInstallments extends Base {
   @column()
   declare student_fees_master_id: number
 
   @column()
-  declare installment_id: number   
+  declare installment_id: number
 
   @column()
   declare paid_amount: number
@@ -43,11 +45,20 @@ export default class StudentFeesInstallments extends Base {
   declare remarks: string | null
 
   @column()
-  declare status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue' | 'Failed'
+  declare status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue' | 'Paid Late' | 'Failed' | 'Reversal Requested' | 'Reversed';
+
+  @column()
+  declare payment_status: 'Success' | 'In Progress' | 'Failed' | 'Disputed' | 'Cancelled';
 
   @hasMany(() => ConcessionsInstallmentMasters, {
     foreignKey: 'student_fees_installment_id',
     localKey: 'id',
   })
   declare applied_concessions: HasMany<typeof ConcessionsInstallmentMasters>
+
+  @hasOne(() => InstallmentBreakDowns, {
+    foreignKey: 'id',
+    localKey: 'installment_id',
+  })
+  declare installment: HasOne<typeof InstallmentBreakDowns>
 }

@@ -142,6 +142,29 @@ export const CreateValidationForPayFees = vine.compile(
   })
 )
 
+export const UpdateValidationFprPaidInstallment = vine.compile(
+  vine.object({
+    status: vine.enum([
+      'Pending',                  // Not paid at all
+      'Partially Paid',           // Partial amount received
+      'Paid',                     // Fully paid on time
+      'Paid Late',                // Fully paid after due date
+      'Overdue',                  // Due date passed and not fully paid
+      'Reversal Requested',       // User requested reversal
+      'Reversed',                 // Reversal/refund completed
+    ]).optional(),
+    payment_status: vine.enum([
+      'In Progress',            // Payment is being processed
+      'Success',
+      'Failed',
+      // Administrative/Edge States
+      'Disputed',
+      'Cancelled',
+    ]).optional(),
+    remarks: vine.string().optional(),
+  })
+)
+
 export const CreateValidationForMultipleInstallments = vine.compile(
   vine.object({
     student_id: vine.number(),
@@ -256,7 +279,7 @@ export const UpdateValidationForAppliedConcessionToStudent = vine.compile(
 export const CreateValidationForApplyExtraFeesToStudent = vine.compile(
   vine.object({
 
-    student_id : vine.number(),
+    student_id: vine.number(),
     academic_session_id: vine.number(),
     fees_type_id: vine.number(),
     fees_plan_id: vine.number(),
@@ -285,9 +308,9 @@ export const CreateValidationForPayMultipleInstallmentsOfExtraFees = vine.compil
     student_id: vine.number(),
     student_fees_master_id: vine.number(),
     installments: vine
-    .array(
-      vine.object({
-          student_fees_type_masters_id : vine.number(), 
+      .array(
+        vine.object({
+          student_fees_type_masters_id: vine.number(),
           installment_id: vine.number(),
           paid_amount: vine.number(),
           remaining_amount: vine.number(),

@@ -43,6 +43,9 @@ export default class StudentExtraFeesInstallment extends Base {
   declare remarks: string | null
 
   @column()
-  declare status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue' | 'Failed'
+  declare status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue' | 'Paid Late' | 'Failed' | 'Reversal Requested' | 'Reversed';
+
+  @column()
+  declare payment_status: 'Success' | 'In Progress' | 'Failed' | 'Disputed' | 'Cancelled';
 
 }
