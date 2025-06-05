@@ -270,10 +270,10 @@ export default class FeesReportController {
 
 
 
-    public async installmentWiseReportForClass(ctx: HttpContext) {
+    // public async installmentWiseReportForClass(ctx: HttpContext) {
 
-        // api/v1/fees-report/installment-wise-report-for-class?academicSessionId=1&classId=1&divisionId=1 
+    //     // api/v1/fees-report/installment-wise-report-for-class?academicSessionId=1&classId=1&divisionId=1 
 
-        let divisionId = ctx.request.input('divisionId')
-    }   
+    //     let divisionId = ctx.request.input('divisionId')
+    // }   
 }
