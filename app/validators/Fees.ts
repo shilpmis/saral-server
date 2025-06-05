@@ -1,4 +1,5 @@
 import vine from '@vinejs/vine'
+import exp from 'constants'
 
 
 /**
@@ -93,6 +94,71 @@ export const UpdateValidatorForFeesPlan = vine.compile(
           installment_breakDowns: vine
             .array(
               vine.object({
+                installment_no: vine.number(),
+                installment_amount: vine.number(),
+                due_date: vine.date(),
+              })
+            )
+            .minLength(1),
+        })
+      )
+      .optional(),
+  })
+)
+
+export const UpdateValidatorForFeesPlanDetails = vine.compile(
+  vine.object({
+    general_detail_for_plan: vine
+      .object({
+        name: vine.string().trim().minLength(2).maxLength(50).optional(),
+        description: vine.string().trim().minLength(2).maxLength(50).optional(),
+        // status: vine.enum(['Active', 'Inactive']).optional(),
+      }).optional(),
+    new_fees_type: vine
+      .array(
+        vine.object({
+          // fee_plan_id: vine.number(),
+          fees_type_id: vine.number(),
+          installment_type: vine.enum([
+            'Admission',
+            'Monthly',
+            'Quarterly',
+            'Half Yearly',
+            'Yearly',
+          ]),
+          total_installment: vine.number(),
+          total_amount: vine.number().max(100000).min(100),
+          installment_breakDowns: vine
+            .array(
+              vine.object({
+                installment_no: vine.number(),
+                installment_amount: vine.number(),
+                due_date: vine.date(),
+              })
+            )
+            .minLength(1),
+        })
+      )
+      .optional(),
+    existing_fees_type: vine
+      .array(
+        vine.object({
+          fees_plan_detail_id : vine.number
+          (), // consider this as a id for fees_plan_detail 
+          fees_type_id: vine.number(),          
+          installment_type: vine.enum([
+            'Admission',
+            'Monthly',
+            'Quarterly',
+            'Half Yearly',
+            'Yearly',
+          ]),
+          total_installment: vine.number(),
+          total_amount: vine.number().max(100000).min(100),
+          installment_breakDowns: vine
+            .array(
+              vine.object({
+                id : vine.number(),
                 installment_no: vine.number(),
                 installment_amount: vine.number(),
                 due_date: vine.date(),
@@ -200,7 +266,8 @@ export const CreateValidationForMultipleInstallments = vine.compile(
               })
             )
             .minLength(1)
-            .nullable(),
+            .nullable()
+            .optional(),
         })
       )
       .minLength(1),

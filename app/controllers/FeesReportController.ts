@@ -1,12 +1,10 @@
-// import ConcessionStudentMaster from "#models/ConcessionStudentMaster";
-// import StudentFeesInstallments from "#models/StudentFeesInstallments";
-// import { HttpContext } from '@adonisjs/core/http'
+import { HttpContext } from '@adonisjs/core/http'
 
 
-// export default class FeesReportController {
-//   /**
-//    * Generate annual fee report
-//    */
+export default class FeesReportController {
+  /**
+   * Generate annual fee report
+   */
 //   public async annualReport({ request, response }: HttpContext) {
 //     const { academicSessionId, classId, divisionId } = request.qs()
 
@@ -269,4 +267,13 @@
 //       return response.internalServerError({ message: 'Error generating monthly report' })
 //     }
 //   }
-// }
+
+
+
+    public async installmentWiseReportForClass(ctx: HttpContext) {
+
+        // api/v1/fees-report/installment-wise-report-for-class?academicSessionId=1&classId=1&divisionId=1 
+
+        let divisionId = ctx.request.input('divisionId')
+    }   
+}

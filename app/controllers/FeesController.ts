@@ -28,7 +28,7 @@ import {
   UpdateValidationForAppliedConcessionToStudent,
   UpdateValidationForConcessionType,
   UpdateValidationFprPaidInstallment,
-  UpdateValidatorForFeesPlan,
+  UpdateValidatorForFeesPlanDetails,
   UpdateValidatorForFeesType,
 } from '#validators/Fees'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -373,7 +373,12 @@ export default class FeesController {
       resObj.consession = consession
     }
 
-    return ctx.response.json(resObj)
+    // check whether fees plan is available for update ot not 
+    let attachd_student_with_plan = await StudentFeesMaster.query()
+    .where('academic_session_id' , plan.academic_session_id)
+    .andWhere('fees_plan_id' , plan_id)
+
+    return ctx.response.json({...resObj , is_editable :attachd_student_with_plan.length > 0 ? false : true })
   }
 
   async createFeePlan(ctx: HttpContext) {
@@ -550,9 +555,12 @@ export default class FeesController {
       })
     }
 
-    const paylaod = await UpdateValidatorForFeesPlan.validate(ctx.request.body())
-
-    let plan = await FeesPlan.query().where('id', plan_id).first()
+    const {general_detail_for_plan , new_fees_type , existing_fees_type} = await UpdateValidatorForFeesPlanDetails.validate(ctx.request.body())
+    
+    let plan = await FeesPlan
+    .query()
+    .preload('fees_detail')
+    .where('id', plan_id).first()
 
     if (!plan) {
       return ctx.response.status(404).json({
@@ -580,10 +588,13 @@ export default class FeesController {
     let trx = await db.transaction()
 
     try {
-      if (paylaod.fees_plan) await plan.merge(paylaod.fees_plan).useTransaction(trx).save()
 
-      if (paylaod.plan_details && paylaod.plan_details.length !== 0) {
-        for (let detail of paylaod.plan_details) {
+      // update basic information of plan (general_detail_for_plan)
+      if (general_detail_for_plan) await plan.merge(general_detail_for_plan).useTransaction(trx).save()
+
+      // add new fees type of plan
+      if (new_fees_type && new_fees_type.length !== 0) {
+        for (let detail of new_fees_type) {
           let fees_plan_detail = await FeesPlanDetails.create(
             {
               fees_type_id: detail.fees_type_id,
@@ -612,34 +623,82 @@ export default class FeesController {
           .merge({
             total_amount:
               Number(plan.total_amount) +
-              paylaod.plan_details.reduce((acc, detail) => acc + detail.total_amount, 0),
+              new_fees_type.reduce((acc, detail) => acc + detail.total_amount, 0),
           })
           .useTransaction(trx)
           .save()
       }
 
-      // update all student fees master according to this plan
+      // update existing fees type of plan
+      if(existing_fees_type && existing_fees_type.length !== 0) {
+        for (let detail of existing_fees_type) {
+          let fees_plan_detail = await FeesPlanDetails.query()
+            .preload('installments_breakdown')
+            .where('id', detail.fees_plan_detail_id)
+            .andWhere('fees_plan_id', plan.id)
+            .first()
 
-      let student_fees_master = await StudentFeesMaster.query()
-        .where('fees_plan_id', plan.id)
-        .andWhere('academic_session_id', plan.academic_session_id)
-      // .andWhere('status', 'Pending')
+          if (!fees_plan_detail) {
+            return ctx.response.status(404).json({
+              message: 'Fees plan detail not found for this plan',
+            })
+          }
 
-      for (let i = 0; i < student_fees_master.length; i++) {
-        let student_fees = student_fees_master[i]
-        await student_fees
-          .merge({
-            total_amount: plan.total_amount,
-            // due_amount: Number(plan.total_amount) - Number(student_fees.paid_amount),
-            status: student_fees.paid_amount > 0 ? 'Partially Paid' : 'Pending',
+          fees_plan_detail.merge({
+            // fees_type_id: detail.fees_type_id,
+            total_amount: detail.total_amount,
+            total_installment: detail.total_installment,
+            installment_type: detail.installment_type,
           })
-          .useTransaction(trx)
-          .save()
+
+          await fees_plan_detail.useTransaction(trx).save()
+
+          // remove previous installment breakdowns
+          for(let breakdown of fees_plan_detail.installments_breakdown) {
+            await breakdown.useTransaction(trx).delete()
+          }
+
+          // update installment breakdowns
+          if (detail.installment_breakDowns && detail.installment_breakDowns.length > 0) {
+            for (let breakdown of detail.installment_breakDowns) {
+              let {id , ...rest} = breakdown
+                await InstallmentBreakDowns.create(
+                  {
+                    ...rest,
+                    fee_plan_details_id: fees_plan_detail.id,
+                    status: 'Active',
+                  },
+                  { client: trx }
+                )
+            }
+          }
+        }
       }
+
+      // update fees plan 
+
+      // Calculate amount to subtract: only for existing fees types that actually exist in plan.fees_detail
+      let amount_to_subtract = 0
+      if (existing_fees_type && plan.fees_detail) {
+        amount_to_subtract = existing_fees_type.reduce((acc, detail) => {
+          const found = plan.fees_detail.find((fd) => fd.id === detail.fees_plan_detail_id)
+          return found ? acc + Number(found.total_amount) : acc
+        }, 0)
+      }
+
+      let amount_to_add = 0
+      if(new_fees_type) amount_to_add += new_fees_type.reduce((acc, detail) => acc + Number(detail.total_amount), 0)
+      
+      if(existing_fees_type) amount_to_add += existing_fees_type.reduce((acc, detail) => acc + Number(detail.total_amount), 0)  
+
+      await plan.merge({
+        total_amount : (plan.total_amount - amount_to_subtract) + amount_to_add,
+      }).useTransaction(trx).save()
 
       await trx.commit()
       return ctx.response.status(200).json(plan)
     } catch (error) {
+      console.log("error" ,error)
       await trx.rollback()
       return ctx.response.status(500).json({
         message: 'Internal Server Error',
@@ -869,14 +928,16 @@ export default class FeesController {
       })
     }
 
-
     let student = await Students.query()
       .select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
       .preload('fees_status', (query) => {
         query.preload('paid_fees', (query) => {
           query.preload('applied_concessions')
-          query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
+          // query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
           query.andWhereNot('status', 'Reversed')
+        })
+        query.preload('reversed_fees', (query) => {
+          query.andWhere('status', 'Reversed')
         })
         query.preload('paid_fees_details')
         query.where('fees_plan_id', feesPlan_for_student[0].id)
@@ -1202,7 +1263,7 @@ export default class FeesController {
     // fetch extra Fees applied for student
     let extra_fees = await StudentFeesTypeMasters.query()
       .preload('paid_installment', (query) => {
-        query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
+        // query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
         query.andWhereNot('status', 'Reversed')
       })
       .preload('installment_breakdown')
@@ -1296,7 +1357,7 @@ export default class FeesController {
       .preload('fees_status', (query) => {
         query.preload('paid_fees', (query) => {
           query.preload('applied_concessions')
-          query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
+          // query.whereNotIn('payment_status', ['Failed', 'Disputed', 'Cancelled'])
           query.andWhereNot('status', 'Reversed')
         })
         query.preload('paid_fees_details')

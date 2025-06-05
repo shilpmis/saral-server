@@ -240,7 +240,7 @@ router
     // router.post('/fees/pay/:student_id', [FeesController, 'payFees'])
     router.post('/fees/pay/installments', [FeesController, 'payMultipleInstallments'])
     router.post('/fees/pay/extra/installments', [FeesController, 'payMultipleInstallmentsForExtraFees'])
-    router.put('/transaction/:stundet_fees_master_id/:transaction_id', [FeesController, 'updateStatusOfPaidInstallments'])
+     router.put('/transaction/:stundet_fees_master_id/:transaction_id', [FeesController, 'updateStatusOfPaidInstallments'])
     router.put('/transaction/reverse/:stundet_fees_master_id/:transaction_id', [FeesController, 'reversePaidInstallments'])
 
     router.get('/feesplan/installments/:division_id', [FeesController, 'fetchFeesTyesWithInstallmentsForClass'])

@@ -50,4 +50,10 @@ export default class StudentFeesMaster extends Base {
     localKey: 'id',
   })
   declare paid_fees: HasMany<typeof StudentFeesInstallments>
+
+  @hasMany(() => StudentFeesInstallments, {
+    foreignKey: 'student_fees_master_id',
+    localKey: 'id',
+  })
+  declare reversed_fees: HasMany<typeof StudentFeesInstallments>
 }
