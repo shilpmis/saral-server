@@ -38,14 +38,15 @@ export default class StaffAttendanceController {
       }
 
       // Validate time is not in future
-      const checkInTime = DateTime.fromFormat(payload.check_in_time, 'HH:mm')
-      const currentTime = DateTime.now()
+      console.log("Check-in time payload:", payload.check_in_time);
+      // const checkInTime = DateTime.fromFormat(payload.check_in_time, 'HH:mm')
+      // const currentTime = DateTime.now()
       
-      if (checkInTime > currentTime) {
-        return ctx.response.status(400).json({
-          message: 'Cannot check-in with future time',
-        })
-      }
+      // if (checkInTime > currentTime) {
+      //   return ctx.response.status(400).json({
+      //     message: 'Cannot check-in with future time',
+      //   })
+      // }
 
       const trx = await db.transaction()
       
@@ -134,17 +135,17 @@ export default class StaffAttendanceController {
       const checkOutTime = DateTime.fromFormat(payload.check_out_time, 'HH:mm')
       const currentTime = DateTime.now()
       
-      if (checkOutTime < checkInTime) {
-        return ctx.response.status(400).json({
-          message: 'Check-out time cannot be before check-in time',
-        })
-      }
+      // if (checkOutTime < checkInTime) {
+      //   return ctx.response.status(400).json({
+      //     message: 'Check-out time cannot be before check-in time',
+      //   })
+      // }
       
-      if (checkOutTime > currentTime) {
-        return ctx.response.status(400).json({
-          message: 'Cannot check-out with future time',
-        })
-      }
+      // if (checkOutTime > currentTime) {
+      //   return ctx.response.status(400).json({
+      //     message: 'Cannot check-out with future time',
+      //   })
+      // }
 
       const trx = await db.transaction()
       
