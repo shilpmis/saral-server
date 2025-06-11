@@ -225,12 +225,14 @@ router
     router.get('/feestype/filter', [FeesController, 'indexFeesTypeByFilter'])
     router.post('/feestype', [FeesController, 'createFeesType'])
     router.put('/feestype/:id', [FeesController, 'updateFeesType'])
+    router.delete('/feestype/:id', [FeesController, 'deleteFeesType'])
     router.get('/feesplan', [FeesController, 'indexFeesPlanForSchool'])
     router.get('/feesplan/status/:plan_id/:status', [FeesController, 'updateFeesPlanStatus'])
     router.get('/feesplan/detail/:plan_id', [FeesController, 'fetchFeesPlanDetails'])
     router.post('/feesplan', [FeesController, 'createFeePlan'])
     router.post('/feesplan/applyextrafees', [FeesController, 'applyFeesTypeToStudentFeesPlan'])
     router.put('/feesplan/:plan_id', [FeesController, 'updatePlan'])
+    router.delete('/feesplan/:plan_id', [FeesController, 'deleteFeesPlan'])
 
     router.get('/fees/status/class/:division_id', [FeesController, 'fetchFeesStatusForClass'])
     router.get('/fees/status/student/:student_id', [
