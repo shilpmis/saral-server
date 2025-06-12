@@ -30,7 +30,7 @@ export const ValidatorForEditRequest = vine.compile(
     staff_attendance_id: vine.number(),
     requested_check_in_time: vine.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
     requested_check_out_time: vine.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
-    reason: vine.string().minLength(10).maxLength(500),
+    reason: vine.string().maxLength(500),
   })
 )
 
