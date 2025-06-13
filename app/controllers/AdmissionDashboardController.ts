@@ -90,15 +90,25 @@ export default class AdmissionDashboardController {
       const schoolId = auth.user!.school_id
 
       // Base query
-      const baseQuery = AdmissionInquiry.query()
-        .where('school_id', schoolId)
-        .andWhere('academic_session_id', request.input('academic_session'))
+      // const baseQuery = db.query()
+      //   .from('admission_inquiries as ai')
+      //   .where('school_id', schoolId)
+      //   .andWhere('academic_session_id', request.input('academic_session'))
 
-      // Include class information in the query
-      const records = await baseQuery
-        .select('created_at', 'inquiry_for_class', db.raw('count(*) as total'))
-        .groupBy('created_at', 'inquiry_for_class')
-        .orderBy('created_at', period === 'month' ? 'desc' : 'asc')
+      // // Include class information in the query
+      // const records = await baseQuery
+      //   .groupBy('created_at', 'inquiry_for_class')
+      //   .orderBy('created_at', period === 'month' ? 'desc' : 'asc')
+      //   .limit(limit)
+
+      const records = await db.query()
+        .select('ai.created_at', 'ai.inquiry_for_class', 'c.class' , db.raw('count(*) as total'))
+        .from('admission_inquiries as ai')
+        .leftJoin('classes as c', 'ai.inquiry_for_class', 'c.id')
+        .groupBy('ai.created_at', 'ai.inquiry_for_class')
+        .orderBy('ai.created_at', period === 'month' ? 'desc' : 'asc')
+        .where('ai.school_id', schoolId)
+        .andWhere('ai.academic_session_id', request.input('academic_session'))
         .limit(limit)
 
       // Define types for our data structures
@@ -120,9 +130,10 @@ export default class AdmissionDashboardController {
       const classes = new Set<string>()
 
       records.forEach((record) => {
+        console.log('Processing record:', record)
         let timePeriod: string
-        const date = new Date(record.createdAt.toJSDate())
-        const classInfo: string = String(record.inquiry_for_class || 'Unspecified')
+        const date = new Date(record.created_at)
+        const classInfo: string = String(`class ${record.class}` || 'Unspecified')
 
         // Track all unique classes for reference
         classes.add(classInfo)
