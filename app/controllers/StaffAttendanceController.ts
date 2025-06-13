@@ -131,9 +131,9 @@ export default class StaffAttendanceController {
         })
       }
 
-      const checkInTime = DateTime.fromFormat(existingAttendance.check_in_time, 'HH:mm')
-      const checkOutTime = DateTime.fromFormat(payload.check_out_time, 'HH:mm')
-      const currentTime = DateTime.now()
+      // const checkInTime = DateTime.fromFormat(existingAttendance.check_in_time, 'HH:mm')
+      // const checkOutTime = DateTime.fromFormat(payload.check_out_time, 'HH:mm')
+      // const currentTime = DateTime.now()
       
       // if (checkOutTime < checkInTime) {
       //   return ctx.response.status(400).json({

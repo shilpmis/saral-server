@@ -1417,7 +1417,7 @@ export default class FeesController {
         }
 
         let breakdowns = extra.installment_breakdown
-        let total_due_amount = Number(extra.total_amount) - Number(extra.paid_amount)
+        // let total_due_amount = Number(extra.total_amount) - Number(extra.paid_amount)
 
         let breakdown_status = breakdowns.map((installment) => {
           const paid = paidMap.get(installment.id)
