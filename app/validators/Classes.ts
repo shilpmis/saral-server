@@ -73,7 +73,7 @@ export const CreateManyValidatorForClasses = vine.compile(
  */
 export const UpdateValidatorForClasses = vine.compile(
   vine.object({
-    aliases: vine.string().minLength(3).maxLength(20).optional(),
+    aliases: vine.string().minLength(3).maxLength(20).nullable().optional(),
   })
 )
 
