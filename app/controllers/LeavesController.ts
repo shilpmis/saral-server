@@ -913,7 +913,7 @@ export default class LeavesController {
     const date = ctx.request.input('date', null)
     const page = ctx.request.input('page', 1)
     const today = new Date().toISOString().split('T')[0]
-    const search_term = ctx.request.input('search', '')
+    // const search_term = ctx.request.input('search', '')
 
     let academic_session_id = ctx.request.input('academic_session_id')
 
