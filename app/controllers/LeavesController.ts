@@ -848,36 +848,56 @@ export default class LeavesController {
       .first()
 
     if (staff) {
-      // Build query with improved date filtering
-      let query = StaffLeaveApplication.query()
-        .where('staff_leave_applications.staff_id', staff_id)
-        .andWhere('staff_leave_applications.academic_session_id', academic_sesion.id)
-        .preload('leave_type')
-        .preload('staff', (query) => {
-          query.select(['id', 'first_name', 'middle_name', 'last_name', 'email', 'mobile_number', 'staff_role_id'])
-            .preload('role_type')
-        });
 
-      // Apply date filter - find leaves active on the specified date or today
-      if (date) {
-        // Find applications where the requested date falls between from_date and to_date
-        query.where((builder) => {
-          builder.whereRaw('? BETWEEN DATE(from_date) AND DATE(to_date)', [date]);
-        });
-      } else if (status !== 'all') {
-        // For current or future applications when no specific date is requested
-        query.where((builder) => {
-          builder.whereRaw('? <= DATE(to_date)', [today]);
-        });
+      let query = db.query()
+        .from('staff_leave_applications')
+        .select(
+          'staff_leave_applications.uuid',
+          // 'staff_leave_applications.staff_id',
+          'staff_leave_applications.leave_type_id',
+          'staff_leave_applications.approved_by',
+          'staff_leave_applications.from_date',
+          'staff_leave_applications.to_date',
+          'staff_leave_applications.number_of_days',
+          'staff_leave_applications.remarks',
+          'staff_leave_applications.is_half_day',
+          'staff_leave_applications.half_day_type',
+          'staff_leave_applications.is_hourly_leave',
+          'staff_leave_applications.total_hour',
+          'staff_leave_applications.reason',
+          'staff_leave_applications.status',
+          'staff_role_master.*',
+          'leave_types_master.leave_type_name',
+          'staff.id as staff_id',
+          'staff.first_name',
+          'staff.middle_name',
+          'staff.last_name',
+          'staff.email'
+        )
+        .join('staff', 'staff.id', 'staff_leave_applications.staff_id')
+        .join('staff_role_master', 'staff_role_master.id', 'staff.staff_role_id')
+        .join('leave_types_master', 'leave_types_master.id', 'staff_leave_applications.leave_type_id')
+        .where('staff.school_id', ctx.auth.user!.school_id)
+        .andWhere('staff_leave_applications.staff_id', staff_id)
+        .andWhere('staff_leave_applications.academic_session_id', academic_sesion.id);
+
+      // Apply status filter if not 'all'
+      if (status && status !== 'all') {
+        query.andWhere('staff_leave_applications.status', status);
       }
 
-      // Apply status filter - skip if status is 'all'
-      if (status && status !== 'all') {
-        query.where('staff_leave_applications.status', status);
+      // Apply date filter if date is provided
+      if (date) {
+        query.andWhereRaw('? BETWEEN DATE(from_date) AND DATE(to_date)', [date]);
+      } else {
+        // If no date, filter for current or future applications (unless status is 'all')
+        if (status !== 'all') {
+          query.andWhereRaw('? <= DATE(to_date)', [today]);
+        }
       }
 
       // Execute query with pagination
-      let applications = await query.paginate(ctx.request.input('page', 1), 6);
+      let applications = await query.paginate(ctx.request.input('page', 1), 2);
 
       return ctx.response.status(200).json(applications);
     } else {
@@ -912,27 +932,27 @@ export default class LeavesController {
     let query = db.query()
       .from('staff_leave_applications')
       .select(
-      'staff_leave_applications.uuid',
-      // 'staff_leave_applications.staff_id',
-      'staff_leave_applications.leave_type_id',
-      'staff_leave_applications.approved_by',
-      'staff_leave_applications.from_date',
-      'staff_leave_applications.to_date',
-      'staff_leave_applications.number_of_days',
-      'staff_leave_applications.remarks',
-      'staff_leave_applications.is_half_day',
-      'staff_leave_applications.half_day_type',
-      'staff_leave_applications.is_hourly_leave',
-      'staff_leave_applications.total_hour',
-      'staff_leave_applications.reason',
-      'staff_leave_applications.status',
-      'staff_role_master.*' ,
-      'leave_types_master.leave_type_name',
-      'staff.id as staff_id',
-      'staff.first_name',
-      'staff.middle_name',
-      'staff.last_name',
-      'staff.email'
+        'staff_leave_applications.uuid',
+        // 'staff_leave_applications.staff_id',
+        'staff_leave_applications.leave_type_id',
+        'staff_leave_applications.approved_by',
+        'staff_leave_applications.from_date',
+        'staff_leave_applications.to_date',
+        'staff_leave_applications.number_of_days',
+        'staff_leave_applications.remarks',
+        'staff_leave_applications.is_half_day',
+        'staff_leave_applications.half_day_type',
+        'staff_leave_applications.is_hourly_leave',
+        'staff_leave_applications.total_hour',
+        'staff_leave_applications.reason',
+        'staff_leave_applications.status',
+        'staff_role_master.*',
+        'leave_types_master.leave_type_name',
+        'staff.id as staff_id',
+        'staff.first_name',
+        'staff.middle_name',
+        'staff.last_name',
+        'staff.email'
       )
       .join('staff', 'staff.id', 'staff_leave_applications.staff_id')
       .join('staff_role_master', 'staff_role_master.id', 'staff.staff_role_id')
@@ -953,23 +973,13 @@ export default class LeavesController {
     } else {
       // If no date, filter for current or future applications (unless status is 'all')
       if (status !== 'all') {
-      query.andWhereRaw('? <= DATE(to_date)', [today]);
+        query.andWhereRaw('? <= DATE(to_date)', [today]);
       }
     }
-    // Apply search term if provided
-    // if (search_term) {
-    //   const searchTerm = `%${search_term}%`;
-    //   query.andWhere(function () {
-    //   this.whereILike('staff.first_name', searchTerm)
-    //     .orWhereILike('staff.last_name', searchTerm)
-    //     .orWhereILike('staff.email', searchTerm)
-    //     .orWhere('staff.mobile_number', 'like', searchTerm);
-    //   });
-    // }
 
-    query.paginate(page, 6);
+    const paginatedResults = await query.paginate(page, 6);
 
-    return ctx.response.status(200).json(query)
+    return ctx.response.status(200).json(paginatedResults)
   }
 
   async approveTeachersLeaveApplication(ctx: HttpContext) {
@@ -1062,17 +1072,17 @@ export default class LeavesController {
             leaveBalance.used_leaves + leaveDays
           )
 
-          console.log(`Leave Approval - Before update: 
-            Staff ID: ${leave_application.staff_id}
-            Leave Type: ${leave_application.leave_type_id}
-            Days: ${leaveDays}
-            Original Pending: ${originalBalance?.pending_leaves || 0}
-            Original Used: ${originalBalance?.used_leaves || 0}
-            Original Available: ${originalBalance?.available_balance || 0}
-            New Pending: ${pendingLeaves}
-            New Used: ${usedLeaves}
-            Available: ${leaveBalance.available_balance} (unchanged)
-          `)
+          // console.log(`Leave Approval - Before update: 
+          //   Staff ID: ${leave_application.staff_id}
+          //   Leave Type: ${leave_application.leave_type_id}
+          //   Days: ${leaveDays}
+          //   Original Pending: ${originalBalance?.pending_leaves || 0}
+          //   Original Used: ${originalBalance?.used_leaves || 0}
+          //   Original Available: ${originalBalance?.available_balance || 0}
+          //   New Pending: ${pendingLeaves}
+          //   New Used: ${usedLeaves}
+          //   Available: ${leaveBalance.available_balance} (unchanged)
+          // `)
 
           // Update the balance - pending decreases, used increases
           await leaveBalance.merge({
