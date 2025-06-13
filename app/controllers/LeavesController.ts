@@ -72,7 +72,7 @@ export default class LeavesController {
 
       // Validate request payload
       let payload = await CreateValidatorForLeaveType.validate(ctx.request.body())
-      
+
       // Validate academic session
       let academic_session = await AcademicSession.query()
         .where('is_active', true)
@@ -112,7 +112,7 @@ export default class LeavesController {
           message: 'A leave type with this name already exists for this school and academic session',
         })
       }
-      
+
       // Generic error handling
       console.error('Error creating leave type:', error)
       return ctx.response.status(500).json({
@@ -198,7 +198,7 @@ export default class LeavesController {
         message: 'No active academic session found for your school !',
       })
     }
-    
+
     let staff = await Staff.find(staff_id)
 
     if (!staff) {
@@ -214,14 +214,14 @@ export default class LeavesController {
       .andWhere('school_id', ctx.auth.user!.school_id)
       .andWhere('academic_session_id', academic_session_id)
       .orderBy('id', 'desc')
-    
+
     if (!academic_session_id) {
       return ctx.response.status(400).json({
         message: 'Academic session ID is required',
       })
     }
     const leaveBalances = await this.getStaffLeaveBalances(Number(staff_id), academic_session_id)
-    
+
     // Combine policies with their balances
     const result = leave_policies.map(policy => {
       const balance = leaveBalances.find(b => b.leave_type_id === policy.leave_type_id) || {
@@ -230,7 +230,7 @@ export default class LeavesController {
         pending_leaves: 0,
         available_balance: policy.annual_quota
       }
-      
+
       return {
         ...policy.serialize(),
         balance
@@ -504,7 +504,7 @@ export default class LeavesController {
       let targetStaffId = payload.staff_id
       const userRole = ctx.auth.user!.role_id
       const userStaffId = ctx.auth.user!.staff_id
-      
+
       // Check if user has permission to apply leave for others
       if (targetStaffId !== userStaffId) {
         // Only head clerk (role_id 3) can apply for other clerks
@@ -586,14 +586,14 @@ export default class LeavesController {
         .first()
 
       let availableBalance = leavePolicy.annual_quota
-      
+
       // Start transaction for applying leave
       const trx = await db.transaction()
       try {
         // Create or update leave balance
         if (leaveBalance) {
           availableBalance = leaveBalance.available_balance
-          
+
           // Validate if enough balance is available
           if (numberOfDays > availableBalance) {
             await trx.rollback()
@@ -601,11 +601,11 @@ export default class LeavesController {
               message: `Leave request exceeds available balance. Available: ${availableBalance} days, Requested: ${numberOfDays} days`,
             })
           }
-          
+
           // Update existing balance
           const pendingLeaves = this.formatDecimalValue(leaveBalance.pending_leaves + numberOfDays)
           const newAvailableBalance = this.formatDecimalValue(leaveBalance.available_balance - numberOfDays)
-          
+
           await leaveBalance.merge({
             pending_leaves: pendingLeaves,
             available_balance: newAvailableBalance,
@@ -618,10 +618,10 @@ export default class LeavesController {
               message: `Leave request exceeds available balance. Available: ${leavePolicy.annual_quota} days, Requested: ${numberOfDays} days`,
             })
           }
-          
+
           // Create initial leave balance
           const currentYear = new Date().getFullYear()
-          
+
           await StaffLeaveBalance.create({
             staff_id: targetStaffId,
             leave_type_id: payload.leave_type_id,
@@ -680,7 +680,7 @@ export default class LeavesController {
 
     // Start a transaction
     const trx = await db.transaction()
-    
+
     try {
       // Get the leave application with its leave type
       let application = await StaffLeaveApplication.query()
@@ -792,7 +792,7 @@ export default class LeavesController {
         const pendingLeaves = this.formatDecimalValue(leaveBalance.pending_leaves + daysDifference)
         // Update available balance (subtract if adding days, add if reducing days)
         const availableBalance = this.formatDecimalValue(leaveBalance.available_balance - daysDifference)
-        
+
         await leaveBalance.merge({
           pending_leaves: pendingLeaves,
           available_balance: availableBalance
@@ -800,9 +800,9 @@ export default class LeavesController {
       }
 
       // Update the leave application
-      await application.merge({ 
-        ...payload, 
-        number_of_days: numberOfDays 
+      await application.merge({
+        ...payload,
+        number_of_days: numberOfDays
       }).useTransaction(trx).save()
 
 
@@ -909,74 +909,67 @@ export default class LeavesController {
       })
     }
 
-    // Build the query using preload instead of joins
-    let query = StaffLeaveApplication.query()
-      .where('staff_leave_applications.academic_session_id', academic_sesion.id)
-      .preload('leave_type')
-      .preload('staff', (staffQuery) => {
-        staffQuery.select([
-          'id', 
-          'first_name', 
-          'middle_name', 
-          'last_name', 
-          'email', 
-          'mobile_number', 
-          'staff_role_id',
-          'school_id',
-          'is_active'
-        ])
-        .preload('role_type') // Preload the role information
-        .where('is_active', true)
-        .where('school_id', ctx.auth.user!.school_id)
-        
-        // Apply staff type filter at the staff level
-        if (staff_type === 'teaching') {
-          staffQuery.whereHas('role_type', (q) => q.where('is_teaching_role', true))
-        } else if (staff_type === 'non-teaching') {
-          staffQuery.whereHas('role_type', (q) => q.where('is_teaching_role', false))
-        }
-        
-        // Apply search term at the staff level if provided
-        if (search_term) {
-          const searchTerm = `%${search_term}%`
-          staffQuery.where(sq => {
-            sq.whereILike('first_name', searchTerm)
-              .orWhereILike('last_name', searchTerm)
-              .orWhereILike('email', searchTerm)
-              .orWhere('mobile_number', 'like', searchTerm)
-          })
-        }
-      })
+    let query = db.query()
+      .from('staff_leave_applications')
+      .select(
+      'staff_leave_applications.uuid',
+      // 'staff_leave_applications.staff_id',
+      'staff_leave_applications.leave_type_id',
+      'staff_leave_applications.approved_by',
+      'staff_leave_applications.from_date',
+      'staff_leave_applications.to_date',
+      'staff_leave_applications.number_of_days',
+      'staff_leave_applications.remarks',
+      'staff_leave_applications.is_half_day',
+      'staff_leave_applications.half_day_type',
+      'staff_leave_applications.is_hourly_leave',
+      'staff_leave_applications.total_hour',
+      'staff_leave_applications.reason',
+      'staff_leave_applications.status',
+      'staff_role_master.*' ,
+      'leave_types_master.leave_type_name',
+      'staff.id as staff_id',
+      'staff.first_name',
+      'staff.middle_name',
+      'staff.last_name',
+      'staff.email'
+      )
+      .join('staff', 'staff.id', 'staff_leave_applications.staff_id')
+      .join('staff_role_master', 'staff_role_master.id', 'staff.staff_role_id')
+      .join('leave_types_master', 'leave_types_master.id', 'staff_leave_applications.leave_type_id')
+      .where('staff.school_id', ctx.auth.user!.school_id)
+      .andWhere('staff.is_active', true)
+      .andWhere('staff_role_master.is_teaching_role', staff_type === 'teaching')
+      .andWhere('staff_leave_applications.academic_session_id', academic_sesion.id);
 
-    // Apply date filter - find leaves active on the specified date or today
-    if (date) {
-      // Find applications where the requested date falls between from_date and to_date
-      query.where((builder) => {
-        builder.whereRaw('? BETWEEN DATE(from_date) AND DATE(to_date)', [date]);
-      });
-    } else if (status !== 'all') {
-      // For current or future applications when no specific date is requested
-      query.where((builder) => {
-        builder.whereRaw('? <= DATE(to_date)', [today]);
-      });
-    }
-
-    // Apply status filter - skip if status is 'all'
+    // Apply status filter if not 'all'
     if (status && status !== 'all') {
-      query.where('status', status)
+      query.andWhere('staff_leave_applications.status', status);
     }
 
-    // Execute query with pagination
-    const applications = await query.paginate(page, 6)
-
-    if (applications.total === 0) {
-      return ctx.response.status(200).json({
-        message: 'No data found',
-        data: applications
-      })
+    // Apply date filter if date is provided
+    if (date) {
+      query.andWhereRaw('? BETWEEN DATE(from_date) AND DATE(to_date)', [date]);
+    } else {
+      // If no date, filter for current or future applications (unless status is 'all')
+      if (status !== 'all') {
+      query.andWhereRaw('? <= DATE(to_date)', [today]);
+      }
     }
+    // Apply search term if provided
+    // if (search_term) {
+    //   const searchTerm = `%${search_term}%`;
+    //   query.andWhere(function () {
+    //   this.whereILike('staff.first_name', searchTerm)
+    //     .orWhereILike('staff.last_name', searchTerm)
+    //     .orWhereILike('staff.email', searchTerm)
+    //     .orWhere('staff.mobile_number', 'like', searchTerm);
+    //   });
+    // }
 
-    return ctx.response.status(200).json(applications)
+    query.paginate(page, 6);
+
+    return ctx.response.status(200).json(query)
   }
 
   async approveTeachersLeaveApplication(ctx: HttpContext) {
@@ -1023,7 +1016,7 @@ export default class LeavesController {
     }
 
     const payload = await ValidatorForApproveApplication.validate(ctx.request.body())
-    
+
     // Remarks is required for rejections
     if (payload.status === 'rejected' && !payload.remarks) {
       return ctx.response.status(400).json({
@@ -1040,7 +1033,7 @@ export default class LeavesController {
         .andWhere('academic_session_id', leave_application.academic_session_id)
         .orderBy('id', 'desc')
         .first()
-        
+
       // First update application status
       await leave_application.merge({
         ...payload,
@@ -1058,17 +1051,17 @@ export default class LeavesController {
 
       if (leaveBalance) {
         const leaveDays = this.formatDecimalValue(leave_application.number_of_days)
-        
+
         if (payload.status === 'approved') {
           // Properly track the movement from pending to used leaves
           const pendingLeaves = this.formatDecimalValue(
             Math.max(0, leaveBalance.pending_leaves - leaveDays)
           )
-          
+
           const usedLeaves = this.formatDecimalValue(
             leaveBalance.used_leaves + leaveDays
           )
-          
+
           console.log(`Leave Approval - Before update: 
             Staff ID: ${leave_application.staff_id}
             Leave Type: ${leave_application.leave_type_id}
@@ -1080,7 +1073,7 @@ export default class LeavesController {
             New Used: ${usedLeaves}
             Available: ${leaveBalance.available_balance} (unchanged)
           `)
-          
+
           // Update the balance - pending decreases, used increases
           await leaveBalance.merge({
             pending_leaves: pendingLeaves,
@@ -1092,11 +1085,11 @@ export default class LeavesController {
           const pendingLeaves = this.formatDecimalValue(
             Math.max(0, leaveBalance.pending_leaves - leaveDays)
           )
-          
+
           const availableBalance = this.formatDecimalValue(
             leaveBalance.available_balance + leaveDays
           )
-          
+
           console.log(`Leave Rejection - Before update:
             Staff ID: ${leave_application.staff_id}
             Leave Type: ${leave_application.leave_type_id}
@@ -1106,7 +1099,7 @@ export default class LeavesController {
             New Pending: ${pendingLeaves}
             New Available: ${availableBalance}
           `)
-          
+
           await leaveBalance.merge({
             pending_leaves: pendingLeaves,
             available_balance: availableBalance
@@ -1118,7 +1111,7 @@ export default class LeavesController {
           .where('id', leaveBalance.id)
           .useTransaction(trx)
           .first()
-          
+
         console.log(`After update - Balance ID ${updatedBalance?.id}:
           Pending: ${updatedBalance?.pending_leaves}
           Used: ${updatedBalance?.used_leaves}
@@ -1160,42 +1153,42 @@ export default class LeavesController {
     const leaveBalances = await StaffLeaveBalance.query()
       .where('staff_id', staffId)
       .andWhere('academic_session_id', academicSessionId)
-    
+
     return leaveBalances
   }
-  
+
   async fetchStaffLeaveBalances(ctx: HttpContext) {
     const staffId = ctx.params.staff_id
     const academicSessionId = ctx.request.input('academic_session_id')
-    
+
     if (!academicSessionId) {
       return ctx.response.status(400).json({
         message: 'Academic session ID is required',
       })
     }
-    
+
     // Check if the staff exists and belongs to the same school
     const staff = await Staff.query()
       .where('id', staffId)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
-      
+
     if (!staff) {
       return ctx.response.status(404).json({
         message: 'Staff member not found',
       })
     }
-    
+
     // Get leave policies for this staff role
     const leavePolicies = await LeavePolicies.query()
       .preload('leave_type')
       .where('staff_role_id', staff.staff_role_id)
       .andWhere('academic_session_id', academicSessionId)
       .andWhere('school_id', ctx.auth.user!.school_id)
-    
+
     // Get all leave balances for the staff
     const leaveBalances = await this.getStaffLeaveBalances(staffId, academicSessionId)
-    
+
     // Combine policies with their balances
     const result = leavePolicies.map(policy => {
       const balance = leaveBalances.find(b => b.leave_type_id === policy.leave_type_id) || {
@@ -1204,7 +1197,7 @@ export default class LeavesController {
         pending_leaves: 0,
         available_balance: policy.annual_quota
       }
-      
+
       return {
         policy: {
           id: policy.id,
@@ -1217,14 +1210,14 @@ export default class LeavesController {
         balance
       }
     })
-    
+
     return ctx.response.status(200).json(result)
   }
-  
+
   async searchStaff(ctx: HttpContext) {
     try {
       const payload = await SearchValidatorForStaff.validate(ctx.request.all())
-      
+
       const query = Staff.query()
         .select([
           'staff.*',
@@ -1233,14 +1226,14 @@ export default class LeavesController {
         ])
         .join('staff_role_master', 'staff.staff_role_id', 'staff_role_master.id')
         .where('staff.school_id', ctx.auth.user!.school_id)
-      
+
       // Apply filters
       if (payload.staff_type === 'teaching') {
         query.andWhere('staff_role_master.is_teaching_role', true)
       } else if (payload.staff_type === 'non_teaching') {
         query.andWhere('staff_role_master.is_teaching_role', false)
       }
-      
+
       // Apply search terms
       if (payload.search_term) {
         const searchTerm = `%${payload.search_term}%`
@@ -1251,16 +1244,16 @@ export default class LeavesController {
             .orWhere('staff.mobile_number', 'like', searchTerm)
         })
       }
-      
+
       const results = await query.paginate(payload.page || 1, payload.per_page || 10)
-      
+
       if (results.total === 0) {
         return ctx.response.status(200).json({
           message: 'No data found',
           data: results
         })
       }
-      
+
       return ctx.response.status(200).json(results)
     } catch (error) {
       return ctx.response.status(400).json({
@@ -1277,58 +1270,58 @@ export default class LeavesController {
         message: 'Only admin can process leave carry-forward',
       })
     }
-    
+
     const oldSessionId = ctx.request.input('old_session_id')
     const newSessionId = ctx.request.input('new_session_id')
-    
+
     if (!oldSessionId || !newSessionId) {
       return ctx.response.status(400).json({
         message: 'Both old and new session IDs are required',
       })
     }
-    
+
     // Verify both sessions exist and belong to the school
     const oldSession = await AcademicSession.query()
       .where('id', oldSessionId)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
-      
+
     const newSession = await AcademicSession.query()
       .where('id', newSessionId)
       .andWhere('school_id', ctx.auth.user!.school_id)
       .first()
-      
+
     if (!oldSession || !newSession) {
       return ctx.response.status(404).json({
         message: 'One or both academic sessions not found',
       })
     }
-    
+
     // Get all leave balances from old session
     const oldBalances = await StaffLeaveBalance.query()
       .where('academic_session_id', oldSessionId)
-      
+
     // Get all leave policies for new session
     const newPolicies = await LeavePolicies.query()
       .where('academic_session_id', newSessionId)
       .andWhere('can_carry_forward', true)
-      
+
     const trx = await db.transaction()
     try {
       // Process each staff's leave balance
       for (const oldBalance of oldBalances) {
         // Find matching policy for this leave type
         const policy = newPolicies.find(
-          p => p.leave_type_id === oldBalance.leave_type_id && 
-               p.can_carry_forward === true
+          p => p.leave_type_id === oldBalance.leave_type_id &&
+            p.can_carry_forward === true
         )
-        
+
         if (policy) {
           // Calculate carry-forward amount (respecting max_carry_forward_days)
           const carryAmount = this.formatDecimalValue(
             Math.min(oldBalance.available_balance, policy.max_carry_forward_days)
           );
-          
+
           if (carryAmount > 0) {
             // Check if balance record already exists for new session
             const existingBalance = await StaffLeaveBalance.query()
@@ -1336,12 +1329,12 @@ export default class LeavesController {
               .andWhere('leave_type_id', oldBalance.leave_type_id)
               .andWhere('academic_session_id', newSessionId)
               .first()
-              
+
             if (existingBalance) {
               // Update existing balance
               const totalLeaves = this.formatDecimalValue(policy.annual_quota + carryAmount);
               const availableBalance = this.formatDecimalValue(existingBalance.available_balance + carryAmount);
-              
+
               await existingBalance.merge({
                 carried_forward: carryAmount,
                 total_leaves: totalLeaves,
@@ -1350,7 +1343,7 @@ export default class LeavesController {
             } else {
               // Get the new academic year from the new session
               const newYear = parseInt(newSession.end_year)
-              
+
               // Create new balance
               await StaffLeaveBalance.create({
                 staff_id: oldBalance.staff_id,
@@ -1367,9 +1360,9 @@ export default class LeavesController {
           }
         }
       }
-      
+
       await trx.commit()
-      
+
       return ctx.response.status(200).json({
         message: 'Leave carry-forward processed successfully',
       })
@@ -1383,28 +1376,28 @@ export default class LeavesController {
 
   async getLeaveApplicationLogs(ctx: HttpContext) {
     const leave_application_id = ctx.params.id
-    
+
     // Check if application exists and user has access
     const application = await StaffLeaveApplication.query()
       .where('id', leave_application_id)
       .first()
-      
+
     if (!application) {
       return ctx.response.status(404).json({
         message: 'Leave application not found',
       })
     }
-    
+
     // Check if user has permission to view logs
     const isOwner = ctx.auth.user!.staff_id === application.staff_id
     const isAdmin = [1, 2, 3].includes(ctx.auth.user!.role_id)
-    
+
     if (!isOwner && !isAdmin) {
       return ctx.response.status(403).json({
         message: 'You are not authorized to view these logs',
       })
     }
-    
+
     // Get logs with user details
     const logs = await LeaveLog.query()
       .select([
@@ -1416,54 +1409,54 @@ export default class LeavesController {
       .join('users', 'leave_logs.performed_by', 'users.id')
       .where('leave_logs.leave_application_id', leave_application_id)
       .orderBy('leave_logs.created_at', 'desc')
-      
+
     return ctx.response.status(200).json(logs)
   }
 
   async withdrawLeaveApplication(ctx: HttpContext) {
     const uuid = ctx.params.uuid
-    
+
     // Get the leave application
     const leaveApplication = await StaffLeaveApplication.query()
       .where('uuid', uuid)
       .first()
-    
+
     if (!leaveApplication) {
       return ctx.response.status(404).json({
         message: 'Leave application not found',
       })
     }
-    
+
     // Check if user is authorized to withdraw this leave
     const isStaffOwner = leaveApplication.staff_id === ctx.auth.user!.staff_id
     const isAdmin = ctx.auth.user!.role_id === 1
-    
+
     if (!isStaffOwner && !isAdmin) {
       return ctx.response.status(403).json({
         message: 'You are not authorized to withdraw this leave application',
       })
     }
-    
+
     // Validate if leave can be withdrawn (must be in pending status)
     if (leaveApplication.status !== 'pending') {
       return ctx.response.status(400).json({
         message: 'Only pending leave applications can be withdrawn',
       })
     }
-    
+
     const payload = await ValidatorForCancelApplication.validate(ctx.request.body())
-    
+
     const trx = await db.transaction()
     try {
       // Get current status before updating
       const currentStatus = leaveApplication.status
-      
+
       // Update leave application status
       await leaveApplication.merge({
         status: 'cancelled',
         remarks: payload.remarks,
       }).useTransaction(trx).save()
-      
+
       // Get the leave balance
       const leaveBalance = await StaffLeaveBalance.query()
         .where('staff_id', leaveApplication.staff_id)
@@ -1471,7 +1464,7 @@ export default class LeavesController {
         .andWhere('academic_session_id', leaveApplication.academic_session_id)
         .orderBy('id', 'desc')
         .first()
-      
+
       if (leaveBalance) {
         if (currentStatus === 'pending') {
           // If the leave was pending, return the days to available balance
@@ -1482,7 +1475,7 @@ export default class LeavesController {
           const availableBalance = this.formatDecimalValue(
             leaveBalance.available_balance + leaveApplication.number_of_days
           )
-          
+
           await leaveBalance.merge({
             pending_leaves: pendingLeaves,
             available_balance: availableBalance
@@ -1496,7 +1489,7 @@ export default class LeavesController {
           const availableBalance = this.formatDecimalValue(
             leaveBalance.available_balance + leaveApplication.number_of_days
           )
-          
+
           await leaveBalance.merge({
             used_leaves: usedLeaves,
             available_balance: availableBalance
@@ -1504,7 +1497,7 @@ export default class LeavesController {
         }
         // If it was already rejected or cancelled, no balance update needed
       }
-      
+
       // Log the action
       await LeaveLog.create({
         leave_application_id: leaveApplication.id,
@@ -1513,9 +1506,9 @@ export default class LeavesController {
         performed_by: ctx.auth.user?.id,
         remarks: payload.remarks || `Leave withdrawn from ${currentStatus} status`,
       }, { client: trx })
-      
+
       await trx.commit()
-      
+
       return ctx.response.status(200).json({
         message: 'Leave application withdrawn successfully',
         application: leaveApplication,
