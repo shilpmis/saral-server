@@ -15,8 +15,12 @@ export default class InquiriesController {
    * Fetch paginated admission inquiries for the logged-in user's school
    */
   async listAllInquiries(ctx: HttpContext) {
+
     const school_id = ctx.auth.user!.school_id
     const page = ctx.request.input('page', 1)
+    const status = ctx.request.input('status', 'All')
+    const class_id = ctx.request.input('class', 'All')
+    const search_term = ctx.request.input('search', undefined)
     const academic_session_id = ctx.request.input('academic_session', null)
     if (!academic_session_id) {
       return ctx.response.status(400).json({
@@ -24,35 +28,38 @@ export default class InquiriesController {
       })
     }
 
-    const inquiries = await AdmissionInquiry.query()
+    const inquiries = db.query()
+      .from('admission_inquiries as ai')
+      .select(['ai.*' , 'se.student_id', 'se.division_id'])
+      .leftJoin('student_enrollments as se', 'se.id', 'ai.student_enrollments_id')
       .where('school_id', school_id)
-      .andWhere('academic_session_id', academic_session_id)
-      .preload('quota', (query) => {
-        query.select('*')
-      })
-      .preload('class_seat_availability', (query) => {
-        query.select('*')
-      })
-      .preload('created_by_user')
-      .orderBy('created_at', 'desc')
-      .paginate(page, 10)
+      .andWhere('ai.academic_session_id', academic_session_id)
 
-    // Fetch student_enrollment only if student_enrollments_id is not null
-    const result = inquiries.serialize().data.map(async (inquiry: any) => {
-      if (inquiry.student_enrollments_id) {
-        const enrollment = await StudentEnrollments.find(inquiry.student_enrollments_id)
-        return { ...inquiry, student_enrollment: enrollment }
-      } else {
-        return { ...inquiry, student_enrollment: null }
-      }
-    })
+    if (status !== 'All' && status !== 'all' && status !== undefined) {
+      console.log('Filtering by status:', status)
+      inquiries.where('ai.status', status)
+    }
 
-    const data = await Promise.all(result)
+    if (class_id !== 'All' && class_id !== 'all' && class_id !== undefined) {
+      console.log('Filtering by class ID:', class_id)
+      inquiries.where('ai.inquiry_for_class', class_id)
+    }
 
-    return ctx.response.status(200).json({
-      ...inquiries.toJSON(),
-      data,
-    })
+    if (search_term !== undefined && search_term !== '' && search_term !== "undefined") {
+      console.log('Filtering by search term:', search_term)
+      inquiries.whereLike('ai.first_name', `%${search_term}%`)
+        .orWhereLike('ai.middle_name', `%${search_term}%`)
+        .orWhereLike('ai.last_name', `%${search_term}%`)
+        .orWhereLike('ai.father_name', `%${search_term}%`)
+        .orWhereLike('ai.primary_mobile', `%${search_term}%`)
+        .orWhereLike('ai.previous_school', `%${search_term}%`)
+    }
+
+    inquiries.orderBy('created_at', 'desc')
+    let response = await inquiries.paginate(page, 6)
+
+
+    return ctx.response.status(200).json(response)
   }
 
   /**
@@ -116,7 +123,7 @@ export default class InquiriesController {
         ...payload,
         created_by: ctx.auth.user!.id,
         school_id: ctx.auth.user!.school_id,
-        student_enrollments_id : null,
+        student_enrollments_id: null,
         // class_applying_for : payload.inquiry_for_class,
       })
 

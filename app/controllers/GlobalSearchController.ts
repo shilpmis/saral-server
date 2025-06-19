@@ -13,25 +13,32 @@ export default class GlobalSearchController {
         aadhar_no,
         primary_mobile,
         enrollment_code,
-        detailed,
-        enrollment_status,
+        // detailed,
+        // enrollment_status,
       } = request.qs()
 
       if (!school_id || !academic_session_id) {
         return response.badRequest({ message: 'Invalid request: Missing required parameters.' })
       }
 
-      const studentsQuery = Students.query().where('school_id', school_id)
+      const studentsQuery = Students
+      .query()
+      .preload('academic_class' , (query)=>{
+        query.preload('division') 
+        query.where('academic_session_id' , academic_session_id)
+      })
+      .select(['id' ,'enrollment_code' ,'first_name' ,  'middle_name' , 'last_name' , 'gender' , 'gr_no' , 'roll_number' ,'primary_mobile'])
+      .where('school_id', school_id)
 
       // Filter by student enrollment for the academic session
-      studentsQuery.whereHas('academic_class', (enrollmentQuery) => {
-        enrollmentQuery.where('academic_session_id', academic_session_id)
+      // studentsQuery.whereHas('academic_class', (enrollmentQuery) => {
+      //   enrollmentQuery.where('academic_session_id', academic_session_id)
         
-        // Optional filter by enrollment status if provided
-        if (enrollment_status) {
-          enrollmentQuery.where('status', enrollment_status)
-        }
-      })
+      //   // Optional filter by enrollment status if provided
+      //   if (enrollment_status) {
+      //     enrollmentQuery.where('status', enrollment_status)
+      //   }
+      // })
 
       if (name) {
         studentsQuery.andWhere((query) => {
@@ -59,28 +66,28 @@ export default class GlobalSearchController {
         studentsQuery.andWhere('enrollment_code', 'LIKE', `%${enrollment_code}%`)
       }
 
-      if (detailed === 'true') {
-        studentsQuery
-          .preload('student_meta')
-          .preload('fees_status', (query) => {
-            query.where('academic_session_id', academic_session_id)
-          })
-          .preload('provided_concession', (query) => {
-            query.where('academic_session_id', academic_session_id).preload('concession')
-          })
-          .preload('academic_class', (query) => {
-            query.where('academic_session_id', academic_session_id)
-              .select(['id', 'student_id', 'division_id', 'academic_session_id', 'status'])
-              .preload('division', (query) => {
-                query.preload('class')
-              })
-          })
-      } else {
-        studentsQuery.preload('academic_class', (query) => {
-          query.where('academic_session_id', academic_session_id)
-            .select(['id', 'student_id', 'division_id', 'academic_session_id', 'status'])
-        })
-      }
+      // if (detailed === 'true') {
+      //   studentsQuery
+      //     .preload('student_meta')
+      //     .preload('fees_status', (query) => {
+      //       query.where('academic_session_id', academic_session_id)
+      //     })
+      //     .preload('provided_concession', (query) => {
+      //       query.where('academic_session_id', academic_session_id).preload('concession')
+      //     })
+      //     .preload('academic_class', (query) => {
+      //       query.where('academic_session_id', academic_session_id)
+      //         .select(['id', 'student_id', 'division_id', 'academic_session_id', 'status'])
+      //         .preload('division', (query) => {
+      //           query.preload('class')
+      //         })
+      //     })
+      // } else {
+      //   studentsQuery.preload('academic_class', (query) => {
+      //     query.where('academic_session_id', academic_session_id)
+      //       .select(['id', 'student_id', 'division_id', 'academic_session_id', 'status'])
+      //   })
+      // }
 
       const students = await studentsQuery
 

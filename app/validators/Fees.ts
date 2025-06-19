@@ -157,7 +157,7 @@ export const UpdateValidatorForFeesPlanDetails = vine.compile(
           installment_breakDowns: vine
             .array(
               vine.object({
-                id : vine.number(),
+                id : vine.number().nullable(),
                 installment_no: vine.number(),
                 installment_amount: vine.number(),
                 due_date: vine.date(),
@@ -167,6 +167,7 @@ export const UpdateValidatorForFeesPlanDetails = vine.compile(
         })
       )
       .optional(),
+    deleted_fees_type : vine.array(vine.number()).optional(),
   })
 )
 

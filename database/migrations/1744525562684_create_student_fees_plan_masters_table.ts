@@ -23,7 +23,7 @@ export default class extends BaseSchema {
       table.decimal('total_amount', 10, 2).notNullable().defaultTo(0)
       table.decimal('discounted_amount', 10, 2).nullable().defaultTo(0) //-- After applying concessions
       table.decimal('paid_amount', 10, 2).defaultTo(0) //-- Tracks total paid
-      table.decimal('due_amount', 10, 2) //.computed('total_amount - paid_amount')
+      table.decimal('due_amount', 10, 2)
       table.enum('status', ['Partially Paid', 'Paid', 'Unpaid']).notNullable()
 
       table.timestamp('created_at')

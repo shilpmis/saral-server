@@ -897,7 +897,7 @@ export default class LeavesController {
       }
 
       // Execute query with pagination
-      let applications = await query.paginate(ctx.request.input('page', 1), 10);
+      let applications = await query.paginate(ctx.request.input('page', 1), 6);
 
       return ctx.response.status(200).json(applications);
     } else {
@@ -977,7 +977,7 @@ export default class LeavesController {
       }
     }
 
-    const paginatedResults = await query.paginate(page, 10);
+    const paginatedResults = await query.paginate(page, 6);
 
     return ctx.response.status(200).json(paginatedResults)
   }

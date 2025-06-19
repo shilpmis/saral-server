@@ -608,6 +608,7 @@ export default class FeesController {
   }
 
   async updatePlan(ctx: HttpContext) {
+
     let plan_id = ctx.params.plan_id
     if (ctx.auth.user?.role_id !== 1) {
       return ctx.response.status(401).json({
@@ -615,7 +616,29 @@ export default class FeesController {
       })
     }
 
-    const { general_detail_for_plan, new_fees_type, existing_fees_type } = await UpdateValidatorForFeesPlanDetails.validate(ctx.request.body())
+
+    const { general_detail_for_plan, new_fees_type, existing_fees_type, deleted_fees_type } = await UpdateValidatorForFeesPlanDetails.validate(ctx.request.body())
+
+    // check whthere there is fees_detail_id inside existing_fees_type or new_fees_type , which are also in delete_fees_type 
+    if (deleted_fees_type && existing_fees_type && existing_fees_type.length !== 0) {
+      for (let detail of existing_fees_type) {
+        if (deleted_fees_type.includes(detail.fees_plan_detail_id)) {
+          return ctx.response.status(400).json({
+            message: 'Fees type cannot be deleted as it is already attached to a student',
+          })
+        }
+      }
+    }
+
+    if (deleted_fees_type && new_fees_type && new_fees_type.length !== 0) {
+      for (let detail of new_fees_type) {
+        if (deleted_fees_type.includes(detail.fees_type_id)) {
+          return ctx.response.status(400).json({
+            message: 'Fees type cannot be deleted as it is already attached to a student',
+          })
+        }
+      }
+    }
 
     let plan = await FeesPlan
       .query()
@@ -735,10 +758,35 @@ export default class FeesController {
         }
       }
 
+      // handle delete fees type of plan
+      let reduced_amount_from_deleted_Fees_type = 0
+      if (deleted_fees_type && deleted_fees_type.length !== 0) {
+        for (let fees_plan_detail_id of deleted_fees_type) {
+          let fees_plan_detail = await FeesPlanDetails.query()
+            .preload('installments_breakdown')
+            .where('id', fees_plan_detail_id)
+            .andWhere('fees_plan_id', plan.id)
+            .first()
+
+          if (!fees_plan_detail) {
+            return ctx.response.status(404).json({
+              message: 'Fees plan detail not found for this plan',
+            })
+          }
+          reduced_amount_from_deleted_Fees_type += fees_plan_detail.total_amount
+          await fees_plan_detail.useTransaction(trx).delete()
+
+          // remove previous installment breakdowns
+          for (let breakdown of fees_plan_detail.installments_breakdown) {
+            await breakdown.useTransaction(trx).delete()
+          }
+        }
+      }
+
       // update fees plan 
 
       // Calculate amount to subtract: only for existing fees types that actually exist in plan.fees_detail
-      let amount_to_subtract = 0
+      let amount_to_subtract = reduced_amount_from_deleted_Fees_type;
       if (existing_fees_type && plan.fees_detail) {
         amount_to_subtract = existing_fees_type.reduce((acc, detail) => {
           const found = plan.fees_detail.find((fd) => fd.id === detail.fees_plan_detail_id)
@@ -766,6 +814,12 @@ export default class FeesController {
       })
     }
   }
+
+  // async updatePlan(ctx : HttpContext){
+  //   return ctx.response.status(400).json({
+  //     message: 'This endpoint is not implemented yet !',
+  //   })
+  // }
 
   async deleteFeesPlan(ctx: HttpContext) {
     let plan_id = ctx.params.plan_id
@@ -2392,6 +2446,11 @@ export default class FeesController {
 
   async indexConcessionType(ctx: HttpContext) {
     let academic_session_id = ctx.request.input('academic_session')
+    let status = ctx.request.input('status')
+    let category = ctx.request.input('category')
+    let search = ctx.request.input('search')
+    let page = ctx.request.input('page', 1)
+
     let academic_session = await AcademicSession.query()
       .where('id', academic_session_id)
       .andWhere('is_active', 1)
@@ -2405,17 +2464,41 @@ export default class FeesController {
     let fetch_all = ctx.request.input('all', false)
     let concessions: Concessions[] = []
     if (!fetch_all) {
-      concessions = await Concessions.query()
+      let concessions = db
+        .query()
+        .from('concessions')
         .where('school_id', ctx.auth.user!.school_id)
         .andWhere('academic_session_id', academic_session_id)
-        .paginate(ctx.request.input('page', 1), 10)
+        
+
+      if (status !== 'all' && status !== 'All') {
+        console.log("Inside status")
+        concessions.andWhere('status', status == 'active' ? 'Active' : 'Inactive')
+      }
+
+      if (category !== 'all' && category !== 'All') {
+        console.log("Inside cate")        
+        concessions.andWhere('category', category)
+      }
+
+      if (search !== '' && (search !== undefined && search !== 'undefined' )) {
+        console.log("Inside search")
+        concessions.andWhereILike('name', `%${search}%`)
+        concessions.orWhereILike('description', `%${search}%`)
+        // concessions.orWhereILike('applicable_to', `%${search}%`)
+      }
+
+      let responce = await concessions.paginate(page, 6)
+
+      return ctx.response.json(responce)
+
     } else {
       concessions = await Concessions.query()
         .where('school_id', ctx.auth.user!.school_id)
         .andWhere('academic_session_id', academic_session_id)
       // .paginate(ctx.request.input('page', 1), 10);
+      return ctx.response.json(concessions)
     }
-    return ctx.response.json(concessions)
   }
 
   async indexAllConcessionType(ctx: HttpContext) {
