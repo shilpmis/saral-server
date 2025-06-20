@@ -254,6 +254,7 @@ router
     router.get('/concessions', [FeesController, 'indexConcessionType'])
     router.get('/concessions/all', [FeesController, 'indexAllConcessionType'])
     router.get('/concession/:concession_id', [FeesController, 'fetchDetailConcessionType'])
+    router.get('/concession/holder-students/:concession_id', [FeesController, 'fetchConcessionHolderStudents'])
     router.post('/concession', [FeesController, 'createConcession'])
     router.put('/concession/:concession_id', [FeesController, 'updateConcession'])
     router.post('/concession/apply/plan', [FeesController, 'applyConcessionToPlan'])
