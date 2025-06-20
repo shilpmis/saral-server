@@ -2469,20 +2469,20 @@ export default class FeesController {
         .from('concessions')
         .where('school_id', ctx.auth.user!.school_id)
         .andWhere('academic_session_id', academic_session_id)
-        
+
 
       if (status !== 'all' && status !== 'All') {
-        console.log("Inside status")
+        // console.log("Inside status")
         concessions.andWhere('status', status == 'active' ? 'Active' : 'Inactive')
       }
 
       if (category !== 'all' && category !== 'All') {
-        console.log("Inside cate")        
+        // console.log("Inside cate")        
         concessions.andWhere('category', category)
       }
 
-      if (search !== '' && (search !== undefined && search !== 'undefined' )) {
-        console.log("Inside search")
+      if (search !== '' && (search !== undefined && search !== 'undefined')) {
+        // console.log("Inside search")
         concessions.andWhereILike('name', `%${search}%`)
         concessions.orWhereILike('description', `%${search}%`)
         // concessions.orWhereILike('applicable_to', `%${search}%`)
@@ -2532,49 +2532,67 @@ export default class FeesController {
         message: 'Concession not found',
       })
     }
-    /**
-     *  Find  Applied Plan for this concession
-     */
+    return ctx.response.json(concession)
+  }
 
-    type res = {
-      concession: Concessions
-      concession_holder_plans: ConcessionFeesPlanMaster[] | null
-      concession_holder_students: ConcessionStudentMaster[] | null
+  async fetchConcessionHolderStudents(ctx: HttpContext) {
+    let concession_id = ctx.params.concession_id
+    let academic_session_id = ctx.request.input('academic_session')
+    let class_id = ctx.request.input('class')
+    let division_id = ctx.request.input('division')
+    let search = ctx.request.input('search')
+
+
+    let concession = await Concessions.query()
+      .where('id', concession_id)
+      .andWhere('academic_session_id', academic_session_id)
+      .first()
+    if (!concession) {
+      return ctx.response.status(404).json({
+        message: 'Concession not found',
+      })
     }
 
-    let response_obj: res = {
-      concession: concession,
-      concession_holder_plans: null,
-      concession_holder_students: null,
+    let students = db.query().from('concessions_student_masters')
+      .select('concessions_student_masters.*',
+        'students.first_name',
+        'students.middle_name',
+        'students.last_name',
+        'students.gr_no',
+        'students.roll_number',
+        'd.class_id',
+        'd.id as division_id',
+        'fp.name as fees_plan_name',
+        'ft.name as fees_type_name',
+      )
+      .where('concession_id', concession_id)
+      .andWhere('concessions_student_masters.academic_session_id', academic_session_id)
+      .leftJoin('students', 'concessions_student_masters.student_id', 'students.id')
+      .join('student_enrollments as se', 'students.id', 'se.student_id')
+      .join('divisions as d', 'se.division_id', 'd.id')
+      .join('fees_plans as fp', 'concessions_student_masters.fees_plan_id', 'fp.id')
+      .join('fees_types as ft', 'concessions_student_masters.fees_type_id', 'ft.id')
+
+    if (class_id && class_id !== undefined && class_id !== 'undefined') {
+      students.andWhere('d.class_id', class_id)
     }
 
-    if (concession.applicable_to === 'plan') {
-      let plans = await ConcessionFeesPlanMaster.query()
-        .preload('fees_plan')
-        .preload('fees_type')
-        .where('concession_id', concession_id)
-
-      response_obj.concession_holder_plans = plans
-    }
-    if (concession.applicable_to === 'students') {
-      let students = await ConcessionStudentMaster.query()
-        .preload('student', (query) => {
-          query.preload('academic_class', (query) => {
-            query.preload('division', (query) => {
-              query.preload('class', (query) => {
-                query.select('id', 'class').where('school_id', ctx.auth.user!.school_id)
-              })
-            })
-          })
-          query.select('id', 'first_name', 'middle_name', 'last_name', 'gr_no', 'roll_number')
-        })
-        .preload('fees_plan')
-        .where('concession_id', concession_id)
-
-      response_obj.concession_holder_students = students
+    if (division_id && division_id !== undefined && division_id !== 'undefined') {
+      students.andWhere('d.id', division_id)
     }
 
-    return ctx.response.json(response_obj)
+    if (search && search !== undefined && search !== 'undefined') {
+      students.where('students.first_name', 'like', `%${search}%`)
+        .orWhere('students.middle_name', 'like', `%${search}%`)
+        .orWhere('students.last_name', 'like', `%${search}%`)
+        .orWhere('students.gr_no', 'like', `%${search}%`)
+        .orWhere('students.roll_number', 'like', `%${search}%`)
+    }
+
+
+    let response = await students.paginate(ctx.request.input('page', 1), 6)
+
+    return ctx.response.json(response)
   }
 
   async createConcession(ctx: HttpContext) {
